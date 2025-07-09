@@ -4,7 +4,7 @@ from app.main import app
 
 def test_get_userinfo_success(client, setup_user):
     """Test that the /userinfo endpoint returns the current user's information."""
-    response = client.get("/userinfo/")
+    response = client.get("/userinfo")
     assert response.status_code == 200
 
     user_data = response.json()
@@ -23,7 +23,7 @@ def test_get_userinfo_success(client, setup_user):
     assert user_data["last_name"] == test_user.last_name
 
 
-def test_update_userinfo_success(client, setup_user):
+def test_update_user_success(client, setup_user):
     """Test that the PUT /userinfo endpoint successfully updates user information."""
     # Prepare update data
     update_data = {
@@ -32,7 +32,7 @@ def test_update_userinfo_success(client, setup_user):
         "email": "updated@example.com",
     }
 
-    response = client.put("/userinfo/", json=update_data)
+    response = client.put("/user", json=update_data)
     assert response.status_code == 200
 
     user_data = response.json()
@@ -41,7 +41,7 @@ def test_update_userinfo_success(client, setup_user):
     assert user_data["email"] == "updated@example.com"
 
     # Verify the user was actually updated by fetching again
-    get_response = client.get("/userinfo/")
+    get_response = client.get("/userinfo")
     assert get_response.status_code == 200
     updated_user_data = get_response.json()
     assert updated_user_data["first_name"] == "Updated First"
@@ -49,12 +49,12 @@ def test_update_userinfo_success(client, setup_user):
     assert updated_user_data["email"] == "updated@example.com"
 
 
-def test_update_userinfo_partial(client, setup_user):
-    """Test that the PUT /userinfo endpoint allows partial updates."""
+def test_update_user_partial(client, setup_user):
+    """Test that the PUT /user endpoint allows partial updates."""
     # Update only first name
     update_data = {"first_name": "Partial Update"}
 
-    response = client.put("/userinfo/", json=update_data)
+    response = client.put("/user", json=update_data)
     assert response.status_code == 200
 
     user_data = response.json()
@@ -65,13 +65,13 @@ def test_update_userinfo_partial(client, setup_user):
     assert user_data["email"] == test_user.email
 
 
-# def test_update_userinfo_unauthorized(client):
+# def test_update_user_unauthorized(client):
 #     """Test that the PUT /userinfo endpoint returns 401 when no authentication is provided."""
 #     # Remove the Authorization header for this request
 #     headers = dict(client.headers)
 #     headers.pop("Authorization", None)
 #     update_data = {"first_name": "Test"}
-#     response = client.put("/userinfo/", json=update_data, headers=headers)
+#     response = client.put("/userinfo", json=update_data, headers=headers)
 #     assert response.status_code == 401
 #     assert "detail" in response.json()
 #     assert response.json()["detail"] == "Not authenticated"

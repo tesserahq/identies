@@ -5,10 +5,10 @@ from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/userinfo", tags=["User"])
+router = APIRouter(tags=["User"])
 
 
-@router.get("/", response_model=User)
+@router.get("/userinfo", response_model=User)
 async def get_current_user_info(
     request: Request,
     db: Session = Depends(get_db),
@@ -23,7 +23,7 @@ async def get_current_user_info(
     return user
 
 
-@router.put("/", response_model=User)
+@router.put("/user", response_model=User)
 async def update_current_user_info(
     user_update: UserUpdate,
     request: Request,
