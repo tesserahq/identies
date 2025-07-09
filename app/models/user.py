@@ -36,6 +36,7 @@ class User(Base, TimestampMixin):
     verified = Column(Boolean, default=False)
     verified_at = Column(DateTime, nullable=True)
     external_id = Column(String, nullable=True)
+    theme_preference = Column(String, default="system", nullable=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

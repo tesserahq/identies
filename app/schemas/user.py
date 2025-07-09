@@ -34,6 +34,9 @@ class UserBase(BaseModel):
     verified_at: Optional[datetime] = None
     """Timestamp when the user's account was verified."""
 
+    theme_preference: str = "system"
+    """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
+
 
 class UserCreate(UserBase):
     """Schema for creating a new user. Inherits all fields from UserBase."""
@@ -74,6 +77,9 @@ class UserUpdate(BaseModel):
 
     verified_at: Optional[datetime] = None
     """Updated verification timestamp."""
+
+    theme_preference: Optional[str] = None
+    """Updated theme preference. Can be 'system', 'dark', or 'light'."""
 
 
 class UserInDB(UserBase):
@@ -126,6 +132,9 @@ class UserDetails(BaseModel):
 
     verified_at: Optional[datetime] = None
     """Timestamp when the user's account was verified."""
+
+    theme_preference: str = "system"
+    """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
 
     class Config:
         """Pydantic model configuration."""

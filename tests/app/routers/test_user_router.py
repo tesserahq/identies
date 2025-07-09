@@ -30,6 +30,7 @@ def test_update_user_success(client, setup_user):
         "first_name": "Updated First",
         "last_name": "Updated Last",
         "email": "updated@example.com",
+        "theme_preference": "dark",
     }
 
     response = client.put("/user", json=update_data)
@@ -39,7 +40,7 @@ def test_update_user_success(client, setup_user):
     assert user_data["first_name"] == "Updated First"
     assert user_data["last_name"] == "Updated Last"
     assert user_data["email"] == "updated@example.com"
-
+    assert user_data["theme_preference"] == "dark"
     # Verify the user was actually updated by fetching again
     get_response = client.get("/userinfo")
     assert get_response.status_code == 200
@@ -47,6 +48,7 @@ def test_update_user_success(client, setup_user):
     assert updated_user_data["first_name"] == "Updated First"
     assert updated_user_data["last_name"] == "Updated Last"
     assert updated_user_data["email"] == "updated@example.com"
+    assert updated_user_data["theme_preference"] == "dark"
 
 
 def test_update_user_partial(client, setup_user):
