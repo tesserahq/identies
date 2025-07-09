@@ -57,6 +57,9 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     register_exception_handlers(app)
 
     # Include routers
+    from app.routers.user_router import router as user_router
+
+    app.include_router(user_router)
 
     return app
 
