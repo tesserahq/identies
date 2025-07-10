@@ -23,6 +23,21 @@ async def get_current_user_info(
     return user
 
 
+@router.get("/user", response_model=User)
+async def get_user(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Get information about the currently authenticated user.
+
+    Returns the user profile information for the authenticated user making the request.
+    """
+    user = await get_current_user(request)
+
+    return user
+
+
 @router.put("/user", response_model=User)
 async def update_current_user_info(
     user_update: UserUpdate,
