@@ -34,7 +34,7 @@ class UserBase(BaseModel):
     verified_at: Optional[datetime] = None
     """Timestamp when the user's account was verified."""
 
-    theme_preference: str = "system"
+    theme_preference: Optional[str] = "system"
     """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
 
 
@@ -133,7 +133,7 @@ class UserDetails(BaseModel):
     verified_at: Optional[datetime] = None
     """Timestamp when the user's account was verified."""
 
-    theme_preference: str = "system"
+    theme_preference: Optional[str] = "system"
     """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
 
     class Config:
