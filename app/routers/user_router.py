@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from app.utils.auth import get_current_user
-from app.schemas.user import User, UserUpdate
+from app.schemas.user import User, UserUpdate, UserResponse
 from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
@@ -8,7 +8,7 @@ from app.services.user_service import UserService
 router = APIRouter(tags=["User"])
 
 
-@router.get("/userinfo", response_model=User)
+@router.get("/userinfo", response_model=UserResponse)
 async def get_current_user_info(
     request: Request,
     db: Session = Depends(get_db),
@@ -23,7 +23,7 @@ async def get_current_user_info(
     return user
 
 
-@router.get("/user", response_model=User)
+@router.get("/user", response_model=UserResponse)
 async def get_user(
     request: Request,
     db: Session = Depends(get_db),
@@ -38,7 +38,7 @@ async def get_user(
     return user
 
 
-@router.put("/user", response_model=User)
+@router.put("/user", response_model=UserResponse)
 async def update_current_user_info(
     user_update: UserUpdate,
     request: Request,

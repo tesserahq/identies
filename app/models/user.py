@@ -29,6 +29,7 @@ class User(Base, TimestampMixin):
     email = Column(String, unique=True, nullable=True)
     username = Column(String, unique=True, nullable=True)
     avatar_url = Column(String, nullable=True)
+    avatar_asset_id = Column(String, nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     provider = Column(String, nullable=True)

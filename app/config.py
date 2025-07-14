@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     super_user_email: Optional[str] = Field(
         default=None, json_schema_extra={"env": "SUPER_USER_EMAIL"}
     )  # Optional field for super user setup
+    vaulta_api_url: str = Field(
+        default="http://localhost:8000", json_schema_extra={"env": "VAULTA_API_URL"}
+    )
+    vaulta_client_id: str = Field(
+        default="", json_schema_extra={"env": "VAULTA_CLIENT_ID"}
+    )
+    vaulta_client_secret: str = Field(
+        default="", json_schema_extra={"env": "VAULTA_CLIENT_SECRET"}
+    )
 
     oidc_domain: str = "test.oidc.com"
     oidc_api_audience: str = "https://test-api"
