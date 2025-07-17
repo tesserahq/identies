@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.schemas.user import UserOnboard
 import jwt
 import requests  # For making HTTP requests
@@ -125,6 +126,13 @@ class VerifyToken:
         last_name = name[1]
         avatar_url = userinfo.get("picture")
 
+        # Extract identity information from JWT payload
+        provider = None
+        if "identies" in payload and payload["identies"]:
+            # Get the first identity (users typically have just one)
+            identity = payload["identies"][0]
+            provider = identity.get("provider")
+
         # Onboard the user locally
         user = self.user_service.onboard_user(
             UserOnboard(
@@ -133,6 +141,9 @@ class VerifyToken:
                 first_name=first_name,
                 last_name=last_name,
                 avatar_url=avatar_url,
+                provider=provider,
+                verified=True,
+                verified_at=datetime.now(),
             )
         )
 
