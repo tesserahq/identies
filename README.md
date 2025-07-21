@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="60px" src="assets/logo.png">
+  <img width="90px" src="assets/logo-only.png">
   
   <h1 align="center">Identis</h1>
   
