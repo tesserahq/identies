@@ -1,7 +1,7 @@
 <p align="center">
   <img width="60px" src="assets/logo.png">
   
-  <h1 align="center">Identies</h1>
+  <h1 align="center">Identis</h1>
   
   <p align="center">
     The identity and user management service responsible for handling user lifecycle operations, authentication data, identity resolution, and related metadata across the platform.
