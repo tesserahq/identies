@@ -98,9 +98,16 @@ class VerifyToken:
             # User exists in database, cache the existence
             return user
         else:
-            # User doesn't exist, cache the non-existence and fetch from OIDC
-            userinfo = self.fetch_user_info_from_oidc(token)
-            user = self.handle_user_onboarding(payload, userinfo)
+            # Check if this is a service account (sub ends with @clients)
+            is_service_account = user_id.endswith("@clients")
+
+            if is_service_account:
+                # Handle service account onboarding without calling userinfo
+                user = self.handle_service_account_onboarding(payload)
+            else:
+                # User doesn't exist, cache the non-existence and fetch from OIDC
+                userinfo = self.fetch_user_info_from_oidc(token)
+                user = self.handle_user_onboarding(payload, userinfo)
             return user
 
     def fetch_user_info_from_oidc(self, access_token: str) -> dict:
@@ -108,6 +115,9 @@ class VerifyToken:
         userinfo_url = f"https://{self.config.oidc_domain}/userinfo"
         headers = {"Authorization": f"Bearer {access_token}"}
         response = requests.get(userinfo_url, headers=headers)
+
+        print("response")
+        print(response)
 
         if response.status_code != 200:
             raise UnauthorizedException(
@@ -144,6 +154,27 @@ class VerifyToken:
                 provider=provider,
                 verified=True,
                 verified_at=datetime.now(),
+            )
+        )
+
+        return user
+
+    def handle_service_account_onboarding(self, payload: dict):
+        """Onboard a service account with generic values."""
+        user_id = payload["sub"]
+
+        # Onboard the service account with generic values
+        user = self.user_service.onboard_user(
+            UserOnboard(
+                external_id=user_id,
+                email=None,  # Service accounts don't have emails
+                first_name="System",
+                last_name="Account",
+                avatar_url=None,  # No avatar for service accounts
+                provider=None,
+                verified=True,
+                verified_at=datetime.now(),
+                service_account=True,  # Mark as service account
             )
         )
 

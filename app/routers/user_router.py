@@ -4,6 +4,7 @@ from app.schemas.user import User, UserUpdate, UserResponse
 from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
+from app.exceptions.service_account_error import ServiceAccountError
 
 router = APIRouter(tags=["User"])
 
@@ -49,8 +50,16 @@ async def update_current_user_info(
 
     Allows the authenticated user to update their profile information.
     Only the fields provided in the request will be updated.
+    Service accounts cannot be updated through this endpoint.
     """
     current_user = await get_current_user(request)
+
+    # Check if the user is a service account
+    if current_user.service_account:
+        raise ServiceAccountError(
+            "Service accounts cannot be updated through this endpoint"
+        )
+
     user_service = UserService(db)
 
     updated_user = user_service.update_user(current_user.id, user_update)
