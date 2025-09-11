@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from app.utils.auth import get_current_user
-from app.schemas.user import User, UserUpdate, UserResponse
+from app.schemas.user import UserUpdate, UserResponse
 from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService

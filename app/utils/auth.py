@@ -116,9 +116,6 @@ class VerifyToken:
         headers = {"Authorization": f"Bearer {access_token}"}
         response = requests.get(userinfo_url, headers=headers)
 
-        print("response")
-        print(response)
-
         if response.status_code != 200:
             raise UnauthorizedException(
                 f"Failed to fetch user info from oidc. "
@@ -163,11 +160,16 @@ class VerifyToken:
         """Onboard a service account with generic values."""
         user_id = payload["sub"]
 
+        # Authorized party (the party to which this token was issued)
+        azp = payload["azp"]
+
+        email = azp + "@" + self.config.oidc_domain
+
         # Onboard the service account with generic values
         user = self.user_service.onboard_user(
             UserOnboard(
                 external_id=user_id,
-                email=None,  # Service accounts don't have emails
+                email=email,  # Service accounts don't have emails
                 first_name="System",
                 last_name="Account",
                 avatar_url=None,  # No avatar for service accounts

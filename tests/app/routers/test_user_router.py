@@ -1,5 +1,3 @@
-import pytest
-from app.main import app
 
 
 def test_get_userinfo_success(client, setup_user):
