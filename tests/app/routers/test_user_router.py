@@ -1,5 +1,3 @@
-
-
 def test_get_userinfo_success(client, setup_user):
     """Test that the /userinfo endpoint returns the current user's information."""
     response = client.get("/userinfo")
