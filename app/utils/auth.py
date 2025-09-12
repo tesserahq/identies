@@ -2,11 +2,13 @@ from datetime import datetime
 from app.schemas.user import UserOnboard
 import jwt
 import requests  # For making HTTP requests
-from fastapi import HTTPException, status, Request
+from fastapi import HTTPException, status, Request, Header
 from fastapi.security import HTTPBearer
+from typing import Optional
 
 from app.config import get_settings
 from app.services.user_service import UserService
+from app.services.api_key_service import ApiKeyService
 
 security = HTTPBearer()
 
@@ -35,12 +37,47 @@ def verify_token_dependency(request: Request, token: str):
     request.state.user = user
 
 
-async def get_current_user(request: Request):
-    if not hasattr(request.state, "user") or request.state.user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
-        )
-    return request.state.user
+async def get_current_user(
+    request: Request,
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    """
+    Get the current user with support for both JWT tokens and API keys.
+
+    Supports:
+    - Authorization: Bearer <jwt_token>
+    - X-API-Key: <api_key>
+    """
+    db = get_db_from_request(request)
+
+    # Try API key authentication first
+    if x_api_key:
+        api_key_service = ApiKeyService(db)
+        api_key = api_key_service.verify_api_key(str(x_api_key))
+        if api_key:
+            request.state.user = api_key.user
+            return api_key.user
+
+    # Try Bearer token authentication
+    if authorization and str(authorization).startswith("Bearer "):
+        token = str(authorization)[7:]  # Remove "Bearer " prefix
+        verifier = VerifyToken(db)
+        try:
+            user = verifier.verify(token)
+            request.state.user = user
+            return user
+        except Exception:
+            pass  # Continue to check if user is already set
+
+    # Check if user is already set (for backward compatibility with middleware)
+    if hasattr(request.state, "user") and request.state.user is not None:
+        return request.state.user
+
+    # If we get here, no valid authentication was found
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+    )
 
 
 class VerifyToken:

@@ -10,7 +10,7 @@ from app.db import Base, get_db
 from app.main import create_app
 from starlette.middleware.base import BaseHTTPMiddleware
 
-pytest_plugins = ["tests.fixtures.user_fixtures"]
+pytest_plugins = ["tests.fixtures.user_fixtures", "tests.fixtures.api_key_fixtures"]
 
 logger = logging.getLogger(__name__)
 

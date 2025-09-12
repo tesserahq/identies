@@ -11,38 +11,32 @@ router = APIRouter(tags=["User"])
 
 @router.get("/userinfo", response_model=UserResponse)
 async def get_current_user_info(
-    request: Request,
-    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get information about the currently authenticated user.
 
     Returns the user profile information for the authenticated user making the request.
     """
-    user = await get_current_user(request)
-
-    return user
+    return current_user
 
 
 @router.get("/user", response_model=UserResponse)
 async def get_user(
-    request: Request,
-    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get information about the currently authenticated user.
 
     Returns the user profile information for the authenticated user making the request.
     """
-    user = await get_current_user(request)
-
-    return user
+    return current_user
 
 
 @router.put("/user", response_model=UserResponse)
 async def update_current_user_info(
     user_update: UserUpdate,
-    request: Request,
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -52,7 +46,6 @@ async def update_current_user_info(
     Only the fields provided in the request will be updated.
     Service accounts cannot be updated through this endpoint.
     """
-    current_user = await get_current_user(request)
 
     # Check if the user is a service account
     if current_user.service_account:
