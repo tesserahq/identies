@@ -642,3 +642,133 @@ def test_api_key_authentication_with_revoked_key(
         assert False, "Should have raised HTTPException"
     except Exception as e:
         assert "Not authenticated" in str(e)
+
+
+def test_update_api_key_name(client: TestClient, setup_api_key):
+    """Test updating an API key's name."""
+    api_key, _ = setup_api_key
+
+    update_data = {"name": "Updated API Key Name"}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=update_data)
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check response structure
+    assert "id" in data
+    assert "key_id" in data
+    assert "name" in data
+    assert "created_at" in data
+    assert "last_used_at" in data
+    assert "expires_at" in data
+    assert "revoked" in data
+
+    # Check values
+    assert data["id"] == str(api_key.id)
+    assert data["name"] == "Updated API Key Name"
+    assert data["revoked"] is False  # Should remain unchanged
+
+
+def test_update_api_key_revoked_status(client: TestClient, setup_api_key):
+    """Test updating an API key's revoked status."""
+    api_key, _ = setup_api_key
+
+    update_data = {"revoked": True}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=update_data)
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check values
+    assert data["id"] == str(api_key.id)
+    assert data["name"] == api_key.name  # Should remain unchanged
+    assert data["revoked"] is True
+
+
+def test_update_api_key_both_fields(client: TestClient, setup_api_key):
+    """Test updating both name and revoked status."""
+    api_key, _ = setup_api_key
+
+    update_data = {"name": "Updated Name and Revoked", "revoked": True}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=update_data)
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check values
+    assert data["id"] == str(api_key.id)
+    assert data["name"] == "Updated Name and Revoked"
+    assert data["revoked"] is True
+
+
+def test_update_api_key_not_found(client: TestClient):
+    """Test updating a non-existent API key."""
+    from uuid import uuid4
+
+    update_data = {"name": "Updated Name"}
+
+    response = client.put(f"/api-keys/{uuid4()}", json=update_data)
+
+    # Assertions
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+def test_update_api_key_wrong_user(client: TestClient, setup_another_user_api_key):
+    """Test updating an API key belonging to another user."""
+    api_key, _ = setup_another_user_api_key
+
+    update_data = {"name": "Updated Name"}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=update_data)
+
+    # Assertions
+    assert response.status_code == 403
+    data = response.json()
+    assert "only update your own" in data["detail"].lower()
+
+
+def test_update_api_key_invalid_data(client: TestClient, setup_api_key):
+    """Test updating an API key with invalid data."""
+    api_key, _ = setup_api_key
+
+    # Test with empty name
+    invalid_data = {"name": ""}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=invalid_data)
+
+    # Assertions
+    assert response.status_code == 422  # Validation error
+
+    # Test with name too long
+    invalid_data = {"name": "a" * 101}  # Exceeds max length
+
+    response = client.put(f"/api-keys/{api_key.id}", json=invalid_data)
+
+    # Assertions
+    assert response.status_code == 422  # Validation error
+
+
+def test_update_api_key_empty_request(client: TestClient, setup_api_key):
+    """Test updating an API key with empty request body."""
+    api_key, _ = setup_api_key
+
+    update_data = {}
+
+    response = client.put(f"/api-keys/{api_key.id}", json=update_data)
+
+    # Should succeed but not change anything
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check that nothing changed
+    assert data["id"] == str(api_key.id)
+    assert data["name"] == api_key.name
+    assert data["revoked"] == api_key.revoked

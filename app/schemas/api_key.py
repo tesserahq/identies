@@ -73,6 +73,21 @@ class ApiKeyCreateRequest(BaseModel):
     """Optional expiration date for the API key."""
 
 
+class ApiKeyUpdateRequest(BaseModel):
+    """Schema for updating an API key."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    """Updated name for the API key."""
+
+    revoked: Optional[bool] = None
+    """Updated revoked status for the API key."""
+
+    class Config:
+        """Pydantic model configuration."""
+
+        from_attributes = True
+
+
 class ApiKeyIntrospectResponse(BaseModel):
     """Schema for API key introspection response."""
 

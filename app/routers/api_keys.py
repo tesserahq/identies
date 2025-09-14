@@ -11,6 +11,7 @@ from app.schemas.api_key import (
     ApiKeyListResponse,
     ApiKeyResponse,
     ApiKeyIntrospectResponse,
+    ApiKeyUpdateRequest,
 )
 from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
@@ -38,14 +39,9 @@ async def create_api_key(
     )
 
     # Return the response with the full key
+    response_data = ApiKeyResponse.model_validate(api_key)
     return ApiKeyCreateResponse(
-        id=api_key.id,
-        key_id=api_key.key_id,
-        name=api_key.name,
-        created_at=api_key.created_at,
-        last_used_at=api_key.last_used_at,
-        expires_at=api_key.expires_at,
-        revoked=api_key.revoked,
+        **response_data.model_dump(),
         full_key=full_key,
     )
 
@@ -64,19 +60,49 @@ async def list_api_keys(
     api_keys = api_key_service.get_user_api_keys(current_user.id)
 
     return ApiKeyListResponse(
-        data=[
-            ApiKeyResponse(
-                id=key.id,
-                key_id=key.key_id,
-                name=key.name,
-                created_at=key.created_at,
-                last_used_at=key.last_used_at,
-                expires_at=key.expires_at,
-                revoked=key.revoked,
-            )
-            for key in api_keys
-        ]
+        data=[ApiKeyResponse.model_validate(key) for key in api_keys]
     )
+
+
+@router.put("/{key_id}", response_model=ApiKeyResponse)
+async def update_api_key(
+    key_id: UUID,
+    request: ApiKeyUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update an API key by its ID.
+
+    Only the owner of the API key can update it.
+    Only name and revoked fields can be updated.
+    """
+    api_key_service = ApiKeyService(db)
+
+    # Verify the API key exists and belongs to the user
+    api_key = api_key_service.get_api_key_by_id(key_id)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+        )
+
+    if api_key.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own API keys",
+        )
+
+    # Update the API key
+    updated_api_key = api_key_service.update_api_key(
+        key_id, current_user.id, name=request.name, revoked=request.revoked
+    )
+
+    if not updated_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+        )
+
+    return ApiKeyResponse.model_validate(updated_api_key)
 
 
 @router.delete("/{key_id}")

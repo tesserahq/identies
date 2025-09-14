@@ -123,6 +123,44 @@ class ApiKeyService:
 
         return verify_api_key_secret(secret, secret_hash)
 
+    def update_api_key(
+        self,
+        api_key_id: UUID,
+        user_id: UUID,
+        name: Optional[str] = None,
+        revoked: Optional[bool] = None,
+    ) -> Optional[ApiKey]:
+        """
+        Update an API key.
+
+        Args:
+            api_key_id: The ID of the API key to update
+            user_id: The ID of the user (for security)
+            name: Optional new name for the API key
+            revoked: Optional new revoked status for the API key
+
+        Returns:
+            Optional[ApiKey]: The updated API key if found and updated, None otherwise
+        """
+        db_api_key = (
+            self.db.query(ApiKey)
+            .filter(ApiKey.id == api_key_id, ApiKey.user_id == user_id)
+            .first()
+        )
+
+        if not db_api_key:
+            return None
+
+        # Update only the provided fields
+        if name is not None:
+            db_api_key.name = name
+        if revoked is not None:
+            db_api_key.revoked = revoked
+
+        self.db.commit()
+        self.db.refresh(db_api_key)
+        return db_api_key
+
     def delete_api_key(self, api_key_id: UUID, user_id: UUID) -> bool:
         """
         Delete an API key.
