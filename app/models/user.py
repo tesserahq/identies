@@ -1,6 +1,7 @@
 from app.models.mixins import TimestampMixin
 from sqlalchemy import Column, String, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 import uuid
 
@@ -38,6 +39,9 @@ class User(Base, TimestampMixin):
     external_id = Column(String, nullable=True)
     theme_preference = Column(String, default="system", nullable=True)
     service_account = Column(Boolean, default=False)
+
+    # Relationships
+    api_keys = relationship("ApiKey", back_populates="user")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

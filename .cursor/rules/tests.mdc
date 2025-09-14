@@ -38,5 +38,6 @@ assert workspace.id is not None
 
 * Prefer fixtures over inline setup for clarity and reuse
 * Add a clear docstring to each fixture describing its purpose
+* Run tests using ENV=test poetry run pytest
 
 Reference: setup_workspace in workspace_fixtures.py

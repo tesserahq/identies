@@ -10,10 +10,8 @@ Here are some best practices and rules you must follow:
   - pydantic
   - fastapi
   - sqlalchemy
-  - llama-index
 - You use poetry for dependency management
 - You use alembic for database migrations
-- You use LlamaIndex for llm interaction
 
 1. **Use Meaningful Names**: Choose descriptive variable, function, and class names.
 2. **Follow PEP 8**: Adhere to the Python Enhancement Proposal 8 style guide for formatting.
