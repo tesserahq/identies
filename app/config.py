@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     redis_namespace: str = Field(
         default="llama_index", json_schema_extra={"env": "REDIS_NAMESPACE"}
     )
+    invite_only_access: bool = Field(
+        default=False, json_schema_extra={"env": "INVITE_ONLY_ACCESS"}
+    )
     port: int = Field(default=8000, json_schema_extra={"env": "PORT"})
 
     @model_validator(mode="before")

@@ -3,7 +3,7 @@ from starlette.requests import Request
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 
-from app.utils.auth import verify_token_dependency
+from app.utils.auth import verify_token_dependency, InviteOnlyAccessException
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
@@ -24,7 +24,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Check for Authorization Bearer header
-        authorization: str = request.headers.get("Authorization")
+        authorization = request.headers.get("Authorization")
         if not authorization or not authorization.startswith("Bearer "):
             return JSONResponse(
                 status_code=401, content={"error": "Missing or invalid token"}
@@ -35,6 +35,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         try:
             # Now manually pass the raw token
             verify_token_dependency(request, token)
+        except InviteOnlyAccessException as e:
+            return JSONResponse(status_code=e.status_code, content=e.detail)
         except HTTPException as e:
             if e.status_code == status.HTTP_401_UNAUTHORIZED:
                 return JSONResponse(status_code=401, content={"error": "Invalid token"})
