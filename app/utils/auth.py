@@ -16,16 +16,24 @@ security = HTTPBearer()
 
 class InviteOnlyAccessException(HTTPException):
     def __init__(
-        self, detail: str = "Invitation required to access this service.", **kwargs
+        self,
+        detail: str = "Invitation required to access this service.",
+        email: Optional[str] = None,
+        **kwargs,
     ):
-        """Returns HTTP 403 with custom payload"""
+        """Returns HTTP 403 with custom payload including email if provided"""
+        payload = {
+            "title": "Access not granted",
+            "detail": detail,
+            "code": "INVITE_REQUIRED",
+        }
+
+        if email:
+            payload["email"] = email
+
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "title": "Access not granted",
-                "detail": detail,
-                "code": "INVITE_REQUIRED",
-            },
+            detail=payload,
         )
 
 
@@ -183,8 +191,12 @@ class VerifyToken:
             access_rule_service = AccessRuleService(self.db)
             email = userinfo.get("email")
 
-            access_rule = access_rule_service.evaluate_email_access(email)
-            if not access_rule:
+            if email and isinstance(email, str):
+                access_rule = access_rule_service.evaluate_email_access(email)
+                if not access_rule:
+                    raise InviteOnlyAccessException(email=email)
+            else:
+                # If no valid email, raise exception without email field
                 raise InviteOnlyAccessException()
 
         user_id = payload["sub"]

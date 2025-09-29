@@ -78,6 +78,32 @@ def test_protected_endpoint_with_invite_only_exception(client):
         assert response_data["code"] == "INVITE_REQUIRED"
 
 
+def test_protected_endpoint_with_invite_only_exception_with_email(client):
+    """Test that InviteOnlyAccessException with email is properly handled."""
+    with patch("app.middleware.authentication.verify_token_dependency") as mock_verify:
+        # Mock the verify_token_dependency to raise InviteOnlyAccessException with email
+        mock_verify.side_effect = InviteOnlyAccessException(
+            "Custom invite message", email="test@example.com"
+        )
+
+        response = client.get(
+            "/protected", headers={"Authorization": "Bearer valid_token"}
+        )
+
+        assert response.status_code == 403
+        response_data = response.json()
+
+        # Check that the custom exception detail is returned with email
+        assert "title" in response_data
+        assert "detail" in response_data
+        assert "code" in response_data
+        assert "email" in response_data
+        assert response_data["title"] == "Access not granted"
+        assert response_data["detail"] == "Custom invite message"
+        assert response_data["code"] == "INVITE_REQUIRED"
+        assert response_data["email"] == "test@example.com"
+
+
 def test_protected_endpoint_with_default_invite_only_exception(client):
     """Test that InviteOnlyAccessException with default message is properly handled."""
     with patch("app.middleware.authentication.verify_token_dependency") as mock_verify:
@@ -95,6 +121,27 @@ def test_protected_endpoint_with_default_invite_only_exception(client):
         assert response_data["title"] == "Access not granted"
         assert response_data["detail"] == "Invitation required to access this service."
         assert response_data["code"] == "INVITE_REQUIRED"
+        assert "email" not in response_data
+
+
+def test_protected_endpoint_with_default_invite_only_exception_with_email(client):
+    """Test that InviteOnlyAccessException with default message and email is properly handled."""
+    with patch("app.middleware.authentication.verify_token_dependency") as mock_verify:
+        # Mock the verify_token_dependency to raise InviteOnlyAccessException with default message and email
+        mock_verify.side_effect = InviteOnlyAccessException(email="user@company.com")
+
+        response = client.get(
+            "/protected", headers={"Authorization": "Bearer valid_token"}
+        )
+
+        assert response.status_code == 403
+        response_data = response.json()
+
+        # Check that the default exception detail is returned with email
+        assert response_data["title"] == "Access not granted"
+        assert response_data["detail"] == "Invitation required to access this service."
+        assert response_data["code"] == "INVITE_REQUIRED"
+        assert response_data["email"] == "user@company.com"
 
 
 def test_protected_endpoint_with_unauthorized_exception(client):
