@@ -7,10 +7,26 @@ from fastapi.security import HTTPBearer
 from typing import Optional
 
 from app.config import get_settings
+from app.services.access_rule_service import AccessRuleService
 from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
 
 security = HTTPBearer()
+
+
+class InviteOnlyAccessException(HTTPException):
+    def __init__(
+        self, detail: str = "Invitation required to access this service.", **kwargs
+    ):
+        """Returns HTTP 403 with custom payload"""
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "title": "Access not granted",
+                "detail": detail,
+                "code": "INVITE_REQUIRED",
+            },
+        )
 
 
 class UnauthorizedException(HTTPException):
@@ -163,6 +179,14 @@ class VerifyToken:
 
     def handle_user_onboarding(self, payload: dict, userinfo: dict):
         """Onboard the user locally using the userinfo data."""
+        if self.config.invite_only_access:
+            access_rule_service = AccessRuleService(self.db)
+            email = userinfo.get("email")
+
+            access_rule = access_rule_service.evaluate_email_access(email)
+            if not access_rule:
+                raise InviteOnlyAccessException()
+
         user_id = payload["sub"]
         email = userinfo.get("email")
         name = userinfo.get("name", "Unkown Unkown").split(" ")

@@ -59,9 +59,11 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     # Include routers
     from app.routers.user_router import router as user_router
     from app.routers.api_keys import router as api_keys_router
+    from app.routers.access_rule_router import router as access_rule_router
 
     app.include_router(user_router)
     app.include_router(api_keys_router)
+    app.include_router(access_rule_router)
 
     return app
 
