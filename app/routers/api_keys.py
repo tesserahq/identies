@@ -64,6 +64,36 @@ async def list_api_keys(
     )
 
 
+@router.get("/{key_id}", response_model=ApiKeyResponse)
+async def get_api_key(
+    key_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get a specific API key by its ID.
+
+    Only the owner of the API key can retrieve it.
+    Returns the API key details (without the secret part).
+    """
+    api_key_service = ApiKeyService(db)
+
+    # Verify the API key exists and belongs to the user
+    api_key = api_key_service.get_api_key_by_id(key_id)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+        )
+
+    if api_key.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own API keys",
+        )
+
+    return ApiKeyResponse.model_validate(api_key)
+
+
 @router.put("/{key_id}", response_model=ApiKeyResponse)
 async def update_api_key(
     key_id: UUID,
@@ -105,7 +135,7 @@ async def update_api_key(
     return ApiKeyResponse.model_validate(updated_api_key)
 
 
-@router.delete("/{key_id}")
+@router.put("/{key_id}/revoke")
 async def revoke_api_key(
     key_id: UUID,
     current_user: User = Depends(get_current_user),

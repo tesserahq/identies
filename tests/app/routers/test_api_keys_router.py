@@ -116,11 +116,66 @@ def test_list_api_keys_with_data(client: TestClient, setup_api_key):
         assert "revoked" in api_key
 
 
+def test_get_api_key(client: TestClient, setup_api_key):
+    """Test getting a specific API key by ID."""
+    api_key, _ = setup_api_key
+
+    response = client.get(f"/api-keys/{api_key.id}")
+
+    # Assertions
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check response structure
+    assert "id" in data
+    assert "key_id" in data
+    assert "name" in data
+    assert "created_at" in data
+    assert "last_used_at" in data
+    assert "expires_at" in data
+    assert "revoked" in data
+
+    # Check values
+    assert data["id"] == str(api_key.id)
+    assert data["key_id"] == api_key.key_id
+    assert data["name"] == api_key.name
+    assert data["revoked"] is False
+
+    # Check that full_key is not included
+    assert "full_key" not in data
+
+
+def test_get_api_key_not_found(client: TestClient):
+    """Test getting a non-existent API key."""
+    from uuid import uuid4
+
+    response = client.get(f"/api-keys/{uuid4()}")
+
+    # Assertions
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+def test_get_api_key_wrong_user(client: TestClient, setup_another_user_api_key):
+    """Test getting an API key belonging to another user."""
+    api_key, _ = setup_another_user_api_key
+
+    response = client.get(f"/api-keys/{api_key.id}")
+
+    # Assertions
+    assert (
+        response.status_code == 403
+    )  # Should be forbidden (not owned by current user)
+    data = response.json()
+    assert "only view your own" in data["detail"].lower()
+
+
 def test_revoke_api_key(client: TestClient, setup_api_key):
     """Test revoking an API key."""
     api_key, _ = setup_api_key
 
-    response = client.delete(f"/api-keys/{api_key.id}")
+    response = client.put(f"/api-keys/{api_key.id}/revoke")
 
     # Assertions
     assert response.status_code == 200
@@ -132,7 +187,7 @@ def test_revoke_api_key_not_found(client: TestClient):
     """Test revoking a non-existent API key."""
     from uuid import uuid4
 
-    response = client.delete(f"/api-keys/{uuid4()}")
+    response = client.put(f"/api-keys/{uuid4()}/revoke")
 
     # Assertions
     assert response.status_code == 404
@@ -144,7 +199,7 @@ def test_revoke_api_key_wrong_user(client: TestClient, setup_another_user_api_ke
     """Test revoking an API key belonging to another user."""
     api_key, _ = setup_another_user_api_key
 
-    response = client.delete(f"/api-keys/{api_key.id}")
+    response = client.put(f"/api-keys/{api_key.id}/revoke")
 
     # Assertions
     assert (
