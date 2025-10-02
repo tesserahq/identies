@@ -213,7 +213,7 @@ def test_delete_api_key(client: TestClient, setup_api_key):
     """Test permanently deleting an API key."""
     api_key, _ = setup_api_key
 
-    response = client.delete(f"/api-keys/{api_key.id}/delete")
+    response = client.delete(f"/api-keys/{api_key.id}")
 
     # Assertions
     assert response.status_code == 200
@@ -225,7 +225,7 @@ def test_delete_api_key_not_found(client: TestClient):
     """Test deleting a non-existent API key."""
     from uuid import uuid4
 
-    response = client.delete(f"/api-keys/{uuid4()}/delete")
+    response = client.delete(f"/api-keys/{uuid4()}")
 
     # Assertions
     assert response.status_code == 404
@@ -237,7 +237,7 @@ def test_delete_api_key_wrong_user(client: TestClient, setup_another_user_api_ke
     """Test deleting an API key belonging to another user."""
     api_key, _ = setup_another_user_api_key
 
-    response = client.delete(f"/api-keys/{api_key.id}/delete")
+    response = client.delete(f"/api-keys/{api_key.id}")
 
     # Assertions
     assert (
