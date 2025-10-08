@@ -39,7 +39,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=e.status_code, content=e.detail)
         except HTTPException as e:
             if e.status_code == status.HTTP_401_UNAUTHORIZED:
-                return JSONResponse(status_code=401, content={"error": "Invsalid token aa aaa"})
+                return JSONResponse(
+                    status_code=401, content={"error": "Invsalid token aa aaa"}
+                )
             elif e.status_code == status.HTTP_403_FORBIDDEN:
                 return JSONResponse(status_code=403, content={"error": "Forbidden 222"})
 
