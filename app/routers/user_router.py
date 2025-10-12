@@ -9,7 +9,7 @@ from app.exceptions.service_account_error import ServiceAccountError
 router = APIRouter(tags=["User"])
 
 
-@router.get("/userinfo", response_model=UserResponse)
+@router.get("/userinfo", response_model=UserResponse, operation_id="get_userinfo")
 async def get_current_user_info(
     current_user=Depends(get_current_user),
 ):
@@ -21,7 +21,7 @@ async def get_current_user_info(
     return current_user
 
 
-@router.get("/user", response_model=UserResponse)
+@router.get("/user", response_model=UserResponse, operation_id="get_user")
 async def get_user(
     current_user=Depends(get_current_user),
 ):
@@ -33,7 +33,7 @@ async def get_user(
     return current_user
 
 
-@router.put("/user", response_model=UserResponse)
+@router.put("/user", response_model=UserResponse, operation_id="update_user")
 async def update_current_user_info(
     user_update: UserUpdate,
     current_user=Depends(get_current_user),

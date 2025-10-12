@@ -20,7 +20,7 @@ from app.models.user import User
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
 
-@router.post("", response_model=ApiKeyCreateResponse)
+@router.post("", response_model=ApiKeyCreateResponse, operation_id="create_api_key")
 async def create_api_key(
     request: ApiKeyCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -46,7 +46,7 @@ async def create_api_key(
     )
 
 
-@router.get("", response_model=ApiKeyListResponse)
+@router.get("", response_model=ApiKeyListResponse, operation_id="list_api_keys")
 async def list_api_keys(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -64,7 +64,7 @@ async def list_api_keys(
     )
 
 
-@router.get("/{key_id}", response_model=ApiKeyResponse)
+@router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
 async def get_api_key(
     key_id: UUID,
     current_user: User = Depends(get_current_user),
@@ -94,7 +94,7 @@ async def get_api_key(
     return ApiKeyResponse.model_validate(api_key)
 
 
-@router.put("/{key_id}/revoke")
+@router.put("/{key_id}/revoke", operation_id="revoke_api_key")
 async def revoke_api_key(
     key_id: UUID,
     current_user: User = Depends(get_current_user),
@@ -131,7 +131,7 @@ async def revoke_api_key(
     return {"message": "API key revoked successfully"}
 
 
-@router.put("/{key_id}", response_model=ApiKeyResponse)
+@router.put("/{key_id}", response_model=ApiKeyResponse, operation_id="update_api_key")
 async def update_api_key(
     key_id: UUID,
     request: ApiKeyUpdateRequest,
@@ -172,7 +172,7 @@ async def update_api_key(
     return ApiKeyResponse.model_validate(updated_api_key)
 
 
-@router.delete("/{key_id}")
+@router.delete("/{key_id}", operation_id="delete_api_key")
 async def delete_api_key(
     key_id: UUID,
     current_user: User = Depends(get_current_user),
@@ -209,7 +209,11 @@ async def delete_api_key(
     return {"message": "API key deleted successfully"}
 
 
-@router.post("/introspect", response_model=ApiKeyIntrospectResponse)
+@router.post(
+    "/introspect",
+    response_model=ApiKeyIntrospectResponse,
+    operation_id="introspect_api_key",
+)
 async def introspect_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
