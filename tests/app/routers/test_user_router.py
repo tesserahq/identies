@@ -1,3 +1,6 @@
+from uuid import uuid4
+
+
 def test_get_userinfo_success(client, setup_user):
     """Test that the /userinfo endpoint returns the current user's information."""
     response = client.get("/userinfo")
@@ -38,6 +41,35 @@ def test_get_user_success(client, setup_user):
     assert user_data["email"] == test_user.email
     assert user_data["first_name"] == test_user.first_name
     assert user_data["last_name"] == test_user.last_name
+
+
+def test_get_user_by_id_success(client, setup_user):
+    """Test that the GET /users/{user_id} endpoint returns a specific user's information."""
+    test_user = setup_user
+    response = client.get(f"/users/{test_user.id}")
+    assert response.status_code == 200
+
+    user_data = response.json()
+    assert "id" in user_data
+    assert "email" in user_data
+    assert "first_name" in user_data
+    assert "last_name" in user_data
+    assert "created_at" in user_data
+    assert "updated_at" in user_data
+
+    # Verify the returned user matches the test user
+    assert user_data["id"] == str(test_user.id)
+    assert user_data["email"] == test_user.email
+    assert user_data["first_name"] == test_user.first_name
+    assert user_data["last_name"] == test_user.last_name
+
+
+def test_get_user_by_id_not_found(client):
+    """Test that the GET /users/{user_id} endpoint returns 404 for non-existent user."""
+    non_existent_id = str(uuid4())
+    response = client.get(f"/users/{non_existent_id}")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
 
 
 def test_avatar_fields_in_response(client, setup_user):

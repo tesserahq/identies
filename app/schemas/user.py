@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, model_validator
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -103,10 +103,7 @@ class UserInDB(UserBase):
     updated_at: datetime
     """Timestamp when the user record was last updated."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class User(UserInDB):
@@ -160,6 +157,9 @@ class UserResponse(BaseModel):
     updated_at: datetime
     """Timestamp when the user record was last updated."""
 
+    external_id: Optional[str] = None
+    """External ID of the user."""
+
     @model_validator(mode="after")
     def set_avatar_url_from_asset_id(self):
         """Set avatar_url to signed URL from avatar_asset_id if avatar_asset_id is present."""
@@ -173,10 +173,7 @@ class UserResponse(BaseModel):
             )
         return self
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserDetails(BaseModel):
@@ -209,7 +206,4 @@ class UserDetails(BaseModel):
     theme_preference: Optional[str] = "system"
     """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

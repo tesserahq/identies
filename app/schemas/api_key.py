@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -43,10 +43,7 @@ class ApiKeyResponse(ApiKeyBase):
     revoked: bool = False
     """Whether the API key has been revoked."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApiKeyCreateResponse(ApiKeyResponse):
@@ -82,10 +79,7 @@ class ApiKeyUpdateRequest(BaseModel):
     revoked: Optional[bool] = None
     """Updated revoked status for the API key."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApiKeyIntrospectResponse(BaseModel):
@@ -109,7 +103,4 @@ class ApiKeyIntrospectResponse(BaseModel):
     expires_at: Optional[datetime] = None
     """Expiration date of the API key. Only present if active is True."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

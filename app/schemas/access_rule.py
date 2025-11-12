@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -48,10 +48,7 @@ class AccessRuleInDB(AccessRuleBase):
     updated_at: datetime
     """Timestamp when the access rule record was last updated."""
 
-    class Config:
-        """Pydantic model configuration."""
-
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AccessRule(AccessRuleInDB):

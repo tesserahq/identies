@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from app.utils.auth import get_current_user
 from app.schemas.user import UserUpdate, UserResponse
 from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
 from app.exceptions.service_account_error import ServiceAccountError
+from uuid import UUID
 
 router = APIRouter(tags=["User"])
 
@@ -31,6 +32,27 @@ async def get_user(
     Returns the user profile information for the authenticated user making the request.
     """
     return current_user
+
+
+@router.get(
+    "/users/{user_id}", response_model=UserResponse, operation_id="get_user_by_id"
+)
+async def get_user_by_id(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """
+    Get a specific user by ID.
+
+    Returns the user with the specified ID, or 404 if not found.
+    """
+    user_service = UserService(db)
+    user = user_service.get_user(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
 
 
 @router.put("/user", response_model=UserResponse, operation_id="update_user")
