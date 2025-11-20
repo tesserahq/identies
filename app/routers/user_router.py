@@ -5,6 +5,7 @@ from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
 from app.exceptions.service_account_error import ServiceAccountError
+from app.commands.users.update_user_command import UpdateUserCommand
 from uuid import UUID
 
 router = APIRouter(tags=["User"])
@@ -75,7 +76,11 @@ async def update_current_user_info(
             "Service accounts cannot be updated through this endpoint"
         )
 
-    user_service = UserService(db)
+    # Update the user using the command
+    update_user_command = UpdateUserCommand(db)
+    try:
+        updated_user = update_user_command.execute(current_user.id, user_update)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-    updated_user = user_service.update_user(current_user.id, user_update)
     return updated_user

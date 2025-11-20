@@ -10,6 +10,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.telemetry import setup_tracing
 from app.exceptions.handlers import register_exception_handlers
 from app.core.logging_config import get_logger
+from app.db import db_manager
 
 
 def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
@@ -37,13 +38,11 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
         logger.info("Main: Adding authentication middleware")
         from app.middleware.authentication import AuthenticationMiddleware
 
-        app.add_middleware(AuthenticationMiddleware)
+        app.add_middleware(AuthenticationMiddleware, database_manager=db_manager)
     else:
         logger.info("Main: No authentication middleware")
         if auth_middleware:
             app.add_middleware(auth_middleware)
-
-    app.add_middleware(DBSessionMiddleware)
 
     # TODO: Restrict this to the allowed origins
     app.add_middleware(

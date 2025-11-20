@@ -2,6 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models.api_key import ApiKey
+from app.schemas.api_key import ApiKeyCreate
 from app.utils.security import generate_api_key, hash_secret, parse_api_key
 from datetime import datetime, timezone
 
@@ -10,9 +11,7 @@ class ApiKeyService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_api_key(
-        self, user_id: UUID, name: str, expires_at: Optional[datetime] = None
-    ) -> tuple[ApiKey, str]:
+    def create_api_key(self, api_key_data: ApiKeyCreate) -> tuple[ApiKey, str]:
         """
         Create a new API key for a user.
 
@@ -30,11 +29,11 @@ class ApiKeyService:
 
         # Create the API key model
         db_api_key = ApiKey(
-            user_id=user_id,
+            user_id=api_key_data.user_id,
             key_id=key_id_part,
             secret_hash=hash_secret(secret_part),
-            name=name,
-            expires_at=expires_at,
+            name=api_key_data.name,
+            expires_at=api_key_data.expires_at,
         )
 
         self.db.add(db_api_key)

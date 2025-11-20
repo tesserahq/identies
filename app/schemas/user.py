@@ -43,6 +43,8 @@ class UserBase(BaseModel):
     theme_preference: Optional[str] = "system"
     """User's theme preference. Can be 'system', 'dark', or 'light'. Defaults to 'system'."""
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(UserBase):
     """Schema for creating a new user. Inherits all fields from UserBase."""

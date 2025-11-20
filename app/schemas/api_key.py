@@ -15,6 +15,11 @@ class ApiKeyBase(BaseModel):
     expires_at: Optional[datetime] = None
     """Optional expiration date for the API key."""
 
+    user_id: UUID
+    """User ID associated with the API key."""
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ApiKeyCreate(ApiKeyBase):
     """Schema for creating a new API key."""
