@@ -55,6 +55,15 @@ class Settings(BaseSettings):
         default=False, json_schema_extra={"env": "INVITE_ONLY_ACCESS"}
     )
     port: int = Field(default=8000, json_schema_extra={"env": "PORT"})
+    database_pool_size: int = Field(
+        default=10, json_schema_extra={"env": "DATABASE_POOL_SIZE"}
+    )
+    database_max_overflow: int = Field(
+        default=5, json_schema_extra={"env": "DATABASE_MAX_OVERFLOW"}
+    )
+    db_app_name: str = Field(
+        default="identies-api", json_schema_extra={"env": "DB_APP_NAME"}
+    )
 
     @model_validator(mode="before")
     def set_database_url(cls, values):

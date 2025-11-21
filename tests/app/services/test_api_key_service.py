@@ -1,8 +1,8 @@
 import pytest
 from uuid import uuid4
 from datetime import datetime, timezone, timedelta
-from sqlalchemy.orm import Session
 from app.services.api_key_service import ApiKeyService
+from app.schemas.api_key import ApiKeyCreate
 from app.utils.security import parse_api_key, verify_api_key_secret
 
 
@@ -24,14 +24,17 @@ def sample_api_key_data_no_expiry():
     }
 
 
-def test_create_api_key(db: Session, setup_user, sample_api_key_data):
+def test_create_api_key(db, setup_user, sample_api_key_data):
     """Test creating a new API key."""
     api_key_service = ApiKeyService(db)
 
     # Create API key
-    api_key, full_key = api_key_service.create_api_key(
-        setup_user.id, sample_api_key_data["name"], sample_api_key_data["expires_at"]
+    api_key_data = ApiKeyCreate(
+        user_id=setup_user.id,
+        name=sample_api_key_data["name"],
+        expires_at=sample_api_key_data["expires_at"],
     )
+    api_key, full_key = api_key_service.create_api_key(api_key_data)
 
     # Assertions
     assert api_key.id is not None
@@ -55,18 +58,17 @@ def test_create_api_key(db: Session, setup_user, sample_api_key_data):
     assert verify_api_key_secret(secret, api_key.secret_hash)
 
 
-def test_create_api_key_no_expiry(
-    db: Session, setup_user, sample_api_key_data_no_expiry
-):
+def test_create_api_key_no_expiry(db, setup_user, sample_api_key_data_no_expiry):
     """Test creating an API key without expiry."""
     api_key_service = ApiKeyService(db)
 
     # Create API key
-    api_key, full_key = api_key_service.create_api_key(
-        setup_user.id,
-        sample_api_key_data_no_expiry["name"],
-        sample_api_key_data_no_expiry["expires_at"],
+    api_key_data = ApiKeyCreate(
+        user_id=setup_user.id,
+        name=sample_api_key_data_no_expiry["name"],
+        expires_at=sample_api_key_data_no_expiry["expires_at"],
     )
+    api_key, full_key = api_key_service.create_api_key(api_key_data)
 
     # Assertions
     assert api_key.id is not None
@@ -76,7 +78,7 @@ def test_create_api_key_no_expiry(
     assert api_key.revoked is False
 
 
-def test_get_api_key_by_id(db: Session, setup_api_key):
+def test_get_api_key_by_id(db, setup_api_key):
     """Test getting an API key by ID."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -90,7 +92,7 @@ def test_get_api_key_by_id(db: Session, setup_api_key):
     assert retrieved_api_key.key_id == api_key.key_id
 
 
-def test_get_api_key_by_key_id(db: Session, setup_api_key):
+def test_get_api_key_by_key_id(db, setup_api_key):
     """Test getting an API key by key_id."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -104,7 +106,7 @@ def test_get_api_key_by_key_id(db: Session, setup_api_key):
     assert retrieved_api_key.key_id == api_key.key_id
 
 
-def test_get_user_api_keys(db: Session, setup_user, setup_api_key):
+def test_get_user_api_keys(db, setup_user, setup_api_key):
     """Test getting all API keys for a user."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -117,7 +119,7 @@ def test_get_user_api_keys(db: Session, setup_user, setup_api_key):
     assert any(ak.id == api_key.id for ak in api_keys)
 
 
-def test_revoke_api_key(db: Session, setup_user, setup_api_key):
+def test_revoke_api_key(db, setup_user, setup_api_key):
     """Test revoking an API key."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -133,7 +135,7 @@ def test_revoke_api_key(db: Session, setup_user, setup_api_key):
     assert revoked_api_key.revoked is True
 
 
-def test_revoke_api_key_wrong_user(db: Session, setup_another_user, setup_api_key):
+def test_revoke_api_key_wrong_user(db, setup_another_user, setup_api_key):
     """Test revoking an API key with wrong user (should fail)."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -145,7 +147,7 @@ def test_revoke_api_key_wrong_user(db: Session, setup_another_user, setup_api_ke
     assert success is False
 
 
-def test_verify_api_key(db: Session, setup_api_key):
+def test_verify_api_key(db, setup_api_key):
     """Test verifying a valid API key."""
     api_key, full_key = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -159,7 +161,7 @@ def test_verify_api_key(db: Session, setup_api_key):
     assert verified_api_key.last_used_at is not None
 
 
-def test_verify_api_key_invalid_format(db: Session):
+def test_verify_api_key_invalid_format(db):
     """Test verifying an API key with invalid format."""
     api_key_service = ApiKeyService(db)
 
@@ -170,7 +172,7 @@ def test_verify_api_key_invalid_format(db: Session):
     assert verified_api_key is None
 
 
-def test_verify_api_key_not_found(db: Session):
+def test_verify_api_key_not_found(db):
     """Test verifying a non-existent API key."""
     api_key_service = ApiKeyService(db)
 
@@ -181,7 +183,7 @@ def test_verify_api_key_not_found(db: Session):
     assert verified_api_key is None
 
 
-def test_verify_api_key_expired(db: Session, setup_expired_api_key):
+def test_verify_api_key_expired(db, setup_expired_api_key):
     """Test verifying an expired API key."""
     api_key, full_key = setup_expired_api_key
     api_key_service = ApiKeyService(db)
@@ -193,7 +195,7 @@ def test_verify_api_key_expired(db: Session, setup_expired_api_key):
     assert verified_api_key is None
 
 
-def test_verify_api_key_revoked(db: Session, setup_revoked_api_key):
+def test_verify_api_key_revoked(db, setup_revoked_api_key):
     """Test verifying a revoked API key."""
     api_key, full_key = setup_revoked_api_key
     api_key_service = ApiKeyService(db)
@@ -205,7 +207,7 @@ def test_verify_api_key_revoked(db: Session, setup_revoked_api_key):
     assert verified_api_key is None
 
 
-def test_verify_api_key_wrong_secret(db: Session, setup_api_key):
+def test_verify_api_key_wrong_secret(db, setup_api_key):
     """Test verifying an API key with wrong secret."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -221,7 +223,7 @@ def test_verify_api_key_wrong_secret(db: Session, setup_api_key):
     assert verified_api_key is None
 
 
-def test_delete_api_key(db: Session, setup_user, setup_api_key):
+def test_delete_api_key(db, setup_user, setup_api_key):
     """Test deleting an API key."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -237,7 +239,7 @@ def test_delete_api_key(db: Session, setup_user, setup_api_key):
     assert deleted_api_key is None
 
 
-def test_delete_api_key_wrong_user(db: Session, setup_another_user, setup_api_key):
+def test_delete_api_key_wrong_user(db, setup_another_user, setup_api_key):
     """Test deleting an API key with wrong user (should fail)."""
     api_key, _ = setup_api_key
     api_key_service = ApiKeyService(db)
@@ -249,7 +251,7 @@ def test_delete_api_key_wrong_user(db: Session, setup_another_user, setup_api_ke
     assert success is False
 
 
-def test_api_key_not_found_cases(db: Session, setup_user):
+def test_api_key_not_found_cases(db, setup_user):
     """Test various not found cases."""
     api_key_service = ApiKeyService(db)
     non_existent_id = uuid4()
@@ -268,7 +270,7 @@ def test_api_key_not_found_cases(db: Session, setup_user):
 
 
 def test_api_key_model_methods(
-    db: Session, setup_api_key, setup_expired_api_key, setup_revoked_api_key
+    db, setup_api_key, setup_expired_api_key, setup_revoked_api_key
 ):
     """Test API key model helper methods."""
     # Test valid API key

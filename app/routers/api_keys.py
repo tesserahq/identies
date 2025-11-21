@@ -3,9 +3,14 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
 
+from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
+from app.commands.api_keys.update_api_key_command import UpdateApiKeyCommand
+from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
+from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
 from app.db import get_db
 from app.utils.auth import get_current_user
 from app.schemas.api_key import (
+    ApiKeyCreate,
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
     ApiKeyListResponse,
@@ -22,7 +27,7 @@ router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
 @router.post("", response_model=ApiKeyCreateResponse, operation_id="create_api_key")
 async def create_api_key(
-    request: ApiKeyCreateRequest,
+    api_key_data: ApiKeyCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -31,11 +36,15 @@ async def create_api_key(
 
     Returns the new API key with the full key shown only once.
     """
-    api_key_service = ApiKeyService(db)
+    create_api_key_command = CreateApiKeyCommand(db)
 
     # Create the API key
-    api_key, full_key = api_key_service.create_api_key(
-        user_id=current_user.id, name=request.name, expires_at=request.expires_at
+    api_key, full_key = create_api_key_command.execute(
+        ApiKeyCreate(
+            user_id=current_user.id,
+            name=api_key_data.name,
+            expires_at=api_key_data.expires_at,
+        )
     )
 
     # Return the response with the full key
@@ -120,13 +129,12 @@ async def revoke_api_key(
             detail="You can only revoke your own API keys",
         )
 
-    # Revoke the API key
-    success = api_key_service.revoke_api_key(key_id, current_user.id)
-
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
+    # Revoke the API key using the command
+    revoke_api_key_command = RevokeApiKeyCommand(db)
+    try:
+        revoked_api_key = revoke_api_key_command.execute(key_id, current_user.id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     return {"message": "API key revoked successfully"}
 
@@ -159,15 +167,14 @@ async def update_api_key(
             detail="You can only update your own API keys",
         )
 
-    # Update the API key
-    updated_api_key = api_key_service.update_api_key(
-        key_id, current_user.id, name=request.name, revoked=request.revoked
-    )
-
-    if not updated_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+    # Update the API key using the command
+    update_api_key_command = UpdateApiKeyCommand(db)
+    try:
+        updated_api_key = update_api_key_command.execute(
+            key_id, current_user.id, request
         )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     return ApiKeyResponse.model_validate(updated_api_key)
 
@@ -198,12 +205,19 @@ async def delete_api_key(
             detail="You can only delete your own API keys",
         )
 
-    # Delete the API key
-    success = api_key_service.delete_api_key(key_id, current_user.id)
-
-    if not success:
+    # Delete the API key using the command
+    delete_api_key_command = DeleteApiKeyCommand(db)
+    try:
+        success = delete_api_key_command.execute(key_id, current_user.id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
     return {"message": "API key deleted successfully"}

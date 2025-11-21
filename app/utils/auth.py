@@ -10,6 +10,8 @@ from app.config import get_settings
 from app.services.access_rule_service import AccessRuleService
 from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
+from tessera_sdk.core.database_manager import DatabaseManager
+from app.db import get_db
 
 security = HTTPBearer()
 
@@ -51,14 +53,17 @@ class UnauthenticatedException(HTTPException):
         )
 
 
-def get_db_from_request(request: Request):
-    return request.state.db_session
+def verify_token_dependency(
+    request: Request, token: str, database_manager: DatabaseManager
+):
+    db = database_manager.create_session()
 
-
-def verify_token_dependency(request: Request, token: str):
-    verifier = VerifyToken(get_db_from_request(request))
-    user = verifier.verify(token)
-    request.state.user = user
+    try:
+        verifier = VerifyToken(db)
+        user = verifier.verify(token)
+        request.state.user = user
+    finally:
+        db.close()
 
 
 async def get_current_user(
@@ -73,7 +78,7 @@ async def get_current_user(
     - Authorization: Bearer <jwt_token>
     - X-API-Key: <api_key>
     """
-    db = get_db_from_request(request)
+    db = get_db()
 
     # Try API key authentication first
     if x_api_key:

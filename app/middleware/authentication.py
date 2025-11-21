@@ -5,9 +5,23 @@ from fastapi.responses import JSONResponse
 
 from app.utils.auth import verify_token_dependency, InviteOnlyAccessException
 
+from typing import Optional
+from tessera_sdk.core.database_manager import DatabaseManager
+
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app,
+        database_manager: Optional[DatabaseManager] = None,
+    ):
+        super().__init__(app)
+        # Store database manager for creating sessions
+        self.database_manager = database_manager
+
     async def dispatch(self, request: Request, call_next):
+        db = self.database_manager
+
         if request.url.path in [
             "/health",
             "/openapi.json",
@@ -34,7 +48,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         try:
             # Now manually pass the raw token
-            verify_token_dependency(request, token)
+            verify_token_dependency(request, token, db)
         except InviteOnlyAccessException as e:
             return JSONResponse(status_code=e.status_code, content=e.detail)
         except HTTPException as e:
