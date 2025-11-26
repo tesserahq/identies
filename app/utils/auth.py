@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.services.access_rule_service import AccessRuleService
 from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
+from app.commands.users.onboard_user_command import OnboardUserCommand
 from tessera_sdk.core.database_manager import DatabaseManager
 from app.db import get_db
 
@@ -219,7 +220,8 @@ class VerifyToken:
             provider = identity.get("provider")
 
         # Onboard the user locally
-        user = self.user_service.onboard_user(
+        onboard_command = OnboardUserCommand(self.db)
+        user = onboard_command.execute(
             UserOnboard(
                 external_id=user_id,
                 email=email,
@@ -244,7 +246,8 @@ class VerifyToken:
         email = azp + "@" + self.config.oidc_domain
 
         # Onboard the service account with generic values
-        user = self.user_service.onboard_user(
+        onboard_command = OnboardUserCommand(self.db)
+        user = onboard_command.execute(
             UserOnboard(
                 external_id=user_id,
                 email=email,  # Service accounts don't have emails
