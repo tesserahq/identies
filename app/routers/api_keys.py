@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.commands.api_keys.update_api_key_command import UpdateApiKeyCommand
@@ -13,7 +15,6 @@ from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
-    ApiKeyListResponse,
     ApiKeyResponse,
     ApiKeyIntrospectResponse,
     ApiKeyUpdateRequest,
@@ -55,7 +56,7 @@ async def create_api_key(
     )
 
 
-@router.get("", response_model=ApiKeyListResponse, operation_id="list_api_keys")
+@router.get("", response_model=Page[ApiKeyResponse], operation_id="list_api_keys")
 async def list_api_keys(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -63,14 +64,11 @@ async def list_api_keys(
     """
     List all API keys for the current user.
 
-    Returns a list of API keys (without the secret part).
+    Returns a paginated list of API keys (without the secret part).
     """
     api_key_service = ApiKeyService(db)
-    api_keys = api_key_service.get_user_api_keys(current_user.id)
-
-    return ApiKeyListResponse(
-        data=[ApiKeyResponse.model_validate(key) for key in api_keys]
-    )
+    query = api_key_service.get_user_api_keys_query(current_user.id)
+    return paginate(query)
 
 
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")

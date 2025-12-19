@@ -11,6 +11,7 @@ from app.telemetry import setup_tracing
 from app.exceptions.handlers import register_exception_handlers
 from app.core.logging_config import get_logger
 from app.db import db_manager
+from fastapi_pagination import add_pagination
 
 
 def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
@@ -65,6 +66,9 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     app.include_router(api_keys_router)
     app.include_router(access_rule_router)
     app.include_router(system_account_router)
+
+    # Initialize fastapi-pagination
+    add_pagination(app)
 
     return app
 

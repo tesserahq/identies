@@ -32,6 +32,7 @@ psycopg2-binary = "^2.9.10"
 alembic = "^1.15.1"
 vaulta-client = { git = "https://github.com/estate-buddy-tech/vaulta-py.git", branch = "main" }
 
+fastapi-pagination = "^0.15.0"
 pydantic = {extras = ["email"], version = "^2.11.3"}
 black = "^25.1.0"
 ruff = "^0.11.6"

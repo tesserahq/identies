@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
 from app.schemas.system_account import SystemAccountOnboard
@@ -99,3 +99,12 @@ class UserService:
         query = self.db.query(User)
         query = apply_filters(query, User, filters)
         return query.all()
+
+    def get_system_accounts_query(self) -> Query:
+        """
+        Get a query for system accounts (users with service_account=True).
+
+        Returns:
+            Query: SQLAlchemy query object for system accounts.
+        """
+        return self.db.query(User).filter(User.service_account == True)

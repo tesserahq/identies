@@ -68,7 +68,9 @@ class ApiKeyListResponse(BaseModel):
 class ApiKeyCreateRequest(BaseModel):
     """Schema for API key creation request."""
 
-    name: str = Field(..., min_length=1, description="Name for the API key")
+    name: str = Field(
+        ..., min_length=1, max_length=100, description="Name for the API key"
+    )
     """Name for the API key."""
 
     expires_at: Optional[datetime] = None

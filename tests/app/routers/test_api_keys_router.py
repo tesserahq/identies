@@ -80,19 +80,22 @@ def test_list_api_keys_empty(client: TestClient):
     assert response.status_code == 200
     data = response.json()
 
-    # Check response structure
-    assert "data" in data
-    assert data["data"] == []
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert data["items"] == []
+    assert data["total"] == 0
 
 
 def test_list_api_keys_with_data(client: TestClient, setup_api_key):
     """Test listing API keys when user has some."""
     # Create another API key for the same user
     api_key_data = {
-        "data": {
-            "name": "Second API Key",
-            "expires_at": None,
-        }
+        "name": "Second API Key",
+        "expires_at": None,
     }
     client.post("/api-keys", json=api_key_data)
 
@@ -102,12 +105,17 @@ def test_list_api_keys_with_data(client: TestClient, setup_api_key):
     assert response.status_code == 200
     data = response.json()
 
-    # Check response structure
-    assert "data" in data
-    assert len(data["data"]) >= 1
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
 
     # Check that full_key is not included in list
-    for api_key in data["data"]:
+    for api_key in data["items"]:
         assert "full_key" not in api_key
         assert "id" in api_key
         assert "key_id" in api_key
@@ -271,9 +279,9 @@ def test_api_key_authentication_flow(client: TestClient):
     assert list_response.status_code == 200
     list_data = list_response.json()
 
-    # Find our created key in the list
+    # Find our created key in the list (fastapi-pagination Page format)
     created_key = next(
-        (key for key in list_data["data"] if key["id"] == create_data["id"]), None
+        (key for key in list_data["items"] if key["id"] == create_data["id"]), None
     )
     assert created_key is not None
     assert created_key["name"] == "Test Authentication Key"
@@ -284,9 +292,7 @@ def test_api_key_validation(client: TestClient):
     """Test API key validation with various invalid inputs."""
     # Test with missing name
     invalid_data = {
-        "data": {
-            "expires_at": None,
-        }
+        "expires_at": None,
     }
 
     response = client.post("/api-keys", json=invalid_data)
@@ -294,10 +300,8 @@ def test_api_key_validation(client: TestClient):
 
     # Test with empty name
     invalid_data = {
-        "data": {
-            "name": "",
-            "expires_at": None,
-        }
+        "name": "",
+        "expires_at": None,
     }
 
     response = client.post("/api-keys", json=invalid_data)
@@ -305,10 +309,8 @@ def test_api_key_validation(client: TestClient):
 
     # Test with name too long
     invalid_data = {
-        "data": {
-            "name": "a" * 101,  # Exceeds max length
-            "expires_at": None,
-        }
+        "name": "a" * 101,  # Exceeds max length
+        "expires_at": None,
     }
 
     response = client.post("/api-keys", json=invalid_data)

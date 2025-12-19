@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 from app.commands.system_accounts.create_system_account_command import (
     CreateSystemAccountCommand,
@@ -16,7 +18,6 @@ from app.utils.auth import get_current_user
 from app.schemas.system_account import (
     SystemAccountCreateRequest,
     SystemAccountUpdateRequest,
-    SystemAccountListResponse,
 )
 from app.schemas.user import UserResponse
 from app.services.user_service import UserService
@@ -45,14 +46,10 @@ async def create_system_account(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get(
-    "", response_model=SystemAccountListResponse, operation_id="list_system_accounts"
-)
+@router.get("", response_model=Page[UserResponse], operation_id="list_system_accounts")
 async def list_system_accounts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
 ):
     """
     List all system accounts.
@@ -60,16 +57,8 @@ async def list_system_accounts(
     Returns a paginated list of system accounts (users with service_account=True).
     """
     user_service = UserService(db)
-    # Filter users by service_account=True
-    filters = {"service_account": True}
-    system_accounts = user_service.search(filters)
-
-    # Apply pagination
-    paginated_accounts = system_accounts[skip : skip + limit]
-
-    return SystemAccountListResponse(
-        data=[UserResponse.model_validate(account) for account in paginated_accounts]
-    )
+    query = user_service.get_system_accounts_query()
+    return paginate(query)
 
 
 @router.get(

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
 from app.models.api_key import ApiKey
 from app.schemas.api_key import ApiKeyCreate
 from app.utils.security import generate_api_key, hash_secret, parse_api_key
@@ -57,6 +57,22 @@ class ApiKeyService:
             .filter(ApiKey.user_id == user_id)
             .order_by(ApiKey.created_at.desc())
             .all()
+        )
+
+    def get_user_api_keys_query(self, user_id: UUID) -> Query:
+        """
+        Get a query for API keys belonging to a specific user.
+
+        Args:
+            user_id: The ID of the user
+
+        Returns:
+            Query: SQLAlchemy query object for the user's API keys.
+        """
+        return (
+            self.db.query(ApiKey)
+            .filter(ApiKey.user_id == user_id)
+            .order_by(ApiKey.created_at.desc())
         )
 
     def revoke_api_key(self, api_key_id: UUID, user_id: UUID) -> bool:

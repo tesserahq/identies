@@ -102,9 +102,14 @@ def test_list_system_accounts_empty(client: TestClient):
     assert response.status_code == 200
     data = response.json()
 
-    # Check response structure
-    assert "data" in data
-    assert isinstance(data["data"], list)
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert isinstance(data["items"], list)
+    assert data["total"] == 0
 
 
 def test_list_system_accounts_with_data(client: TestClient, setup_system_account):
@@ -115,12 +120,17 @@ def test_list_system_accounts_with_data(client: TestClient, setup_system_account
     assert response.status_code == 200
     data = response.json()
 
-    # Check response structure
-    assert "data" in data
-    assert len(data["data"]) >= 1
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
 
     # Check that returned accounts are system accounts
-    for account in data["data"]:
+    for account in data["items"]:
         assert "id" in account
         assert "email" in account
         assert "first_name" in account
@@ -129,13 +139,17 @@ def test_list_system_accounts_with_data(client: TestClient, setup_system_account
 
 def test_list_system_accounts_pagination(client: TestClient, setup_system_account):
     """Test listing system accounts with pagination."""
-    response = client.get("/system-accounts?skip=0&limit=10")
+    response = client.get("/system-accounts?page=1&size=10")
 
     # Assertions
     assert response.status_code == 200
     data = response.json()
-    assert "data" in data
-    assert len(data["data"]) <= 10
+    assert "items" in data
+    assert "page" in data
+    assert "size" in data
+    assert data["page"] == 1
+    assert data["size"] == 10
+    assert len(data["items"]) <= 10
 
 
 def test_get_system_account(client: TestClient, setup_system_account):
