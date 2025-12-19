@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
+from app.schemas.system_account import SystemAccountOnboard
 from datetime import datetime, timezone
 
 from app.utils.db.filtering import apply_filters
@@ -36,6 +37,21 @@ class UserService:
 
     def onboard_user(self, user: UserOnboard) -> User:
         db_user = User(**user.model_dump())
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    def onboard_system_account(self, system_account: SystemAccountOnboard) -> User:
+        """Onboard a system account.
+
+        Args:
+            system_account: The system account onboarding data
+
+        Returns:
+            User: The created system account
+        """
+        db_user = User(**system_account.model_dump())
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
