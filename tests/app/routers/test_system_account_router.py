@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from uuid import uuid4
+from datetime import datetime, timezone, timedelta
 
 
 @pytest.fixture
@@ -367,4 +368,253 @@ def test_system_account_validation(client: TestClient):
     }
 
     response = client.post("/system-accounts", json=invalid_data)
+    assert response.status_code == 422
+
+
+# Tests for GET /system-accounts/{system_account_id}/api-keys
+def test_list_system_account_api_keys_success(client, setup_system_account, db, faker):
+    """Test listing API keys for a specific system account."""
+    from app.models.api_key import ApiKey
+    from app.utils.security import generate_api_key, hash_secret, parse_api_key
+
+    # Create an API key for the system account
+    full_key, key_id = generate_api_key()
+    key_id_part, secret_part = parse_api_key(full_key)
+
+    api_key_data = {
+        "user_id": setup_system_account.id,
+        "key_id": key_id_part,
+        "secret_hash": hash_secret(secret_part),
+        "name": faker.word(),
+        "expires_at": datetime.now(timezone.utc) + timedelta(days=30),
+    }
+
+    api_key = ApiKey(**api_key_data)
+    db.add(api_key)
+    db.commit()
+    db.refresh(api_key)
+
+    response = client.get(f"/system-accounts/{setup_system_account.id}/api-keys")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
+
+    # Check that the API key is in the list
+    api_key_ids = [key["id"] for key in data["items"]]
+    assert str(api_key.id) in api_key_ids
+
+    # Check that full_key is not included in list
+    for api_key_item in data["items"]:
+        assert "full_key" not in api_key_item
+        assert "id" in api_key_item
+        assert "key_id" in api_key_item
+        assert "name" in api_key_item
+
+
+def test_list_system_account_api_keys_empty(client, setup_system_account):
+    """Test listing API keys for a system account with no API keys."""
+    response = client.get(f"/system-accounts/{setup_system_account.id}/api-keys")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert data["items"] == []
+    assert data["total"] == 0
+
+
+def test_list_system_account_api_keys_not_found(client):
+    """Test listing API keys for a non-existent system account."""
+    response = client.get(f"/system-accounts/{uuid4()}/api-keys")
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+def test_list_system_account_api_keys_not_service_account(client, setup_user):
+    """Test listing API keys for a regular user (not a system account)."""
+    response = client.get(f"/system-accounts/{setup_user.id}/api-keys")
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not a system account" in data["detail"].lower()
+
+
+def test_list_system_account_api_keys_multiple_keys(
+    client, setup_system_account, db, faker
+):
+    """Test listing API keys when system account has multiple keys."""
+    from app.models.api_key import ApiKey
+    from app.utils.security import generate_api_key, hash_secret, parse_api_key
+
+    # Create multiple API keys for the system account
+    for i in range(3):
+        full_key, key_id = generate_api_key()
+        key_id_part, secret_part = parse_api_key(full_key)
+
+        api_key_data = {
+            "user_id": setup_system_account.id,
+            "key_id": key_id_part,
+            "secret_hash": hash_secret(secret_part),
+            "name": f"Test Key {i}",
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=30),
+        }
+
+        api_key = ApiKey(**api_key_data)
+        db.add(api_key)
+
+    db.commit()
+
+    response = client.get(f"/system-accounts/{setup_system_account.id}/api-keys")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) >= 3
+    assert data["total"] >= 3
+
+
+# Tests for POST /system-accounts/{system_account_id}/api-keys
+@pytest.fixture
+def system_account_api_key_create_data(faker):
+    """Create sample API key creation data for testing."""
+    return {
+        "name": faker.word(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+    }
+
+
+@pytest.fixture
+def system_account_api_key_create_data_no_expiry(faker):
+    """Create sample API key creation data without expiry for testing."""
+    return {
+        "name": faker.word(),
+        "expires_at": None,
+    }
+
+
+def test_create_system_account_api_key_success(
+    client, setup_system_account, system_account_api_key_create_data
+):
+    """Test creating a new API key for a specific system account."""
+    response = client.post(
+        f"/system-accounts/{setup_system_account.id}/api-keys",
+        json=system_account_api_key_create_data,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check response structure
+    assert "id" in data
+    assert "key_id" in data
+    assert "name" in data
+    assert "created_at" in data
+    assert "last_used_at" in data
+    assert "expires_at" in data
+    assert "revoked" in data
+    assert "full_key" in data
+
+    # Check values
+    assert data["name"] == system_account_api_key_create_data["name"]
+    assert data["revoked"] is False
+    assert data["full_key"].startswith("ak_")
+    assert "." in data["full_key"]
+    assert data["user_id"] == str(setup_system_account.id)
+
+
+def test_create_system_account_api_key_no_expiry(
+    client, setup_system_account, system_account_api_key_create_data_no_expiry
+):
+    """Test creating an API key for a system account without expiry."""
+    response = client.post(
+        f"/system-accounts/{setup_system_account.id}/api-keys",
+        json=system_account_api_key_create_data_no_expiry,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check values
+    assert data["name"] == system_account_api_key_create_data_no_expiry["name"]
+    assert data["expires_at"] is None
+    assert data["revoked"] is False
+    assert data["user_id"] == str(setup_system_account.id)
+
+
+def test_create_system_account_api_key_not_found(
+    client, system_account_api_key_create_data
+):
+    """Test creating an API key for a non-existent system account."""
+    response = client.post(
+        f"/system-accounts/{uuid4()}/api-keys", json=system_account_api_key_create_data
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()
+
+
+def test_create_system_account_api_key_not_service_account(
+    client, setup_user, system_account_api_key_create_data
+):
+    """Test creating an API key for a regular user (not a system account)."""
+    response = client.post(
+        f"/system-accounts/{setup_user.id}/api-keys",
+        json=system_account_api_key_create_data,
+    )
+
+    assert response.status_code == 404
+    data = response.json()
+    assert "not a system account" in data["detail"].lower()
+
+
+def test_create_system_account_api_key_invalid_data(client, setup_system_account):
+    """Test creating an API key for a system account with invalid data."""
+    invalid_data = {
+        "name": "",  # Empty name should fail validation
+    }
+
+    response = client.post(
+        f"/system-accounts/{setup_system_account.id}/api-keys", json=invalid_data
+    )
+
+    assert response.status_code == 422  # Validation error
+
+
+def test_create_system_account_api_key_validation(client, setup_system_account):
+    """Test API key validation with various invalid inputs."""
+    # Test with missing name
+    invalid_data = {
+        "expires_at": None,
+    }
+
+    response = client.post(
+        f"/system-accounts/{setup_system_account.id}/api-keys", json=invalid_data
+    )
+    assert response.status_code == 422
+
+    # Test with name too long
+    invalid_data = {
+        "name": "a" * 101,  # Exceeds max length
+        "expires_at": None,
+    }
+
+    response = client.post(
+        f"/system-accounts/{setup_system_account.id}/api-keys", json=invalid_data
+    )
     assert response.status_code == 422

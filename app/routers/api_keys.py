@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
@@ -22,13 +22,32 @@ from app.schemas.api_key import (
 from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
+from tessera_sdk.utils.authorization_dependency import authorize
 
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
+
+
+async def infer_domain(_: Request) -> str:
+    return "*"
+
+
+authorize_create = authorize(
+    resource="api_key",
+    action="create",
+    domain_resolver=infer_domain,
+)
+
+authorize_list = authorize(
+    resource="api_key",
+    action="read",
+    domain_resolver=infer_domain,
+)
 
 
 @router.post("", response_model=ApiKeyCreateResponse, operation_id="create_api_key")
 async def create_api_key(
     api_key_data: ApiKeyCreateRequest,
+    _authorized: bool = Depends(authorize_create),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -58,6 +77,7 @@ async def create_api_key(
 
 @router.get("", response_model=Page[ApiKeyResponse], operation_id="list_api_keys")
 async def list_api_keys(
+    _authorized: bool = Depends(authorize_list),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

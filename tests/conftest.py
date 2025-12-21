@@ -1,14 +1,38 @@
 from app.config import get_settings
 import pytest
 import logging
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials
+from typing import Optional
 from app.db import Base, get_db
-from app.main import create_app
 from starlette.middleware.base import BaseHTTPMiddleware
+
+
+# Patch authorize BEFORE importing create_app (which imports routers)
+def mock_authorize(*args, **kwargs):
+    """
+    Mock authorize function that returns a dependency always returning True.
+    This mocks tessera_sdk.utils.authorization_dependency.authorize globally.
+    """
+
+    async def always_authorized():
+        return True
+
+    return always_authorized
+
+
+# Start the patch at module level before any routers are imported
+_authorize_patcher = patch(
+    "tessera_sdk.utils.authorization_dependency.authorize", mock_authorize
+)
+_authorize_patcher.start()
+
+# Now import create_app after the patch is active
+from app.main import create_app
 
 pytest_plugins = [
     "tests.fixtures.user_fixtures",
@@ -118,7 +142,7 @@ class MockAuthenticationMiddleware(BaseHTTPMiddleware):
 
 def mock_verify_token_dependency(
     request: Request,
-    token: HTTPAuthorizationCredentials = None,
+    token: Optional[HTTPAuthorizationCredentials] = None,
     db_session=None,
 ):
     """Mock the verify_token_dependency to bypass JWT verification."""
@@ -145,6 +169,7 @@ def client(db, setup_user):
             pass  # Don't close the session here, it's handled by the db fixture
 
     # Create app with testing mode ON (no auth middleware)
+    # The authorize patch should already be active from module level
     logger.debug("Creating app with testing mode ON")
     app = create_app(testing=True, auth_middleware=MockAuthenticationMiddleware)
 
