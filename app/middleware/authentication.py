@@ -8,6 +8,14 @@ from app.utils.auth import verify_token_dependency, InviteOnlyAccessException
 from typing import Optional
 from tessera_sdk.core.database_manager import DatabaseManager
 
+SKIP_AUTH_PATHS = [
+    "/health",
+    "/openapi.json",
+    "/docs",
+    "/api-keys/introspect",
+    "/metrics",
+]
+
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(
@@ -22,12 +30,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         db = self.database_manager
 
-        if request.url.path in [
-            "/health",
-            "/openapi.json",
-            "/docs",
-            "/api-keys/introspect",
-        ]:
+        if request.url.path in SKIP_AUTH_PATHS:
             return await call_next(request)
 
         # Check for X-API-Key header first
