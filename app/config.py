@@ -9,7 +9,7 @@ DEFAULT_TEST_DATABASE_URL = (
     "postgresql://postgres:postgres@localhost:5432/identies_test"
 )
 
-SERVICE_NAME = "identies"
+SERVICE_NAME = "identies-api"
 
 
 class Settings(BaseSettings):
