@@ -3,8 +3,8 @@ from app.models.user import User
 
 
 @pytest.fixture(scope="function")
-def setup_system_account(db, faker):
-    """Create a test system account for use in tests."""
+def setup_service_account(db, faker):
+    """Create a test service account for use in tests."""
     email = faker.email()
 
     user_data = {
@@ -25,8 +25,8 @@ def setup_system_account(db, faker):
 
 
 @pytest.fixture(scope="function")
-def setup_another_system_account(db, faker):
-    """Create another test system account for use in tests."""
+def setup_another_service_account(db, faker):
+    """Create another test service account for use in tests."""
     email = faker.email()
 
     user_data = {

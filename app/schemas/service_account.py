@@ -6,42 +6,42 @@ from datetime import datetime
 from app.schemas.user import UserBase, UserResponse
 
 
-class SystemAccountOnboard(UserBase):
-    """Schema for onboarding a new system account.
+class ServiceAccountOnboard(UserBase):
+    """Schema for onboarding a new service account.
 
-    System accounts are users with service_account=True and use external_id
+    Service accounts are users with service_account=True and use external_id
     as a unique identifier. They don't have passwords and authenticate via API keys.
     """
 
     external_id: str
-    """Unique identifier for the system account. Typically in format 'system-{random}'."""
+    """Unique identifier for the service account. Typically in format 'system-{random}'."""
 
     service_account: bool = True
-    """Whether this user is a service account. Always True for system accounts."""
+    """Whether this user is a service account. Always True for service accounts."""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class SystemAccountCreateRequest(BaseModel):
-    """Schema for creating a new system account."""
+class ServiceAccountCreateRequest(BaseModel):
+    """Schema for creating a new service account."""
 
     email: EmailStr
-    """Email address for the system account. Must be unique."""
+    """Email address for the service account. Must be unique."""
 
     first_name: str = Field(..., min_length=1)
-    """First name for the system account."""
+    """First name for the service account."""
 
     last_name: str = Field(..., min_length=1)
-    """Last name for the system account."""
+    """Last name for the service account."""
 
     username: Optional[str] = None
-    """Optional username for the system account."""
+    """Optional username for the service account."""
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class SystemAccountUpdateRequest(BaseModel):
-    """Schema for updating a system account."""
+class ServiceAccountUpdateRequest(BaseModel):
+    """Schema for updating a service account."""
 
     email: Optional[EmailStr] = None
     """Updated email address."""
@@ -58,8 +58,8 @@ class SystemAccountUpdateRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class SystemAccountListResponse(BaseModel):
-    """Schema for listing system accounts."""
+class ServiceAccountListResponse(BaseModel):
+    """Schema for listing service accounts."""
 
     data: list[UserResponse]
-    """List of system accounts."""
+    """List of service accounts."""

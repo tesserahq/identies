@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session, Query
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
-from app.schemas.system_account import SystemAccountOnboard
+from app.schemas.service_account import ServiceAccountOnboard
 from datetime import datetime, timezone
 
 from app.utils.db.filtering import apply_filters
@@ -42,16 +42,16 @@ class UserService:
         self.db.refresh(db_user)
         return db_user
 
-    def onboard_system_account(self, system_account: SystemAccountOnboard) -> User:
-        """Onboard a system account.
+    def onboard_service_account(self, service_account: ServiceAccountOnboard) -> User:
+        """Onboard a service account.
 
         Args:
-            system_account: The system account onboarding data
+            service_account: The service account onboarding data
 
         Returns:
-            User: The created system account
+            User: The created service account
         """
-        db_user = User(**system_account.model_dump())
+        db_user = User(**service_account.model_dump())
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
@@ -100,11 +100,11 @@ class UserService:
         query = apply_filters(query, User, filters)
         return query.all()
 
-    def get_system_accounts_query(self) -> Query:
+    def get_service_accounts_query(self) -> Query:
         """
-        Get a query for system accounts (users with service_account=True).
+        Get a query for service accounts (users with service_account=True).
 
         Returns:
-            Query: SQLAlchemy query object for system accounts.
+            Query: SQLAlchemy query object for service accounts.
         """
         return self.db.query(User).filter(User.service_account == True)

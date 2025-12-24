@@ -1,46 +1,46 @@
 import pytest
 from uuid import uuid4
 from sqlalchemy.orm import Session
-from app.commands.system_accounts.update_system_account_command import (
-    UpdateSystemAccountCommand,
+from app.commands.service_accounts.update_service_account_command import (
+    UpdateServiceAccountCommand,
 )
-from app.schemas.system_account import SystemAccountUpdateRequest
+from app.schemas.service_account import ServiceAccountUpdateRequest
 from app.services.user_service import UserService
 
 
-def test_update_system_account_success(db: Session, setup_system_account, faker):
+def test_update_service_account_success(db: Session, setup_service_account, faker):
     """Test successfully updating a system account."""
-    command = UpdateSystemAccountCommand(db)
+    command = UpdateServiceAccountCommand(db)
 
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         first_name="Updated First",
         last_name="Updated Last",
         email=faker.email(),
     )
 
-    updated_account = command.execute(setup_system_account.id, update_data)
+    updated_account = command.execute(setup_service_account.id, update_data)
 
     # Assertions
     assert updated_account is not None
-    assert updated_account.id == setup_system_account.id
+    assert updated_account.id == setup_service_account.id
     assert updated_account.first_name == "Updated First"
     assert updated_account.last_name == "Updated Last"
     assert updated_account.email == update_data.email
     assert updated_account.service_account is True
 
 
-def test_update_system_account_partial(db: Session, setup_system_account):
+def test_update_service_account_partial(db: Session, setup_service_account):
     """Test partially updating a system account."""
-    command = UpdateSystemAccountCommand(db)
+    command = UpdateServiceAccountCommand(db)
 
-    original_email = setup_system_account.email
-    original_last_name = setup_system_account.last_name
+    original_email = setup_service_account.email
+    original_last_name = setup_service_account.last_name
 
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         first_name="Updated First Only",
     )
 
-    updated_account = command.execute(setup_system_account.id, update_data)
+    updated_account = command.execute(setup_service_account.id, update_data)
 
     # Assertions
     assert updated_account is not None
@@ -49,11 +49,11 @@ def test_update_system_account_partial(db: Session, setup_system_account):
     assert updated_account.last_name == original_last_name  # Should remain unchanged
 
 
-def test_update_system_account_not_found(db: Session, faker):
+def test_update_service_account_not_found(db: Session, faker):
     """Test updating a non-existent system account."""
-    command = UpdateSystemAccountCommand(db)
+    command = UpdateServiceAccountCommand(db)
 
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         first_name="Updated First",
     )
 
@@ -63,47 +63,47 @@ def test_update_system_account_not_found(db: Session, faker):
     assert "not found" in str(exc_info.value).lower()
 
 
-def test_update_system_account_not_service_account(db: Session, setup_user, faker):
-    """Test updating a regular user (not a system account) fails."""
-    command = UpdateSystemAccountCommand(db)
+def test_update_service_account_not_service_account(db: Session, setup_user, faker):
+    """Test updating a regular user (not a service account) fails."""
+    command = UpdateServiceAccountCommand(db)
 
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         first_name="Updated First",
     )
 
     with pytest.raises(Exception) as exc_info:
         command.execute(setup_user.id, update_data)
 
-    assert "not a system account" in str(exc_info.value).lower()
+    assert "not a service account" in str(exc_info.value).lower()
 
 
-def test_update_system_account_duplicate_email(
-    db: Session, setup_system_account, setup_user, faker
+def test_update_service_account_duplicate_email(
+    db: Session, setup_service_account, setup_user, faker
 ):
     """Test updating system account with duplicate email fails."""
-    command = UpdateSystemAccountCommand(db)
+    command = UpdateServiceAccountCommand(db)
 
     # Try to update with existing user's email
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         email=setup_user.email,
     )
 
     with pytest.raises(Exception) as exc_info:
-        command.execute(setup_system_account.id, update_data)
+        command.execute(setup_service_account.id, update_data)
 
     assert "already exists" in str(exc_info.value).lower()
 
 
-def test_update_system_account_rollback_on_error(
-    db: Session, setup_system_account, setup_user
+def test_update_service_account_rollback_on_error(
+    db: Session, setup_service_account, setup_user
 ):
     """Test that exception is raised when trying to update with duplicate email."""
-    command = UpdateSystemAccountCommand(db)
+    command = UpdateServiceAccountCommand(db)
 
-    account_id = setup_system_account.id
+    account_id = setup_service_account.id
 
     # Try to update with duplicate email (should fail and raise exception)
-    update_data = SystemAccountUpdateRequest(
+    update_data = ServiceAccountUpdateRequest(
         email=setup_user.email,
         first_name="Should Not Update",
     )
