@@ -162,6 +162,9 @@ class UserResponse(BaseModel):
     external_id: Optional[str] = None
     """External ID of the user."""
 
+    service_account: bool = False
+    """Whether this user is a service account. Defaults to False."""
+
     @model_validator(mode="after")
     def set_avatar_url_from_asset_id(self):
         """Set avatar_url to signed URL from avatar_asset_id if avatar_asset_id is present."""
