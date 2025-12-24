@@ -37,7 +37,7 @@ from app.main import create_app
 pytest_plugins = [
     "tests.fixtures.user_fixtures",
     "tests.fixtures.api_key_fixtures",
-    "tests.fixtures.system_account_fixtures",
+    "tests.fixtures.service_account_fixtures",
 ]
 
 logger = logging.getLogger(__name__)

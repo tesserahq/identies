@@ -4,21 +4,21 @@ from uuid import UUID
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 
-from app.commands.system_accounts.create_system_account_command import (
-    CreateSystemAccountCommand,
+from app.commands.service_accounts.create_service_account_command import (
+    CreateServiceAccountCommand,
 )
-from app.commands.system_accounts.update_system_account_command import (
-    UpdateSystemAccountCommand,
+from app.commands.service_accounts.update_service_account_command import (
+    UpdateServiceAccountCommand,
 )
-from app.commands.system_accounts.delete_system_account_command import (
-    DeleteSystemAccountCommand,
+from app.commands.service_accounts.delete_service_account_command import (
+    DeleteServiceAccountCommand,
 )
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.db import get_db
 from app.utils.auth import get_current_user
-from app.schemas.system_account import (
-    SystemAccountCreateRequest,
-    SystemAccountUpdateRequest,
+from app.schemas.service_account import (
+    ServiceAccountCreateRequest,
+    ServiceAccountUpdateRequest,
 )
 from app.schemas.user import UserResponse
 from app.schemas.api_key import (
@@ -31,125 +31,125 @@ from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
 
-router = APIRouter(prefix="/system-accounts", tags=["System Accounts"])
+router = APIRouter(prefix="/service-accounts", tags=["Service Accounts"])
 
 
-@router.post("", response_model=UserResponse, operation_id="create_system_account")
-async def create_system_account(
-    system_account_data: SystemAccountCreateRequest,
+@router.post("", response_model=UserResponse, operation_id="create_service_account")
+async def create_service_account(
+    service_account_data: ServiceAccountCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Create a new system account.
+    Create a new service account.
 
-    System accounts are users with service_account=True and don't have passwords.
+    Service accounts are users with service_account=True and don't have passwords.
     They authenticate using API keys.
     """
-    create_command = CreateSystemAccountCommand(db)
+    create_command = CreateServiceAccountCommand(db)
     try:
-        system_account = create_command.execute(system_account_data)
-        return system_account
+        service_account = create_command.execute(service_account_data)
+        return service_account
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("", response_model=Page[UserResponse], operation_id="list_system_accounts")
-async def list_system_accounts(
+@router.get("", response_model=Page[UserResponse], operation_id="list_service_accounts")
+async def list_service_accounts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    List all system accounts.
+    List all service accounts.
 
-    Returns a paginated list of system accounts (users with service_account=True).
+    Returns a paginated list of service accounts (users with service_account=True).
     """
     user_service = UserService(db)
-    query = user_service.get_system_accounts_query()
+    query = user_service.get_service_accounts_query()
     return paginate(query)
 
 
 @router.get(
-    "/{system_account_id}",
+    "/{service_account_id}",
     response_model=UserResponse,
-    operation_id="get_system_account",
+    operation_id="get_service_account",
 )
-async def get_system_account(
-    system_account_id: UUID,
+async def get_service_account(
+    service_account_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Get a specific system account by ID.
+    Get a specific service account by ID.
 
-    Returns the system account details, or 404 if not found or not a system account.
+    Returns the service account details, or 404 if not found or not a service account.
     """
     user_service = UserService(db)
-    user = user_service.get_user(system_account_id)
+    user = user_service.get_user(service_account_id)
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="System account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
         )
 
     if not user.service_account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User is not a system account",
+            detail="User is not a service account",
         )
 
     return UserResponse.model_validate(user)
 
 
 @router.put(
-    "/{system_account_id}",
+    "/{service_account_id}",
     response_model=UserResponse,
-    operation_id="update_system_account",
+    operation_id="update_service_account",
 )
-async def update_system_account(
-    system_account_id: UUID,
-    system_account_update: SystemAccountUpdateRequest,
+async def update_service_account(
+    service_account_id: UUID,
+    service_account_update: ServiceAccountUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Update a system account by ID.
+    Update a service account by ID.
 
     Only the fields provided in the request will be updated.
     """
-    update_command = UpdateSystemAccountCommand(db)
+    update_command = UpdateServiceAccountCommand(db)
     try:
-        updated_system_account = update_command.execute(
-            system_account_id, system_account_update
+        updated_service_account = update_command.execute(
+            service_account_id, service_account_update
         )
-        return updated_system_account
+        return updated_service_account
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
-    "/{system_account_id}",
-    operation_id="delete_system_account",
+    "/{service_account_id}",
+    operation_id="delete_service_account",
 )
-async def delete_system_account(
-    system_account_id: UUID,
+async def delete_service_account(
+    service_account_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Delete a system account by ID.
+    Delete a service account by ID.
 
-    Permanently deletes the system account from the system.
+    Permanently deletes the service account from the system.
     """
-    delete_command = DeleteSystemAccountCommand(db)
+    delete_command = DeleteServiceAccountCommand(db)
     try:
-        success = delete_command.execute(system_account_id)
+        success = delete_command.execute(service_account_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="System account not found",
+                detail="Service account not found",
             )
-        return {"message": "System account deleted successfully"}
+        return {"message": "Service account deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:
@@ -157,67 +157,67 @@ async def delete_system_account(
 
 
 @router.get(
-    "/{system_account_id}/api-keys",
+    "/{service_account_id}/api-keys",
     response_model=Page[ApiKeyResponse],
-    operation_id="list_system_account_api_keys",
+    operation_id="list_service_account_api_keys",
 )
-async def list_system_account_api_keys(
-    system_account_id: UUID,
+async def list_service_account_api_keys(
+    service_account_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    List all API keys for a specific system account.
+    List all API keys for a specific service account.
 
-    Returns a paginated list of API keys for the specified system account.
+    Returns a paginated list of API keys for the specified service account.
     """
-    # Verify the system account exists
+    # Verify the service account exists
     user_service = UserService(db)
-    user = user_service.get_user(system_account_id)
+    user = user_service.get_user(service_account_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="System account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
         )
 
     if not user.service_account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User is not a system account",
+            detail="User is not a service account",
         )
 
     api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(system_account_id)
+    query = api_key_service.get_user_api_keys_query(service_account_id)
     return paginate(query)
 
 
 @router.post(
-    "/{system_account_id}/api-keys",
+    "/{service_account_id}/api-keys",
     response_model=ApiKeyCreateResponse,
-    operation_id="create_system_account_api_key",
+    operation_id="create_service_account_api_key",
 )
-async def create_system_account_api_key(
-    system_account_id: UUID,
+async def create_service_account_api_key(
+    service_account_id: UUID,
     api_key_data: ApiKeyCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Create a new API key for a specific system account.
+    Create a new API key for a specific service account.
 
     Returns the new API key with the full key shown only once.
     """
-    # Verify the system account exists
+    # Verify the service account exists
     user_service = UserService(db)
-    user = user_service.get_user(system_account_id)
+    user = user_service.get_user(service_account_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="System account not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
         )
 
     if not user.service_account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User is not a system account",
+            detail="User is not a service account",
         )
 
     create_api_key_command = CreateApiKeyCommand(db)
@@ -225,7 +225,7 @@ async def create_system_account_api_key(
     # Create the API key
     api_key, full_key = create_api_key_command.execute(
         ApiKeyCreate(
-            user_id=system_account_id,
+            user_id=service_account_id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
         )

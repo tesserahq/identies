@@ -1,16 +1,16 @@
 import pytest
 from uuid import uuid4
 from sqlalchemy.orm import Session
-from app.commands.system_accounts.delete_system_account_command import (
-    DeleteSystemAccountCommand,
+from app.commands.service_accounts.delete_service_account_command import (
+    DeleteServiceAccountCommand,
 )
 from app.services.user_service import UserService
 
 
-def test_delete_system_account_success(db: Session, setup_system_account):
+def test_delete_service_account_success(db: Session, setup_service_account):
     """Test successfully deleting a system account."""
-    command = DeleteSystemAccountCommand(db)
-    account_id = setup_system_account.id
+    command = DeleteServiceAccountCommand(db)
+    account_id = setup_service_account.id
 
     success = command.execute(account_id)
 
@@ -23,9 +23,9 @@ def test_delete_system_account_success(db: Session, setup_system_account):
     assert deleted_account is None
 
 
-def test_delete_system_account_not_found(db: Session):
+def test_delete_service_account_not_found(db: Session):
     """Test deleting a non-existent system account."""
-    command = DeleteSystemAccountCommand(db)
+    command = DeleteServiceAccountCommand(db)
 
     with pytest.raises(Exception) as exc_info:
         command.execute(uuid4())
@@ -33,20 +33,20 @@ def test_delete_system_account_not_found(db: Session):
     assert "not found" in str(exc_info.value).lower()
 
 
-def test_delete_system_account_not_service_account(db: Session, setup_user):
-    """Test deleting a regular user (not a system account) fails."""
-    command = DeleteSystemAccountCommand(db)
+def test_delete_service_account_not_service_account(db: Session, setup_user):
+    """Test deleting a regular user (not a service account) fails."""
+    command = DeleteServiceAccountCommand(db)
 
     with pytest.raises(Exception) as exc_info:
         command.execute(setup_user.id)
 
-    assert "not a system account" in str(exc_info.value).lower()
+    assert "not a service account" in str(exc_info.value).lower()
 
 
-def test_delete_system_account_rollback_on_error(db: Session, setup_system_account):
+def test_delete_service_account_rollback_on_error(db: Session, setup_service_account):
     """Test that exception is raised when trying to delete non-existent account."""
-    command = DeleteSystemAccountCommand(db)
-    account_id = setup_system_account.id
+    command = DeleteServiceAccountCommand(db)
+    account_id = setup_service_account.id
 
     # Try to delete non-existent account (should fail and raise exception)
     with pytest.raises(Exception) as exc_info:
