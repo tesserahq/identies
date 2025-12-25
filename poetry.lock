@@ -213,37 +213,6 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
-name = "casbin"
-version = "1.43.0"
-description = "An authorization library that supports access control models like ACL, RBAC, ABAC in Python"
-optional = false
-python-versions = ">=3.3"
-groups = ["main"]
-files = [
-    {file = "casbin-1.43.0-py3-none-any.whl", hash = "sha256:63a3d1228870250e859ccd94133fe478821093f71dd37f05e0baa0c6fea26623"},
-    {file = "casbin-1.43.0.tar.gz", hash = "sha256:d2e90ce8e72f912877851e94d37999f32c558c6ba7aba0437d483275262e86e0"},
-]
-
-[package.dependencies]
-simpleeval = ">=0.9.11"
-
-[[package]]
-name = "casbin-sqlalchemy-adapter"
-version = "1.4.0"
-description = "SQLAlchemy Adapter for PyCasbin"
-optional = false
-python-versions = ">=3.3"
-groups = ["main"]
-files = [
-    {file = "casbin_sqlalchemy_adapter-1.4.0-py3-none-any.whl", hash = "sha256:a3e4e5d05e47fc6e04995ac26d36f53243f87ac9e3c66b24874ce6353e784897"},
-    {file = "casbin_sqlalchemy_adapter-1.4.0.tar.gz", hash = "sha256:3cc439e3911a0f0c0de66ffde7e0de0586be1e1c772302e003d84164f4bfe291"},
-]
-
-[package.dependencies]
-casbin = ">=0.8.1"
-SQLAlchemy = ">=1.2.18"
-
-[[package]]
 name = "certifi"
 version = "2025.11.12"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -1604,21 +1573,6 @@ files = [
 ]
 
 [[package]]
-name = "pycasbin"
-version = "1.50.0"
-description = "An authorization library that supports access control models like ACL, RBAC, ABAC in Python"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "pycasbin-1.50.0-py3-none-any.whl", hash = "sha256:2b330123dfc9aa48d9a231d4a0168a2285576fc9dccb5561150f7b42f9905805"},
-    {file = "pycasbin-1.50.0.tar.gz", hash = "sha256:7c1606fba7716c3bd60e088cd4911f504582e890e5f0f1e410bc5e2535cadeb3"},
-]
-
-[package.dependencies]
-simpleeval = ">=1.0.3"
-
-[[package]]
 name = "pycparser"
 version = "2.23"
 description = "C parser in Python"
@@ -2126,18 +2080,6 @@ files = [
 ]
 
 [[package]]
-name = "simpleeval"
-version = "1.0.3"
-description = "A simple, safe single expression evaluator library."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "simpleeval-1.0.3-py3-none-any.whl", hash = "sha256:e3bdbb8c82c26297c9a153902d0fd1858a6c3774bf53ff4f134788c3f2035c38"},
-    {file = "simpleeval-1.0.3.tar.gz", hash = "sha256:67bbf246040ac3b57c29cf048657b9cf31d4e7b9d6659684daa08ca8f1e45829"},
-]
-
-[[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -2518,4 +2460,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "f78d1dc9b317c9d4a99fd34bf9148bf34bca53548770b3275ab5e8639e3e9a08"
+content-hash = "18520bed4cf4570802704eabe6ea65b42826cf90bdc66678896edd4d8f0faef3"
