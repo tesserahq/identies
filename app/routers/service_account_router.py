@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import Optional
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 
@@ -30,13 +31,26 @@ from app.schemas.api_key import (
 from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
+from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/service-accounts", tags=["Service Accounts"])
+
+
+async def infer_domain(request: Request) -> Optional[str]:
+    return "*"
+
+
+RESOURCE = "service_account"
+rbac = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
+)
 
 
 @router.post("", response_model=UserResponse, operation_id="create_service_account")
 async def create_service_account(
     service_account_data: ServiceAccountCreateRequest,
+    _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -56,6 +70,7 @@ async def create_service_account(
 
 @router.get("", response_model=Page[UserResponse], operation_id="list_service_accounts")
 async def list_service_accounts(
+    _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -76,6 +91,7 @@ async def list_service_accounts(
 )
 async def get_service_account(
     service_account_id: UUID,
+    _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -109,6 +125,7 @@ async def get_service_account(
 async def update_service_account(
     service_account_id: UUID,
     service_account_update: ServiceAccountUpdateRequest,
+    _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -133,6 +150,7 @@ async def update_service_account(
 )
 async def delete_service_account(
     service_account_id: UUID,
+    _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -163,6 +181,7 @@ async def delete_service_account(
 )
 async def list_service_account_api_keys(
     service_account_id: UUID,
+    _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -198,6 +217,7 @@ async def list_service_account_api_keys(
 async def create_service_account_api_key(
     service_account_id: UUID,
     api_key_data: ApiKeyCreateRequest,
+    _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

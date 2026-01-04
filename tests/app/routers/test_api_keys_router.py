@@ -23,7 +23,7 @@ def api_key_create_data_no_expiry(faker):
 
 def test_create_api_key(client: TestClient, api_key_create_data):
     """Test creating a new API key."""
-    response = client.post("/api-keys", json=api_key_create_data)
+    response = client.post("/me/api-keys", json=api_key_create_data)
 
     # Assertions
     assert response.status_code == 200
@@ -48,7 +48,7 @@ def test_create_api_key(client: TestClient, api_key_create_data):
 
 def test_create_api_key_no_expiry(client: TestClient, api_key_create_data_no_expiry):
     """Test creating an API key without expiry."""
-    response = client.post("/api-keys", json=api_key_create_data_no_expiry)
+    response = client.post("/me/api-keys", json=api_key_create_data_no_expiry)
 
     # Assertions
     assert response.status_code == 200
@@ -66,7 +66,7 @@ def test_create_api_key_invalid_data(client: TestClient):
         "name": "",  # Empty name should fail validation
     }
 
-    response = client.post("/api-keys", json=invalid_data)
+    response = client.post("/me/api-keys", json=invalid_data)
 
     # Assertions
     assert response.status_code == 422  # Validation error
@@ -74,8 +74,8 @@ def test_create_api_key_invalid_data(client: TestClient):
 
 def test_list_api_keys_empty(client: TestClient):
     """Test listing API keys when user has none."""
-    response = client.get("/api-keys")
-
+    response = client.get("/me/api-keys")
+    print(response.json())
     # Assertions
     assert response.status_code == 200
     data = response.json()
@@ -97,9 +97,9 @@ def test_list_api_keys_with_data(client: TestClient, setup_api_key):
         "name": "Second API Key",
         "expires_at": None,
     }
-    client.post("/api-keys", json=api_key_data)
+    client.post("/me/api-keys", json=api_key_data)
 
-    response = client.get("/api-keys")
+    response = client.get("/me/api-keys")
 
     # Assertions
     assert response.status_code == 200
@@ -263,7 +263,7 @@ def test_api_key_authentication_flow(client: TestClient):
         "expires_at": None,
     }
 
-    create_response = client.post("/api-keys", json=api_key_data)
+    create_response = client.post("/me/api-keys", json=api_key_data)
     assert create_response.status_code == 200
     create_data = create_response.json()
     full_key = create_data["full_key"]
@@ -275,7 +275,7 @@ def test_api_key_authentication_flow(client: TestClient):
     assert "." in full_key
 
     # 3. List the API keys to verify it was created
-    list_response = client.get("/api-keys")
+    list_response = client.get("/me/api-keys")
     assert list_response.status_code == 200
     list_data = list_response.json()
 
@@ -295,7 +295,7 @@ def test_api_key_validation(client: TestClient):
         "expires_at": None,
     }
 
-    response = client.post("/api-keys", json=invalid_data)
+    response = client.post("/me/api-keys", json=invalid_data)
     assert response.status_code == 422
 
     # Test with empty name
@@ -304,7 +304,7 @@ def test_api_key_validation(client: TestClient):
         "expires_at": None,
     }
 
-    response = client.post("/api-keys", json=invalid_data)
+    response = client.post("/me/api-keys", json=invalid_data)
     assert response.status_code == 422
 
     # Test with name too long
@@ -313,7 +313,7 @@ def test_api_key_validation(client: TestClient):
         "expires_at": None,
     }
 
-    response = client.post("/api-keys", json=invalid_data)
+    response = client.post("/me/api-keys", json=invalid_data)
     assert response.status_code == 422
 
 
@@ -327,7 +327,7 @@ def test_api_key_expiry_handling(client: TestClient):
         "expires_at": past_expiry,
     }
 
-    response = client.post("/api-keys", json=api_key_data)
+    response = client.post("/me/api-keys", json=api_key_data)
     assert response.status_code == 200
 
     data = response.json()

@@ -73,14 +73,18 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
 
     # Include routers
     from app.routers.user_router import router as user_router
+    from app.routers.userinfo_router import router as userinfo_router
     from app.routers.api_keys import router as api_keys_router
     from app.routers.access_rule_router import router as access_rule_router
     from app.routers.service_account_router import router as service_account_router
+    from app.routers.me_router import router as me_router
 
     app.include_router(user_router)
+    app.include_router(userinfo_router)
     app.include_router(api_keys_router)
     app.include_router(access_rule_router)
     app.include_router(service_account_router)
+    app.include_router(me_router)
 
     # Initialize fastapi-pagination
     add_pagination(app)

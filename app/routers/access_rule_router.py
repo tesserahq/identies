@@ -1,12 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.services.access_rule_service import AccessRuleService
 from app.schemas.access_rule import AccessRule, AccessRuleCreate, AccessRuleUpdate
+from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/access-rules", tags=["Access Rules"])
+
+
+async def infer_domain(request: Request) -> Optional[str]:
+    return "*"
+
+
+RESOURCE = "access_rule"
+rbac = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
+)
 
 
 @router.get("/", response_model=dict)
@@ -15,6 +27,7 @@ async def get_access_rules(
     limit: int = Query(
         100, ge=1, le=1000, description="Maximum number of records to return"
     ),
+    _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -34,6 +47,7 @@ async def get_access_rules(
 @router.get("/{access_rule_id}", response_model=AccessRule)
 async def get_access_rule(
     access_rule_id: UUID,
+    _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -53,6 +67,7 @@ async def get_access_rule(
 @router.post("/", response_model=AccessRule)
 async def create_access_rule(
     access_rule_data: AccessRuleCreate,
+    _authorized: bool = Depends(rbac["create"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -84,6 +99,7 @@ async def create_access_rule(
 async def update_access_rule(
     access_rule_id: UUID,
     access_rule_data: AccessRuleUpdate,
+    _authorized: bool = Depends(rbac["update"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -134,6 +150,7 @@ async def update_access_rule(
 @router.delete("/{access_rule_id}")
 async def delete_access_rule(
     access_rule_id: UUID,
+    _authorized: bool = Depends(rbac["delete"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -156,6 +173,7 @@ async def search_access_rules(
     kind: Optional[str] = Query(None, description="Filter by access rule kind"),
     value: Optional[str] = Query(None, description="Filter by access rule value"),
     note: Optional[str] = Query(None, description="Filter by note content"),
+    _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
     """

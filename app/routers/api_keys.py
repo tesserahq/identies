@@ -23,77 +23,26 @@ from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
 from tessera_sdk.utils.authorization_dependency import authorize
+from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
 
-async def infer_domain(_: Request) -> str:
+async def infer_domain(request: Request) -> Optional[str]:
     return "*"
 
 
-authorize_create = authorize(
-    resource="api_key",
-    action="create",
+RESOURCE = "api_key"
+rbac = build_rbac_dependencies(
+    resource=RESOURCE,
     domain_resolver=infer_domain,
 )
-
-authorize_list = authorize(
-    resource="api_key",
-    action="read",
-    domain_resolver=infer_domain,
-)
-
-
-@router.post("", response_model=ApiKeyCreateResponse, operation_id="create_api_key")
-async def create_api_key(
-    api_key_data: ApiKeyCreateRequest,
-    _authorized: bool = Depends(authorize_create),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Create a new API key for the current user.
-
-    Returns the new API key with the full key shown only once.
-    """
-    create_api_key_command = CreateApiKeyCommand(db)
-
-    # Create the API key
-    api_key, full_key = create_api_key_command.execute(
-        ApiKeyCreate(
-            user_id=current_user.id,
-            name=api_key_data.name,
-            expires_at=api_key_data.expires_at,
-        )
-    )
-
-    # Return the response with the full key
-    response_data = ApiKeyResponse.model_validate(api_key)
-    return ApiKeyCreateResponse(
-        **response_data.model_dump(),
-        full_key=full_key,
-    )
-
-
-@router.get("", response_model=Page[ApiKeyResponse], operation_id="list_api_keys")
-async def list_api_keys(
-    _authorized: bool = Depends(authorize_list),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    List all API keys for the current user.
-
-    Returns a paginated list of API keys (without the secret part).
-    """
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(current_user.id)
-    return paginate(query)
 
 
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
 async def get_api_key(
     key_id: UUID,
+    _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -124,6 +73,7 @@ async def get_api_key(
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
 async def revoke_api_key(
     key_id: UUID,
+    _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -161,6 +111,7 @@ async def revoke_api_key(
 async def update_api_key(
     key_id: UUID,
     request: ApiKeyUpdateRequest,
+    _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -200,6 +151,7 @@ async def update_api_key(
 @router.delete("/{key_id}", operation_id="delete_api_key")
 async def delete_api_key(
     key_id: UUID,
+    _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -249,6 +201,7 @@ async def delete_api_key(
 async def introspect_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
+    _authorized: bool = Depends(rbac["create"]),
     db: Session = Depends(get_db),
 ):
     """
