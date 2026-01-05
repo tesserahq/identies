@@ -55,7 +55,6 @@ async def get_me(
     deprecated=True,
 )
 async def get_user(
-    _authorized: bool = Depends(rbac["read"]),
     current_user=Depends(get_current_user),
 ):
     """
