@@ -37,7 +37,6 @@ rbac = build_rbac_dependencies(
 
 @router.get("/me", response_model=UserResponse, operation_id="get_me")
 async def get_me(
-    _authorized: bool = Depends(rbac["read"]),
     current_user=Depends(get_current_user),
 ):
     """

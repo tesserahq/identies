@@ -201,7 +201,6 @@ async def delete_api_key(
 async def introspect_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    _authorized: bool = Depends(rbac["create"]),
     db: Session = Depends(get_db),
 ):
     """
