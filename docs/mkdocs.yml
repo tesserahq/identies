@@ -1,0 +1,8 @@
+site_name: Identies API Documentation
+site_description: Identity service documentation for Identies
+
+nav:
+  - Home: index.md
+
+plugins:
+  - techdocs-core

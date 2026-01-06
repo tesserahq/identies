@@ -35,6 +35,8 @@ rbac = build_rbac_dependencies(
 )
 
 
+# NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with
+# the authorization service Custos. This endpoint must always avoid any RBAC dependency!
 @router.get("/me", response_model=UserResponse, operation_id="get_me")
 async def get_me(
     current_user=Depends(get_current_user),
@@ -47,6 +49,8 @@ async def get_me(
     return current_user
 
 
+# NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with
+# the authorization service Custos. This endpoint must always avoid any RBAC dependency!
 @router.get(
     "/user",
     response_model=UserResponse,

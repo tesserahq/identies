@@ -193,6 +193,8 @@ async def delete_api_key(
     return {"message": "API key deleted successfully"}
 
 
+# NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with
+# the authorization service Custos. This endpoint must always avoid any RBAC dependency!
 @router.post(
     "/introspect",
     response_model=ApiKeyIntrospectResponse,
