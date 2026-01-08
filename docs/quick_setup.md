@@ -120,3 +120,6 @@ curl http://localhost:8000/
 - Check that `DISABLE_AUTH=false` in production
 - Ensure Vaulta is accessible if using authorization features
 
+
+
+

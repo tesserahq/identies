@@ -134,7 +134,7 @@ async def update_current_user_info(
 # API Keys
 ########################################################
 
-RESOURCE = "self.api_key"
+RESOURCE = "api_key"
 rbac_api_key = build_rbac_dependencies(
     resource=RESOURCE,
     domain_resolver=infer_domain,
@@ -147,7 +147,6 @@ rbac_api_key = build_rbac_dependencies(
     operation_id="list_user_api_keys",
 )
 async def list_me_api_keys(
-    _authorized: bool = Depends(rbac_api_key["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -168,7 +167,6 @@ async def list_me_api_keys(
 )
 async def create_me_api_key(
     api_key_data: ApiKeyCreateRequest,
-    _authorized: bool = Depends(rbac_api_key["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
