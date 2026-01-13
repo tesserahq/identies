@@ -74,6 +74,76 @@ def test_get_user_by_id_not_found(client):
     assert "not found" in response.json()["detail"].lower()
 
 
+def test_list_users_success(client, setup_user):
+    """Test that the GET /users endpoint returns a paginated list of users."""
+    test_user = setup_user
+    response = client.get("/users")
+    assert response.status_code == 200
+
+    data = response.json()
+    # Check response structure (fastapi-pagination Page format)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+
+    # Verify at least the setup_user is in the list
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
+
+    # Find the test user in the items
+    user_ids = [user["id"] for user in data["items"]]
+    assert str(test_user.id) in user_ids
+
+    # Verify user data structure
+    test_user_data = next(
+        user for user in data["items"] if user["id"] == str(test_user.id)
+    )
+    assert test_user_data["email"] == test_user.email
+    assert test_user_data["first_name"] == test_user.first_name
+    assert test_user_data["last_name"] == test_user.last_name
+    assert "created_at" in test_user_data
+    assert "updated_at" in test_user_data
+
+
+def test_list_users_multiple_users(client, setup_user, setup_another_user, db, faker):
+    """Test listing users when there are multiple users."""
+    # Create additional users
+    from app.models.user import User
+
+    additional_users = []
+    for i in range(2):
+        user_data = {
+            "email": faker.email(),
+            "username": faker.email(),
+            "first_name": faker.first_name(),
+            "last_name": faker.last_name(),
+            "provider": "google",
+            "external_id": faker.uuid4(),
+        }
+        user = User(**user_data)
+        db.add(user)
+        additional_users.append(user)
+
+    db.commit()
+
+    response = client.get("/users")
+    assert response.status_code == 200
+
+    data = response.json()
+    # Should have at least setup_user, setup_another_user, and 2 additional users
+    assert len(data["items"]) >= 4
+    assert data["total"] >= 4
+
+    # Verify all users are in the list
+    user_ids = [user["id"] for user in data["items"]]
+    assert str(setup_user.id) in user_ids
+    assert str(setup_another_user.id) in user_ids
+    for additional_user in additional_users:
+        assert str(additional_user.id) in user_ids
+
+
 def test_avatar_fields_in_response(client, setup_user):
     """Test that avatar_url is returned and contains avatar_asset_id value when present."""
     response = client.get("/userinfo")

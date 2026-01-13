@@ -28,44 +28,11 @@ async def infer_domain(request: Request) -> Optional[str]:
     return "*"
 
 
-RESOURCE = "self"
+RESOURCE = "user"
 rbac = build_rbac_dependencies(
     resource=RESOURCE,
     domain_resolver=infer_domain,
 )
-
-
-# NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with
-# the authorization service Custos. This endpoint must always avoid any RBAC dependency!
-@router.get("/me", response_model=UserResponse, operation_id="get_me")
-async def get_me(
-    current_user=Depends(get_current_user),
-):
-    """
-    Get information about the currently authenticated user.
-
-    Returns the user profile information for the authenticated user making the request.
-    """
-    return current_user
-
-
-# NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with
-# the authorization service Custos. This endpoint must always avoid any RBAC dependency!
-@router.get(
-    "/user",
-    response_model=UserResponse,
-    operation_id="get_user",
-    deprecated=True,
-)
-async def get_user(
-    current_user=Depends(get_current_user),
-):
-    """
-    Get information about the currently authenticated user.
-
-    Returns the user profile information for the authenticated user making the request.
-    """
-    return current_user
 
 
 @router.get(
@@ -90,35 +57,19 @@ async def get_user_by_id(
     return user
 
 
-@router.put("/user", response_model=UserResponse, operation_id="update_user")
-async def update_current_user_info(
-    user_update: UserUpdate,
-    _authorized: bool = Depends(rbac["update"]),
-    current_user=Depends(get_current_user),
+@router.get("/users", response_model=Page[UserResponse], operation_id="list_users")
+async def list_users(
+    _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
     """
-    Update information for the currently authenticated user.
+    List all users.
 
-    Allows the authenticated user to update their profile information.
-    Only the fields provided in the request will be updated.
-    Service accounts cannot be updated through this endpoint.
+    Returns a paginated list of all users.
     """
-
-    # Check if the user is a service account
-    if current_user.service_account:
-        raise ServiceAccountError(
-            "Service accounts cannot be updated through this endpoint"
-        )
-
-    # Update the user using the command
-    update_user_command = UpdateUserCommand(db)
-    try:
-        updated_user = update_user_command.execute(current_user.id, user_update)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    return updated_user
+    user_service = UserService(db)
+    query = user_service.get_users_query()
+    return paginate(query)
 
 
 @router.get(

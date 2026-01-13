@@ -108,3 +108,12 @@ class UserService:
             Query: SQLAlchemy query object for service accounts.
         """
         return self.db.query(User).filter(User.service_account == True)
+
+    def get_users_query(self) -> Query:
+        """
+        Get a query for all users.
+
+        Returns:
+            Query: SQLAlchemy query object for all users.
+        """
+        return self.db.query(User)
