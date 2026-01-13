@@ -116,4 +116,8 @@ class UserService:
         Returns:
             Query: SQLAlchemy query object for all users.
         """
-        return self.db.query(User)
+        return (
+            self.db.query(User)
+            .filter(User.service_account == False)
+            .order_by(User.created_at.desc())
+        )
