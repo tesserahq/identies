@@ -1326,6 +1326,27 @@ opentelemetry-api = ">=1.12,<2.0"
 opentelemetry-instrumentation = "0.60b1"
 
 [[package]]
+name = "opentelemetry-instrumentation-requests"
+version = "0.60b1"
+description = "OpenTelemetry requests instrumentation"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "opentelemetry_instrumentation_requests-0.60b1-py3-none-any.whl", hash = "sha256:eec9fac3fab84737f663a2e08b12cb095b4bd67643b24587a8ecfa3cf4d0ca4c"},
+    {file = "opentelemetry_instrumentation_requests-0.60b1.tar.gz", hash = "sha256:9a1063c16c44a3ba6e81870c4fa42a0fac3ecef5a4d60a11d0976eec9046f3d4"},
+]
+
+[package.dependencies]
+opentelemetry-api = ">=1.12,<2.0"
+opentelemetry-instrumentation = "0.60b1"
+opentelemetry-semantic-conventions = "0.60b1"
+opentelemetry-util-http = "0.60b1"
+
+[package.extras]
+instruments = ["requests (>=2.0,<3.0)"]
+
+[[package]]
 name = "opentelemetry-instrumentation-sqlalchemy"
 version = "0.60b1"
 description = "OpenTelemetry SQLAlchemy instrumentation"
@@ -2474,4 +2495,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "c1b44433d8e9d771925708d51731667f468f7934f00e96c06021b2c49d4fd120"
+content-hash = "924b12d706f2c58edcfd2c567cb8cef12a977f4088795204079270f8b782b577"
