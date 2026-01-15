@@ -121,7 +121,9 @@ async def update_api_key(
     return ApiKeyResponse.model_validate(updated_api_key)
 
 
-@router.delete("/{key_id}", operation_id="delete_api_key")
+@router.delete(
+    "/{key_id}", operation_id="delete_api_key", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
@@ -154,8 +156,6 @@ async def delete_api_key(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
-
-    return {"message": "API key deleted successfully"}
 
 
 # NOTE: Do NOT use RBAC dependencies here, as that will create a circular dependency with

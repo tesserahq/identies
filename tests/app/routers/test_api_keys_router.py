@@ -224,9 +224,7 @@ def test_delete_api_key(client: TestClient, setup_api_key):
     response = client.delete(f"/api-keys/{api_key.id}")
 
     # Assertions
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "API key deleted successfully"
+    assert response.status_code == 204
 
 
 def test_delete_api_key_not_found(client: TestClient):
