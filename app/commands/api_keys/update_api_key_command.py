@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.schemas.api_key import ApiKeyUpdateRequest
 from app.services.api_key_service import ApiKeyService
 from app.models.api_key import ApiKey
+from app.models.user import User
 from app.events.api_key_events import build_api_key_updated_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
 
@@ -25,7 +26,11 @@ class UpdateApiKeyCommand:
         self.logger = logging.getLogger(__name__)
 
     def execute(
-        self, api_key_id: UUID, user_id: UUID, update_data: ApiKeyUpdateRequest
+        self,
+        api_key_id: UUID,
+        user_id: UUID,
+        update_data: ApiKeyUpdateRequest,
+        updated_by: User,
     ) -> ApiKey:
         """
         Execute the command to update an API key.
@@ -34,6 +39,7 @@ class UpdateApiKeyCommand:
             api_key_id: The ID of the API key to update
             user_id: The ID of the user (for security)
             update_data: The update data containing name and/or revoked fields
+            updated_by: The user updating the API key
 
         Returns:
             ApiKey: The updated API key
@@ -53,7 +59,7 @@ class UpdateApiKeyCommand:
             if not updated_api_key:
                 raise Exception("API key not found or not owned by user")
 
-            self._publish_api_key_updated_event(updated_api_key, user_id)
+            self._publish_api_key_updated_event(updated_api_key, updated_by)
 
             return updated_api_key
 
@@ -62,15 +68,15 @@ class UpdateApiKeyCommand:
             self.db.rollback()
             raise Exception(f"Failed to update API key: {str(e)}")
 
-    def _publish_api_key_updated_event(self, api_key: ApiKey, user_id: UUID) -> None:
+    def _publish_api_key_updated_event(self, api_key: ApiKey, user: User) -> None:
         """
         Publish an API key updated event.
 
         Args:
             api_key: The updated API key
-            user_id: The ID of the user who updated the API key
+            user: The user who updated the API key
         """
-        event = build_api_key_updated_event(api_key, user_id)
+        event = build_api_key_updated_event(api_key, user)
 
         if self.nats_publisher is not None:
             self.logger.info(

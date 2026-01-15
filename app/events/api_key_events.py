@@ -9,7 +9,9 @@ from typing import Dict, Any
 from uuid import UUID
 
 from app.models.api_key import ApiKey as ApiKeyModel
+from app.models.user import User as UserModel
 from app.schemas.api_key import ApiKeyBase as ApiKeySchema
+from app.schemas.user import UserResponse as UserSchema
 from tessera_sdk.events.event import Event, event_type, event_source
 
 # ApiKey events
@@ -18,14 +20,18 @@ API_KEY_UPDATED = "api_key.updated"
 API_KEY_DELETED = "api_key.deleted"
 
 
-def build_api_key_created_event(api_key: ApiKeyModel) -> Event:
+def build_api_key_created_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     """Create a CloudEvent for api_key-related operations."""
     api_key_schema = ApiKeySchema.model_validate(api_key)
+    user_schema = UserSchema.model_validate(user)
 
     return Event(
         source=event_source(f"/api_keys/{api_key.id}"),
         event_type=event_type(API_KEY_CREATED),
-        event_data={"api_key": api_key_schema.model_dump(mode="json")},
+        event_data={
+            "api_key": api_key_schema.model_dump(mode="json"),
+            "user": user_schema.model_dump(mode="json"),
+        },
         subject=f"/api_key/{api_key.id}",
         user_id=str(api_key.user_id),
         labels={
@@ -37,16 +43,20 @@ def build_api_key_created_event(api_key: ApiKeyModel) -> Event:
     )
 
 
-def build_api_key_deleted_event(api_key: ApiKeyModel, user_id: UUID) -> Event:
+def build_api_key_deleted_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     """Create a CloudEvent for api_key-related operations."""
     api_key_schema = ApiKeySchema.model_validate(api_key)
+    user_schema = UserSchema.model_validate(user)
 
     return Event(
         source=event_source(f"/api_keys/{api_key.id}"),
         event_type=event_type(API_KEY_DELETED),
-        event_data={"api_key": api_key_schema.model_dump(mode="json")},
+        event_data={
+            "api_key": api_key_schema.model_dump(mode="json"),
+            "user": user_schema.model_dump(mode="json"),
+        },
         subject=f"/api_key/{api_key.id}",
-        user_id=str(user_id),
+        user_id=str(user.id),
         labels={
             "api_key_id": str(api_key.id),
         },
@@ -54,16 +64,20 @@ def build_api_key_deleted_event(api_key: ApiKeyModel, user_id: UUID) -> Event:
     )
 
 
-def build_api_key_updated_event(api_key: ApiKeyModel, user_id: UUID) -> Event:
+def build_api_key_updated_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     """Create a CloudEvent for api_key-related operations."""
     api_key_schema = ApiKeySchema.model_validate(api_key)
+    user_schema = UserSchema.model_validate(user)
 
     return Event(
         source=event_source(f"/api_keys/{api_key.id}"),
         event_type=event_type(API_KEY_UPDATED),
-        event_data={"api_key": api_key_schema.model_dump(mode="json")},
+        event_data={
+            "api_key": api_key_schema.model_dump(mode="json"),
+            "user": user_schema.model_dump(mode="json"),
+        },
         subject=f"/api_key/{api_key.id}",
-        user_id=str(user_id),
+        user_id=str(user.id),
         labels={
             "api_key_id": str(api_key.id),
         },

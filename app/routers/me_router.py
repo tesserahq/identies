@@ -28,16 +28,8 @@ async def infer_domain(request: Request) -> Optional[str]:
     return "*"
 
 
-RESOURCE = "self"
-rbac = build_rbac_dependencies(
-    resource=RESOURCE,
-    domain_resolver=infer_domain,
-)
-
-
 @router.get("/me", response_model=UserResponse, operation_id="get_me")
 async def get_me(
-    _authorized: bool = Depends(rbac["read"]),
     current_user=Depends(get_current_user),
 ):
     """
@@ -55,7 +47,6 @@ async def get_me(
     deprecated=True,
 )
 async def get_user(
-    _authorized: bool = Depends(rbac["read"]),
     current_user=Depends(get_current_user),
 ):
     """
@@ -69,7 +60,6 @@ async def get_user(
 @router.put("/me", response_model=UserResponse, operation_id="update_me")
 async def update_me(
     user_update: UserUpdate,
-    _authorized: bool = Depends(rbac["update"]),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -102,7 +92,6 @@ async def update_me(
 )
 async def update_current_user_info(
     user_update: UserUpdate,
-    _authorized: bool = Depends(rbac["update"]),
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -148,6 +137,7 @@ rbac_api_key = build_rbac_dependencies(
 )
 async def list_me_api_keys(
     current_user: User = Depends(get_current_user),
+    _authorized: bool = Depends(rbac_api_key["read"]),
     db: Session = Depends(get_db),
 ):
     """
@@ -184,7 +174,8 @@ async def create_me_api_key(
             user_id=current_user.id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
-        )
+        ),
+        current_user,
     )
 
     # Return the response with the full key
@@ -203,7 +194,7 @@ async def create_me_api_key(
 )
 async def list_user_api_keys(
     user_id: UUID,
-    _authorized: bool = Depends(rbac["read"]),
+    _authorized: bool = Depends(rbac_api_key["read"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -233,7 +224,6 @@ async def list_user_api_keys(
 async def create_user_api_key(
     user_id: UUID,
     api_key_data: ApiKeyCreateRequest,
-    _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -258,7 +248,8 @@ async def create_user_api_key(
             user_id=user_id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
-        )
+        ),
+        current_user,
     )
 
     # Return the response with the full key

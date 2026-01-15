@@ -248,7 +248,8 @@ async def create_service_account_api_key(
             user_id=service_account_id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
-        )
+        ),
+        current_user,
     )
 
     # Return the response with the full key

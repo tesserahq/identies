@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.schemas.api_key import ApiKeyCreate
 from app.services.api_key_service import ApiKeyService
 from app.models.api_key import ApiKey
+from app.models.user import User
 from app.events.api_key_events import build_api_key_created_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
 
@@ -23,16 +24,18 @@ class CreateApiKeyCommand:
         )
         self.logger = logging.getLogger(__name__)
 
-    def execute(self, api_key_data: ApiKeyCreate) -> ApiKey:
+    def execute(
+        self, api_key_data: ApiKeyCreate, created_by: User
+    ) -> tuple[ApiKey, str]:
         """
         Execute the command to create a api_key and optionally create a yearly reminder.
 
         Args:
             api_key_data: The api_key data to create
-            account_id: The account ID to associate the api_key with
+            created_by: The user creating the API key
 
         Returns:
-            ApiKey: The created api_key
+            tuple[ApiKey, str]: The created api_key and full key
 
         Raises:
             Exception: If api_key creation fails
@@ -41,7 +44,7 @@ class CreateApiKeyCommand:
             # Create the api_key
             api_key, full_key = self.api_key_service.create_api_key(api_key_data)
 
-            self._publish_api_key_created_event(api_key)
+            self._publish_api_key_created_event(api_key, created_by)
 
             return api_key, full_key
 
@@ -50,14 +53,15 @@ class CreateApiKeyCommand:
             self.db.rollback()
             raise Exception(f"Failed to create api_key: {str(e)}")
 
-    def _publish_api_key_created_event(self, api_key: ApiKey) -> None:
+    def _publish_api_key_created_event(self, api_key: ApiKey, user: User) -> None:
         """
         Publish a api_key created event.
 
         Args:
             api_key: The api_key to publish
+            user: The user who created the API key
         """
-        event = build_api_key_created_event(api_key)
+        event = build_api_key_created_event(api_key, user)
 
         if self.nats_publisher is not None:
             self.logger.info(

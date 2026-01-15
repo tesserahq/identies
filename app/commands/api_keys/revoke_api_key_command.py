@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.services.api_key_service import ApiKeyService
 from app.models.api_key import ApiKey
+from app.models.user import User
 from app.events.api_key_events import build_api_key_updated_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
 
@@ -23,13 +24,14 @@ class RevokeApiKeyCommand:
         )
         self.logger = logging.getLogger(__name__)
 
-    def execute(self, api_key_id: UUID, user_id: UUID) -> ApiKey:
+    def execute(self, api_key_id: UUID, user_id: UUID, revoked_by: User) -> ApiKey:
         """
         Execute the command to revoke an API key.
 
         Args:
             api_key_id: The ID of the API key to revoke
             user_id: The ID of the user (for security)
+            revoked_by: The user revoking the API key
 
         Returns:
             ApiKey: The revoked API key
@@ -49,7 +51,7 @@ class RevokeApiKeyCommand:
             if not revoked_api_key:
                 raise Exception("Failed to retrieve revoked API key")
 
-            self._publish_api_key_updated_event(revoked_api_key, user_id)
+            self._publish_api_key_updated_event(revoked_api_key, revoked_by)
 
             return revoked_api_key
 
@@ -58,15 +60,15 @@ class RevokeApiKeyCommand:
             self.db.rollback()
             raise Exception(f"Failed to revoke API key: {str(e)}")
 
-    def _publish_api_key_updated_event(self, api_key: ApiKey, user_id: UUID) -> None:
+    def _publish_api_key_updated_event(self, api_key: ApiKey, user: User) -> None:
         """
         Publish an API key updated event (for revocation).
 
         Args:
             api_key: The revoked API key
-            user_id: The ID of the user who revoked the API key
+            user: The user who revoked the API key
         """
-        event = build_api_key_updated_event(api_key, user_id)
+        event = build_api_key_updated_event(api_key, user)
 
         if self.nats_publisher is not None:
             self.logger.info(
