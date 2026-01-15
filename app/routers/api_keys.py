@@ -11,6 +11,7 @@ from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
 from app.db import get_db
 from app.utils.auth import get_current_user
+from app.routers.utils.dependencies import get_api_key_by_id
 from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
@@ -22,6 +23,7 @@ from app.schemas.api_key import (
 from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
+from app.models.api_key import ApiKey
 from tessera_sdk.utils.authorization_dependency import authorize
 from app.auth.rbac import build_rbac_dependencies
 
@@ -41,10 +43,9 @@ rbac = build_rbac_dependencies(
 
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
 async def get_api_key(
-    key_id: UUID,
+    api_key: ApiKey = Depends(get_api_key_by_id),
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Get a specific API key by its ID.
@@ -52,15 +53,6 @@ async def get_api_key(
     Only the owner of the API key can retrieve it.
     Returns the API key details (without the secret part).
     """
-    api_key_service = ApiKeyService(db)
-
-    # Verify the API key exists and belongs to the user
-    api_key = api_key_service.get_api_key_by_id(key_id)
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
-
     if api_key.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -72,7 +64,7 @@ async def get_api_key(
 
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
 async def revoke_api_key(
-    key_id: UUID,
+    api_key: ApiKey = Depends(get_api_key_by_id),
     _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -82,15 +74,6 @@ async def revoke_api_key(
 
     Only the owner of the API key can revoke it.
     """
-    api_key_service = ApiKeyService(db)
-
-    # Verify the API key exists and belongs to the user
-    api_key = api_key_service.get_api_key_by_id(key_id)
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
-
     if api_key.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -100,7 +83,9 @@ async def revoke_api_key(
     # Revoke the API key using the command
     revoke_api_key_command = RevokeApiKeyCommand(db)
     try:
-        revoked_api_key = revoke_api_key_command.execute(key_id, current_user.id)
+        revoked_api_key = revoke_api_key_command.execute(
+            api_key.id, current_user.id, current_user
+        )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -109,8 +94,8 @@ async def revoke_api_key(
 
 @router.put("/{key_id}", response_model=ApiKeyResponse, operation_id="update_api_key")
 async def update_api_key(
-    key_id: UUID,
-    request: ApiKeyUpdateRequest,
+    api_key_update_request: ApiKeyUpdateRequest,
+    api_key: ApiKey = Depends(get_api_key_by_id),
     _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -121,15 +106,6 @@ async def update_api_key(
     Only the owner of the API key can update it.
     Only name and revoked fields can be updated.
     """
-    api_key_service = ApiKeyService(db)
-
-    # Verify the API key exists and belongs to the user
-    api_key = api_key_service.get_api_key_by_id(key_id)
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
-
     if api_key.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -140,7 +116,7 @@ async def update_api_key(
     update_api_key_command = UpdateApiKeyCommand(db)
     try:
         updated_api_key = update_api_key_command.execute(
-            key_id, current_user.id, request
+            api_key.id, current_user.id, api_key_update_request, current_user
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -150,7 +126,7 @@ async def update_api_key(
 
 @router.delete("/{key_id}", operation_id="delete_api_key")
 async def delete_api_key(
-    key_id: UUID,
+    api_key: ApiKey = Depends(get_api_key_by_id),
     _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -160,15 +136,6 @@ async def delete_api_key(
 
     Only the owner of the API key can delete it.
     """
-    api_key_service = ApiKeyService(db)
-
-    # Verify the API key exists and belongs to the user
-    api_key = api_key_service.get_api_key_by_id(key_id)
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
-        )
-
     if api_key.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -178,7 +145,9 @@ async def delete_api_key(
     # Delete the API key using the command
     delete_api_key_command = DeleteApiKeyCommand(db)
     try:
-        success = delete_api_key_command.execute(key_id, current_user.id)
+        success = delete_api_key_command.execute(
+            api_key.id, current_user.id, current_user
+        )
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"

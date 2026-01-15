@@ -134,7 +134,8 @@ async def create_user_api_key(
             user_id=user_id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
-        )
+        ),
+        current_user,
     )
 
     # Return the response with the full key

@@ -32,9 +32,9 @@ def sample_api_key(db, setup_user):
     return api_key
 
 
-def test_build_api_key_created_event(sample_api_key):
+def test_build_api_key_created_event(sample_api_key, setup_user):
     """Test building an API key created event."""
-    event = build_api_key_created_event(sample_api_key)
+    event = build_api_key_created_event(sample_api_key, setup_user)
 
     # Verify event structure
     assert event is not None
@@ -43,12 +43,16 @@ def test_build_api_key_created_event(sample_api_key):
     assert event.subject == f"/api_key/{sample_api_key.id}"
     assert event.user_id == str(sample_api_key.user_id)
 
-    # Verify event data contains API key information
+    # Verify event data contains API key and user information
     assert "api_key" in event.event_data
+    assert "user" in event.event_data
     api_key_data = event.event_data["api_key"]
+    user_data = event.event_data["user"]
     assert api_key_data["name"] == sample_api_key.name
     assert api_key_data["user_id"] == str(sample_api_key.user_id)
     assert api_key_data["expires_at"] is not None
+    assert user_data["id"] == str(setup_user.id)
+    assert user_data["email"] == setup_user.email
 
     # Verify labels and tags
     assert "api_key_id" in event.labels
@@ -62,7 +66,7 @@ def test_build_api_key_updated_event(sample_api_key, setup_user):
     sample_api_key.name = "Updated API Key"
     sample_api_key.revoked = True
 
-    event = build_api_key_updated_event(sample_api_key, setup_user.id)
+    event = build_api_key_updated_event(sample_api_key, setup_user)
 
     # Verify event structure
     assert event is not None
@@ -71,11 +75,15 @@ def test_build_api_key_updated_event(sample_api_key, setup_user):
     assert event.subject == f"/api_key/{sample_api_key.id}"
     assert event.user_id == str(setup_user.id)
 
-    # Verify event data contains updated API key information
+    # Verify event data contains updated API key and user information
     assert "api_key" in event.event_data
+    assert "user" in event.event_data
     api_key_data = event.event_data["api_key"]
+    user_data = event.event_data["user"]
     assert api_key_data["name"] == "Updated API Key"
     assert api_key_data["user_id"] == str(sample_api_key.user_id)
+    assert user_data["id"] == str(setup_user.id)
+    assert user_data["email"] == setup_user.email
 
     # Verify labels and tags
     assert "api_key_id" in event.labels
@@ -85,7 +93,7 @@ def test_build_api_key_updated_event(sample_api_key, setup_user):
 
 def test_build_api_key_deleted_event(sample_api_key, setup_user):
     """Test building an API key deleted event."""
-    event = build_api_key_deleted_event(sample_api_key, setup_user.id)
+    event = build_api_key_deleted_event(sample_api_key, setup_user)
 
     # Verify event structure
     assert event is not None
@@ -94,11 +102,15 @@ def test_build_api_key_deleted_event(sample_api_key, setup_user):
     assert event.subject == f"/api_key/{sample_api_key.id}"
     assert event.user_id == str(setup_user.id)
 
-    # Verify event data contains API key information
+    # Verify event data contains API key and user information
     assert "api_key" in event.event_data
+    assert "user" in event.event_data
     api_key_data = event.event_data["api_key"]
+    user_data = event.event_data["user"]
     assert api_key_data["name"] == sample_api_key.name
     assert api_key_data["user_id"] == str(sample_api_key.user_id)
+    assert user_data["id"] == str(setup_user.id)
+    assert user_data["email"] == setup_user.email
 
     # Verify labels and tags
     assert "api_key_id" in event.labels
@@ -106,10 +118,11 @@ def test_build_api_key_deleted_event(sample_api_key, setup_user):
     assert f"api_key_id:{str(sample_api_key.id)}" in event.tags
 
 
-def test_api_key_created_event_data_completeness(sample_api_key):
+def test_api_key_created_event_data_completeness(sample_api_key, setup_user):
     """Test that API key created event contains all expected fields."""
-    event = build_api_key_created_event(sample_api_key)
+    event = build_api_key_created_event(sample_api_key, setup_user)
     api_key_data = event.event_data["api_key"]
+    user_data = event.event_data["user"]
 
     # Verify all expected fields are present
     assert "name" in api_key_data
@@ -117,32 +130,45 @@ def test_api_key_created_event_data_completeness(sample_api_key):
     assert "expires_at" in api_key_data
     assert api_key_data["name"] == sample_api_key.name
     assert api_key_data["user_id"] == str(sample_api_key.user_id)
+    assert "id" in user_data
+    assert "email" in user_data
+    assert user_data["id"] == str(setup_user.id)
 
 
 def test_api_key_updated_event_with_different_user_id(
     sample_api_key, setup_another_user
 ):
-    """Test that API key updated event uses the provided user_id, not the API key's user_id."""
-    event = build_api_key_updated_event(sample_api_key, setup_another_user.id)
+    """Test that API key updated event uses the provided user, not the API key's user_id."""
+    event = build_api_key_updated_event(sample_api_key, setup_another_user)
 
-    # Verify the user_id in the event matches the provided user_id, not the API key's user_id
+    # Verify the user_id in the event matches the provided user, not the API key's user_id
     assert event.user_id == str(setup_another_user.id)
     assert event.user_id != str(sample_api_key.user_id)
+    # Verify the user data in event_data matches the provided user
+    assert "user" in event.event_data
+    user_data = event.event_data["user"]
+    assert user_data["id"] == str(setup_another_user.id)
+    assert user_data["email"] == setup_another_user.email
 
 
 def test_api_key_deleted_event_with_different_user_id(
     sample_api_key, setup_another_user
 ):
-    """Test that API key deleted event uses the provided user_id."""
-    event = build_api_key_deleted_event(sample_api_key, setup_another_user.id)
+    """Test that API key deleted event uses the provided user."""
+    event = build_api_key_deleted_event(sample_api_key, setup_another_user)
 
-    # Verify the user_id in the event matches the provided user_id
+    # Verify the user_id in the event matches the provided user
     assert event.user_id == str(setup_another_user.id)
+    # Verify the user data in event_data matches the provided user
+    assert "user" in event.event_data
+    user_data = event.event_data["user"]
+    assert user_data["id"] == str(setup_another_user.id)
+    assert user_data["email"] == setup_another_user.email
 
 
-def test_api_key_event_json_serializable(sample_api_key):
+def test_api_key_event_json_serializable(sample_api_key, setup_user):
     """Test that event data is JSON serializable."""
-    event = build_api_key_created_event(sample_api_key)
+    event = build_api_key_created_event(sample_api_key, setup_user)
 
     # Verify event can be serialized to JSON
     event_json = event.model_dump_json()
@@ -154,3 +180,7 @@ def test_api_key_event_json_serializable(sample_api_key):
 
     event_data_json = json.dumps(event.event_data)
     assert event_data_json is not None
+    # Verify both api_key and user are in the serialized data
+    event_data = json.loads(event_data_json)
+    assert "api_key" in event_data
+    assert "user" in event_data
