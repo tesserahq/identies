@@ -44,7 +44,6 @@ rbac = build_rbac_dependencies(
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
 async def get_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
-    _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -65,7 +64,6 @@ async def get_api_key(
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
 async def revoke_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
-    _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -96,7 +94,6 @@ async def revoke_api_key(
 async def update_api_key(
     api_key_update_request: ApiKeyUpdateRequest,
     api_key: ApiKey = Depends(get_api_key_by_id),
-    _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -127,7 +124,6 @@ async def update_api_key(
 @router.delete("/{key_id}", operation_id="delete_api_key")
 async def delete_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
-    _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
