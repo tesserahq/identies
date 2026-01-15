@@ -44,7 +44,8 @@ rbac = build_rbac_dependencies(
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
 async def get_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
-    current_user: User = Depends(get_current_user),
+    _current_user: User = Depends(get_current_user),
+    _authorized: bool = Depends(rbac["read"]),
 ):
     """
     Get a specific API key by its ID.
@@ -52,12 +53,6 @@ async def get_api_key(
     Only the owner of the API key can retrieve it.
     Returns the API key details (without the secret part).
     """
-    if api_key.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only view your own API keys",
-        )
-
     return ApiKeyResponse.model_validate(api_key)
 
 

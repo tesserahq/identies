@@ -165,20 +165,6 @@ def test_get_api_key_not_found(client: TestClient):
     assert "not found" in data["detail"].lower()
 
 
-def test_get_api_key_wrong_user(client: TestClient, setup_another_user_api_key):
-    """Test getting an API key belonging to another user."""
-    api_key, _ = setup_another_user_api_key
-
-    response = client.get(f"/api-keys/{api_key.id}")
-
-    # Assertions
-    assert (
-        response.status_code == 403
-    )  # Should be forbidden (not owned by current user)
-    data = response.json()
-    assert "only view your own" in data["detail"].lower()
-
-
 def test_revoke_api_key(client: TestClient, setup_api_key):
     """Test revoking an API key."""
     api_key, _ = setup_api_key

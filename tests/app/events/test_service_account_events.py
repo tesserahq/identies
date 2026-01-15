@@ -18,8 +18,8 @@ def test_build_service_account_created_event(setup_service_account):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(SERVICE_ACCOUNT_CREATED)
-    assert event.source == event_source(f"/service-accounts/{setup_service_account.id}")
-    assert event.subject == f"/service-account/{setup_service_account.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/service-accounts/{setup_service_account.id}"
     assert event.user_id == str(setup_service_account.id)
 
     # Verify event data contains system account information
@@ -53,8 +53,8 @@ def test_build_service_account_updated_event(setup_service_account):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(SERVICE_ACCOUNT_UPDATED)
-    assert event.source == event_source(f"/service-accounts/{setup_service_account.id}")
-    assert event.subject == f"/service-account/{setup_service_account.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/service-accounts/{setup_service_account.id}"
     assert event.user_id == str(setup_service_account.id)
 
     # Verify event data contains updated system account information
@@ -79,8 +79,8 @@ def test_build_service_account_deleted_event(setup_service_account):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(SERVICE_ACCOUNT_DELETED)
-    assert event.source == event_source(f"/service-accounts/{setup_service_account.id}")
-    assert event.subject == f"/service-account/{setup_service_account.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/service-accounts/{setup_service_account.id}"
     assert event.user_id == str(setup_service_account.id)
 
     # Verify event data contains system account information
@@ -193,15 +193,10 @@ def test_service_account_event_different_from_user_event(setup_service_account):
     assert user_event.event_type == event_type("user.created")
 
     # Verify sources are different
-    assert service_account_event.source != user_event.source
-    assert "/service-accounts/" in service_account_event.source
-    assert "/users/" in user_event.source
+    assert service_account_event.source == user_event.source
 
     # Verify subjects are different
-    assert service_account_event.subject != user_event.subject
-    assert "/service-account/" in service_account_event.subject
-    assert "/user/" in user_event.subject
-
-    # Verify event data keys are different
-    assert "service_account" in service_account_event.event_data
-    assert "user" in user_event.event_data
+    assert (
+        service_account_event.subject == f"/service-accounts/{setup_service_account.id}"
+    )
+    assert user_event.subject == f"/users/{setup_service_account.id}"

@@ -22,10 +22,10 @@ def build_service_account_created_event(user: UserModel) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/service-accounts/{user.id}"),
+        source=event_source(),
         event_type=event_type(SERVICE_ACCOUNT_CREATED),
         event_data={"service_account": user_schema.model_dump(mode="json")},
-        subject=f"/service-account/{user.id}",
+        subject=f"/service-accounts/{user.id}",
         user_id=str(user.id),
         labels={
             "service_account_id": str(user.id),
@@ -43,10 +43,10 @@ def build_service_account_deleted_event(user: UserModel, user_id: UUID) -> Event
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/service-accounts/{user.id}"),
+        source=event_source(),
         event_type=event_type(SERVICE_ACCOUNT_DELETED),
         event_data={"service_account": user_schema.model_dump(mode="json")},
-        subject=f"/service-account/{user.id}",
+        subject=f"/service-accounts/{user.id}",
         user_id=str(user_id),
         labels={
             "service_account_id": str(user.id),
@@ -64,10 +64,10 @@ def build_service_account_updated_event(user: UserModel, user_id: UUID) -> Event
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/service-accounts/{user.id}"),
+        source=event_source(),
         event_type=event_type(SERVICE_ACCOUNT_UPDATED),
         event_data={"service_account": user_schema.model_dump(mode="json")},
-        subject=f"/service-account/{user.id}",
+        subject=f"/service-accounts/{user.id}",
         user_id=str(user_id),
         labels={
             "service_account_id": str(user.id),

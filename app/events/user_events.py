@@ -22,10 +22,10 @@ def build_user_created_event(user: UserModel) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/users/{user.id}"),
+        source=event_source(),
         event_type=event_type(USER_CREATED),
         event_data={"user": user_schema.model_dump(mode="json")},
-        subject=f"/user/{user.id}",
+        subject=f"/users/{user.id}",
         user_id=str(user.id),
         labels={
             "user_id": str(user.id),
@@ -41,10 +41,10 @@ def build_user_deleted_event(user: UserModel, user_id: UUID) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/users/{user.id}"),
+        source=event_source(),
         event_type=event_type(USER_DELETED),
         event_data={"user": user_schema.model_dump(mode="json")},
-        subject=f"/user/{user.id}",
+        subject=f"/users/{user.id}",
         user_id=str(user_id),
         labels={
             "user_id": str(user.id),
@@ -58,10 +58,10 @@ def build_user_updated_event(user: UserModel, user_id: UUID) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/users/{user.id}"),
+        source=event_source(),
         event_type=event_type(USER_UPDATED),
         event_data={"user": user_schema.model_dump(mode="json")},
-        subject=f"/user/{user.id}",
+        subject=f"/users/{user.id}",
         user_id=str(user_id),
         labels={
             "user_id": str(user.id),

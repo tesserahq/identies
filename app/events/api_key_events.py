@@ -26,13 +26,13 @@ def build_api_key_created_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/api_keys/{api_key.id}"),
+        source=event_source(),
         event_type=event_type(API_KEY_CREATED),
         event_data={
             "api_key": api_key_schema.model_dump(mode="json"),
             "user": user_schema.model_dump(mode="json"),
         },
-        subject=f"/api_key/{api_key.id}",
+        subject=f"/api-keys/{api_key.id}",
         user_id=str(api_key.user_id),
         labels={
             "api_key_id": str(api_key.id),
@@ -49,13 +49,13 @@ def build_api_key_deleted_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/api_keys/{api_key.id}"),
+        source=event_source(),
         event_type=event_type(API_KEY_DELETED),
         event_data={
             "api_key": api_key_schema.model_dump(mode="json"),
             "user": user_schema.model_dump(mode="json"),
         },
-        subject=f"/api_key/{api_key.id}",
+        subject=f"/api-keys/{api_key.id}",
         user_id=str(user.id),
         labels={
             "api_key_id": str(api_key.id),
@@ -70,13 +70,13 @@ def build_api_key_updated_event(api_key: ApiKeyModel, user: UserModel) -> Event:
     user_schema = UserSchema.model_validate(user)
 
     return Event(
-        source=event_source(f"/api_keys/{api_key.id}"),
+        source=event_source(),
         event_type=event_type(API_KEY_UPDATED),
         event_data={
             "api_key": api_key_schema.model_dump(mode="json"),
             "user": user_schema.model_dump(mode="json"),
         },
-        subject=f"/api_key/{api_key.id}",
+        subject=f"/api-keys/{api_key.id}",
         user_id=str(user.id),
         labels={
             "api_key_id": str(api_key.id),

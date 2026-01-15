@@ -18,8 +18,8 @@ def test_build_user_created_event(setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(USER_CREATED)
-    assert event.source == event_source(f"/users/{setup_user.id}")
-    assert event.subject == f"/user/{setup_user.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/users/{setup_user.id}"
     assert event.user_id == str(setup_user.id)
 
     # Verify event data contains user information
@@ -48,8 +48,8 @@ def test_build_user_updated_event(setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(USER_UPDATED)
-    assert event.source == event_source(f"/users/{setup_user.id}")
-    assert event.subject == f"/user/{setup_user.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/users/{setup_user.id}"
     assert event.user_id == str(setup_user.id)
 
     # Verify event data contains updated user information
@@ -72,8 +72,8 @@ def test_build_user_deleted_event(setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(USER_DELETED)
-    assert event.source == event_source(f"/users/{setup_user.id}")
-    assert event.subject == f"/user/{setup_user.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/users/{setup_user.id}"
     assert event.user_id == str(setup_user.id)
 
     # Verify event data contains user information

@@ -39,8 +39,8 @@ def test_build_api_key_created_event(sample_api_key, setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(API_KEY_CREATED)
-    assert event.source == event_source(f"/api_keys/{sample_api_key.id}")
-    assert event.subject == f"/api_key/{sample_api_key.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/api-keys/{sample_api_key.id}"
     assert event.user_id == str(sample_api_key.user_id)
 
     # Verify event data contains API key and user information
@@ -71,8 +71,8 @@ def test_build_api_key_updated_event(sample_api_key, setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(API_KEY_UPDATED)
-    assert event.source == event_source(f"/api_keys/{sample_api_key.id}")
-    assert event.subject == f"/api_key/{sample_api_key.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/api-keys/{sample_api_key.id}"
     assert event.user_id == str(setup_user.id)
 
     # Verify event data contains updated API key and user information
@@ -98,8 +98,8 @@ def test_build_api_key_deleted_event(sample_api_key, setup_user):
     # Verify event structure
     assert event is not None
     assert event.event_type == event_type(API_KEY_DELETED)
-    assert event.source == event_source(f"/api_keys/{sample_api_key.id}")
-    assert event.subject == f"/api_key/{sample_api_key.id}"
+    assert event.source == event_source()
+    assert event.subject == f"/api-keys/{sample_api_key.id}"
     assert event.user_id == str(setup_user.id)
 
     # Verify event data contains API key and user information
