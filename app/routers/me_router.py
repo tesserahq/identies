@@ -137,7 +137,6 @@ rbac_api_key = build_rbac_dependencies(
 )
 async def list_me_api_keys(
     current_user: User = Depends(get_current_user),
-    _authorized: bool = Depends(rbac_api_key["read"]),
     db: Session = Depends(get_db),
 ):
     """
