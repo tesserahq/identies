@@ -2314,7 +2314,7 @@ urllib3 = ">=1.26.0"
 type = "git"
 url = "https://github.com/tesserahq/tessera-sdk-py.git"
 reference = "main"
-resolved_reference = "96663f1e721cc138b9873ed47663efd569e8d554"
+resolved_reference = "81c2540854e9dad55db4f9c6c056c902bf999d21"
 
 [[package]]
 name = "typing-extensions"
