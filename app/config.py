@@ -42,6 +42,25 @@ class Settings(BaseSettings):
     oidc_api_audience: str = "https://test-api"
     oidc_issuer: str = "https://test.oidc.com/"
     oidc_algorithms: str = "RS256"
+
+    # Service account detection (Auth0 M2M custom claims)
+    service_account_account_type_claim: str = Field(
+        default="https://mylinden.family/account_type",
+        json_schema_extra={"env": "SERVICE_ACCOUNT_ACCOUNT_TYPE_CLAIM"},
+    )
+    service_account_account_type_value: str = Field(
+        default="service_account",
+        json_schema_extra={"env": "SERVICE_ACCOUNT_ACCOUNT_TYPE_VALUE"},
+    )
+    service_account_client_id_claim: str = Field(
+        default="https://mylinden.family/client_id",
+        json_schema_extra={"env": "SERVICE_ACCOUNT_CLIENT_ID_CLAIM"},
+    )
+
+    allowed_service_account_client_ids: Optional[str] = Field(
+        default=None, json_schema_extra={"env": "ALLOWED_SERVICE_ACCOUNT_CLIENT_IDS"}
+    )
+
     otel_exporter_otlp_endpoint: str = "http://localhost:4318"
     otel_service_name: str = SERVICE_NAME.lower()
     redis_host: str = Field(
@@ -64,6 +83,15 @@ class Settings(BaseSettings):
     db_app_name: str = Field(
         default="identies-api", json_schema_extra={"env": "DB_APP_NAME"}
     )
+
+    def get_allowed_service_account_client_ids(self) -> list[str]:
+        """
+        Parse allowed_service_account_client_ids as a comma-separated string from env.
+        """
+        env_val = self.allowed_service_account_client_ids
+        if env_val:
+            return [v.strip() for v in env_val.split(",") if v.strip()]
+        return []
 
     @model_validator(mode="before")
     def set_database_url(cls, values):

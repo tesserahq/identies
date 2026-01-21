@@ -5,6 +5,22 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.api_key import ApiKey
 from app.services.api_key_service import ApiKeyService
+from fastapi import Request
+from app.models.user import User
+from fastapi import status
+
+
+def get_current_user(
+    request: Request,
+) -> User:
+    # Check if user is already set (for backward compatibility with middleware)
+    if hasattr(request.state, "user") and request.state.user is not None:
+        return request.state.user
+
+    # If we get here, no valid authentication was found
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+    )
 
 
 def get_api_key_by_id(

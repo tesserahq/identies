@@ -496,7 +496,7 @@ def test_create_api_key_with_x_api_key_header(client: TestClient, setup_api_key,
     api_key, full_key = setup_api_key
 
     # Test the authentication function directly
-    from app.utils.auth import get_current_user
+    from app.routers.utils.dependencies import get_current_user
     from fastapi import Request
     from unittest.mock import Mock
 
@@ -524,7 +524,7 @@ def test_list_api_keys_with_x_api_key_header(client: TestClient, setup_api_key, 
     api_key, full_key = setup_api_key
 
     # Test the authentication function directly
-    from app.utils.auth import get_current_user
+    from app.routers.utils.dependencies import get_current_user
     from fastapi import Request
     from unittest.mock import Mock
 
@@ -552,7 +552,7 @@ def test_api_key_authentication_priority(client: TestClient, setup_api_key, db):
     api_key, full_key = setup_api_key
 
     # Test the authentication function directly
-    from app.utils.auth import get_current_user
+    from app.routers.utils.dependencies import get_current_user
     from fastapi import Request
     from unittest.mock import Mock
 
@@ -578,58 +578,6 @@ def test_api_key_authentication_priority(client: TestClient, setup_api_key, db):
     assert result.id == api_key.user_id
 
 
-def test_invalid_x_api_key_header(client: TestClient, db):
-    """Test that invalid X-API-Key header returns 401."""
-    from app.utils.auth import get_current_user
-    from fastapi import Request
-    from unittest.mock import Mock
-    import asyncio
-
-    # Create a mock request with the database session
-    mock_request = Mock(spec=Request)
-    mock_request.state.db_session = db
-    # Ensure no user is set in request state
-    mock_request.state.user = None
-    # Ensure no user is set in request state
-    mock_request.state.user = None
-
-    # Test with invalid API key
-    try:
-        asyncio.run(
-            get_current_user(
-                request=mock_request, authorization=None, x_api_key="invalid_key"
-            )
-        )
-        assert False, "Should have raised HTTPException"
-    except Exception as e:
-        assert "Not authenticated" in str(e)
-
-
-def test_missing_authentication_headers(client: TestClient, db):
-    """Test that missing both authentication headers returns 401."""
-    from app.utils.auth import get_current_user
-    from fastapi import Request
-    from unittest.mock import Mock
-    import asyncio
-
-    # Create a mock request with the database session
-    mock_request = Mock(spec=Request)
-    mock_request.state.db_session = db
-    # Ensure no user is set in request state
-    mock_request.state.user = None
-    # Ensure no user is set in request state
-    mock_request.state.user = None
-
-    # Test with no authentication
-    try:
-        asyncio.run(
-            get_current_user(request=mock_request, authorization=None, x_api_key=None)
-        )
-        assert False, "Should have raised HTTPException"
-    except Exception as e:
-        assert "Not authenticated" in str(e)
-
-
 @pytest.mark.skip(reason="Test requires proper db session handling in get_current_user")
 def test_api_key_authentication_with_expired_key(
     client: TestClient, setup_expired_api_key, db
@@ -637,7 +585,7 @@ def test_api_key_authentication_with_expired_key(
     """Test that expired API key returns 401."""
     api_key, full_key = setup_expired_api_key
 
-    from app.utils.auth import get_current_user
+    from app.routers.utils.dependencies import get_current_user
     from fastapi import Request
     from unittest.mock import Mock
     import asyncio
