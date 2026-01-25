@@ -107,6 +107,43 @@ def test_list_users_success(client, setup_user):
     assert "updated_at" in test_user_data
 
 
+def test_list_users_q_filter(client, db):
+    """Test that GET /users?q=... filters by first_name, last_name, or email."""
+    from app.models.user import User
+
+    token = "unique-q-filter-token"
+
+    matching_user = User(
+        email=f"{token}@example.com",
+        username=f"{token}@example.com",
+        first_name="Filter",
+        last_name="Match",
+        provider="google",
+        external_id=str(uuid4()),
+    )
+    non_matching_user = User(
+        email="someone-else@example.com",
+        username="someone-else@example.com",
+        first_name="Someone",
+        last_name="Else",
+        provider="google",
+        external_id=str(uuid4()),
+    )
+
+    db.add(matching_user)
+    db.add(non_matching_user)
+    db.commit()
+
+    response = client.get(f"/users?q={token}")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == str(matching_user.id)
+    assert data["items"][0]["email"] == matching_user.email
+
+
 def test_list_users_multiple_users(client, setup_user, setup_another_user, db, faker):
     """Test listing users when there are multiple users."""
     # Create additional users

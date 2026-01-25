@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException, status, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
@@ -80,6 +80,9 @@ async def get_internal_user_by_id(
 
 @router.get("/users", response_model=Page[UserResponse], operation_id="list_users")
 async def list_users(
+    q: str | None = Query(
+        default=None, description="Search by first_name, last_name, or email"
+    ),
     _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
@@ -89,7 +92,7 @@ async def list_users(
     Returns a paginated list of all users.
     """
     user_service = UserService(db)
-    query = user_service.get_users_query()
+    query = user_service.get_users_query(q=q)
     return paginate(query)
 
 
