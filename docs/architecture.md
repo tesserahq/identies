@@ -202,6 +202,53 @@ Routers organize endpoints by domain:
 - `/me`: Current user information
 - `/userinfo`: OIDC-compatible userinfo endpoint
 
+### User router (`app/routers/user_router.py`)
+
+The **User router** groups endpoints related to reading users and managing a user's API keys.
+
+#### Endpoints
+
+- **GET** `/users/{user_id}`: Fetch a user by ID (RBAC-protected).
+- **GET** `/users`: List users (RBAC-protected, paginated).
+- **GET** `/users/{user_id}/api-keys`: List API keys for a user (RBAC-protected, paginated).
+- **POST** `/users/{user_id}/api-keys`: Create an API key for a user (RBAC-protected).
+- **GET** `/internal/users/{user_id}`: Fetch a user by ID (**internal, service-account-only**; see below).
+
+#### Internal endpoint: `GET /internal/users/{user_id}` (service accounts only)
+
+This endpoint is intended to be called **only by Auth0 service accounts** using **Client Credentials (M2M) tokens**.
+
+- **Why**: Access to `/internal/*` endpoints is restricted based on **JWT claims** that identify the caller as a service account (not an end user).
+- **How**: Auth0 issues M2M access tokens and an Auth0 Action adds **custom claims** to those tokens, including an `account_type` claim set to `service_account`.
+- **Note**: The code changes that enforce this claim-based restriction are not implemented yet; this is the intended contract and should be relied on by internal consumers.
+
+Auth0 Action (Client Credentials exchange) used for M2M tokens:
+
+```javascript
+/**
+* Handler that will be called during the execution of a Client Credentials exchange.
+*
+* @param {Event} event - Details about client credentials grant request.
+* @param {CredentialsExchangeAPI} api - Interface whose methods can be used to change the behavior of client credentials grant.
+*/
+exports.onExecuteCredentialsExchange = async (event, api) => {
+  api.accessToken.setCustomClaim(
+    "https://mylinden.family/client_id",
+    event.client.client_id
+  );
+
+  api.accessToken.setCustomClaim(
+    "https://mylinden.family/client_name",
+    event.client.name
+  );
+
+  api.accessToken.setCustomClaim(
+    "https://mylinden.family/account_type",
+    "service_account"
+  );
+};
+```
+
 ### Response Format
 
 All API responses follow a consistent format:

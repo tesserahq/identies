@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from typing import Optional
-from app.utils.auth import get_current_user
+from app.routers.utils.dependencies import get_current_user
 from app.schemas.user import UserResponse
 
 router = APIRouter(tags=["UserInfo"])

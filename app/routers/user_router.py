@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
-from app.utils.auth import get_current_user
-from app.schemas.user import UserUpdate, UserResponse
+from app.models.user import User
+from app.schemas.user import UserResponse
 from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
@@ -14,17 +14,15 @@ from app.db import get_db
 from sqlalchemy.orm import Session
 from app.services.user_service import UserService
 from app.services.api_key_service import ApiKeyService
-from app.exceptions.service_account_error import ServiceAccountError
-from app.commands.users.update_user_command import UpdateUserCommand
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
-from app.models.user import User
+from app.routers.utils.dependencies import get_current_user
 from app.auth.rbac import build_rbac_dependencies
 from uuid import UUID
 
 router = APIRouter(tags=["User"])
 
 
-async def infer_domain(request: Request) -> Optional[str]:
+async def infer_domain(_request: Request) -> Optional[str]:
     return "*"
 
 
@@ -41,6 +39,29 @@ rbac = build_rbac_dependencies(
 async def get_user_by_id(
     user_id: UUID,
     _authorized: bool = Depends(rbac["read"]),
+    db: Session = Depends(get_db),
+):
+    """
+    Get a specific user by ID.
+
+    Returns the user with the specified ID, or 404 if not found.
+    """
+    user_service = UserService(db)
+    user = user_service.get_user(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
+
+
+@router.get(
+    "/internal/users/{user_id}",
+    response_model=UserResponse,
+    operation_id="get_user_by_id",
+)
+async def get_internal_user_by_id(
+    user_id: UUID,
     db: Session = Depends(get_db),
 ):
     """
@@ -80,7 +101,6 @@ async def list_users(
 async def list_user_api_keys(
     user_id: UUID,
     _authorized: bool = Depends(rbac["read"]),
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """

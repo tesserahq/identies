@@ -16,7 +16,7 @@ from app.commands.service_accounts.delete_service_account_command import (
 )
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.db import get_db
-from app.utils.auth import get_current_user
+from app.routers.utils.dependencies import get_current_user
 from app.schemas.service_account import (
     ServiceAccountCreateRequest,
     ServiceAccountUpdateRequest,

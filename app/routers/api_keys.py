@@ -10,7 +10,7 @@ from app.commands.api_keys.update_api_key_command import UpdateApiKeyCommand
 from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
 from app.db import get_db
-from app.utils.auth import get_current_user
+from app.routers.utils.dependencies import get_current_user
 from app.routers.utils.dependencies import get_api_key_by_id
 from app.schemas.api_key import (
     ApiKeyCreate,

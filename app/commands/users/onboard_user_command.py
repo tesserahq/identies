@@ -63,7 +63,7 @@ class OnboardUserCommand:
 
         if self.nats_publisher is not None:
             self.logger.info(
-                f"Publishing user-created event to NATS: {event.model_dump_json()}"
+                f"Publishing user-created event to NATS: {event.event_type}"
             )
             try:
                 self.nats_publisher.publish_sync(event, event.event_type)

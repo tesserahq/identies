@@ -53,6 +53,10 @@ OIDC_API_AUDIENCE=https://your-api-audience
 OIDC_ISSUER=https://your-oidc-domain.com/
 OIDC_ALGORITHMS=RS256
 
+# Optional: Service account detection (Auth0 M2M custom claims)
+SERVICE_ACCOUNT_ACCOUNT_TYPE_CLAIM=https://mylinden.family/account_type
+SERVICE_ACCOUNT_ACCOUNT_TYPE_VALUE=service_account
+
 # Custos Integration (for authorization)
 CUSTOS_API_URL=http://localhost:8000
 

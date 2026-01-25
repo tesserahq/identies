@@ -48,7 +48,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
 
     if not testing and not settings.disable_auth:
         logger.info("Main: Adding authentication middleware")
-        from app.middleware.authentication import AuthenticationMiddleware
+        from app.middleware.authentication_middleware import AuthenticationMiddleware
 
         app.add_middleware(AuthenticationMiddleware, database_manager=db_manager)
 

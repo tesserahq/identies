@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
-from app.utils.auth import get_current_user
+from app.routers.utils.dependencies import get_current_user
 from app.schemas.user import UserUpdate, UserResponse
 from app.schemas.api_key import (
     ApiKeyCreate,

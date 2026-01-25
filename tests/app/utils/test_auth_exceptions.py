@@ -3,7 +3,7 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.utils.auth import InviteOnlyAccessException
+from app.middleware.auth.exceptions import InviteOnlyAccessException
 
 
 def test_invite_only_access_exception():
