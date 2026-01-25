@@ -34,7 +34,7 @@ vaulta-client = { git = "https://github.com/estate-buddy-tech/vaulta-py.git", br
 
 fastapi-pagination = "^0.15.0"
 pydantic = {extras = ["email"], version = "^2.11.3"}
-black = "^25.1.0"
+black = "^26.0.0"
 ruff = "^0.14.0"
 pydantic-settings = "^2.9.1"
 python-jose = "^3.3.0"
