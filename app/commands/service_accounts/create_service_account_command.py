@@ -10,6 +10,7 @@ from app.services.user_service import UserService
 from app.models.user import User
 from app.events.service_account_events import build_service_account_created_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
+from datetime import datetime
 
 
 class CreateServiceAccountCommand:
@@ -56,13 +57,20 @@ class CreateServiceAccountCommand:
             # We'll use a format like "system-{random}" to generate a unique external_id
             external_id = f"system-{secrets.token_urlsafe(16)}"
 
+            if not service_account_data.username:
+                username = f"system-{secrets.token_urlsafe(16)}"
+            else:
+                username = service_account_data.username
+
             service_account_onboard = ServiceAccountOnboard(
                 email=service_account_data.email,
                 first_name=service_account_data.first_name,
                 last_name=service_account_data.last_name,
-                username=service_account_data.username,
+                username=username,
                 external_id=external_id,
                 service_account=True,
+                verified=True,
+                verified_at=datetime.now(),
             )
 
             # Create the service account
