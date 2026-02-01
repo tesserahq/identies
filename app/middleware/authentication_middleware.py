@@ -23,6 +23,8 @@ M2M_AUTH_PATHS = [
     "/internal/users",
 ]
 
+X_API_KEY_HEADER = "X-API-Key"
+
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(
@@ -40,7 +42,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Check for X-API-Key header first
-        x_api_key = request.headers.get("X-API-Key")
+        x_api_key = request.headers.get(X_API_KEY_HEADER)
         if x_api_key:
             # TODO: This is wrong, we should not let the endpoint handle X-API-Key authentication
             # Let the endpoint handle X-API-Key authentication
@@ -81,6 +83,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
     def _is_allowed_service_account_for_m2m(self, payload: dict[str, Any]) -> bool:
         account_type = payload.get(self.config.service_account_account_type_claim)
+        print(f"account_type: {account_type}")
         is_service_account = (
             isinstance(account_type, str)
             and account_type.lower() == self.config.service_account_account_type_value
