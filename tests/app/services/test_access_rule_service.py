@@ -1,6 +1,5 @@
 import pytest
 from uuid import uuid4
-from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.access_rule import AccessRule
 from app.schemas.access_rule import AccessRuleCreate, AccessRuleUpdate

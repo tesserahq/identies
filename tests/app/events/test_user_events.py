@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime, timezone
 from tessera_sdk.events.event import event_type, event_source
 from app.events.user_events import (

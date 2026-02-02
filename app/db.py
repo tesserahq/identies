@@ -10,9 +10,6 @@ To move to a common package, use DatabaseManager directly.
 from app.config import get_settings
 from tessera_sdk.core.database_manager import DatabaseManager
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import event
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import with_loader_criteria
 
 Base = declarative_base()
 

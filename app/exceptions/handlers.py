@@ -1,6 +1,10 @@
 from traceback import format_exc
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from app.exceptions.external_account_error import (
+    ExternalAccountAlreadyLinkedError,
+    InvalidLinkTokenError,
+)
 from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.exceptions.service_account_error import ServiceAccountError
 
@@ -17,6 +21,22 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def service_account_error_handler(request: Request, exc: ServiceAccountError):
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(InvalidLinkTokenError)
+    async def invalid_link_token_handler(request: Request, exc: InvalidLinkTokenError):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(ExternalAccountAlreadyLinkedError)
+    async def external_account_already_linked_handler(
+        request: Request, exc: ExternalAccountAlreadyLinkedError
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
             content={"detail": str(exc)},
         )
 

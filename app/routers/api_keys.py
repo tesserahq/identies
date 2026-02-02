@@ -1,11 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
 from sqlalchemy.orm import Session
-from uuid import UUID
 from typing import Optional
-from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
 
-from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.commands.api_keys.update_api_key_command import UpdateApiKeyCommand
 from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
@@ -13,9 +9,6 @@ from app.db import get_db
 from app.routers.utils.dependencies import get_current_user
 from app.routers.utils.dependencies import get_api_key_by_id
 from app.schemas.api_key import (
-    ApiKeyCreate,
-    ApiKeyCreateRequest,
-    ApiKeyCreateResponse,
     ApiKeyResponse,
     ApiKeyIntrospectResponse,
     ApiKeyUpdateRequest,
@@ -24,7 +17,6 @@ from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
 from app.models.user import User
 from app.models.api_key import ApiKey
-from tessera_sdk.utils.authorization_dependency import authorize
 from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
