@@ -1,15 +1,15 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi import status
 
 from app.middleware.auth.token_handler import TokenHandler
-from app.middleware.auth.exceptions import InviteOnlyAccessException
 
 from typing import Any, Optional
 from tessera_sdk.core.database_manager import DatabaseManager
 from app.middleware.auth.user_handler import UserHandler
 from app.config import get_settings
+from app.middleware.auth.exceptions import UnauthorizedException
 
 SKIP_AUTH_PATHS = [
     "/health",
@@ -64,7 +64,14 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             )
 
         token_handler = TokenHandler()
-        payload = token_handler.verify(token)
+
+        try:
+            payload = token_handler.verify(token)
+        except UnauthorizedException:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"error": "Unauthorized"},
+            )
 
         if any(request.url.path.startswith(path) for path in M2M_AUTH_PATHS):
             if self._is_allowed_service_account_for_m2m(payload):

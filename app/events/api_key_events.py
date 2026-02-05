@@ -4,9 +4,6 @@ Utilities for building api_key-related CloudEvents payloads.
 
 from __future__ import annotations
 
-from ast import List
-from typing import Dict, Any
-from uuid import UUID
 
 from app.models.api_key import ApiKey as ApiKeyModel
 from app.models.user import User as UserModel

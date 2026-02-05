@@ -81,3 +81,13 @@ def parse_api_key(full_key: str) -> Tuple[str, str]:
         raise ValueError("Invalid API key format")
 
     return key_id, secret
+
+
+def generate_link_token() -> str:
+    """
+    Generate a short-lived, single-use link token for external account linking.
+
+    Returns:
+        str: A URL-safe random token (no hashing; looked up by value).
+    """
+    return secrets.token_urlsafe(32)

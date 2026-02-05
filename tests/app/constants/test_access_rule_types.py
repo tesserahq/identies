@@ -1,6 +1,5 @@
 """Tests for AccessRuleTypes constants."""
 
-import pytest
 from app.constants.access_rule_types import AccessRuleTypes
 
 

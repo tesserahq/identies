@@ -42,6 +42,7 @@ class User(Base, TimestampMixin):
 
     # Relationships
     api_keys = relationship("ApiKey", back_populates="user")
+    external_accounts = relationship("ExternalAccount", back_populates="user")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

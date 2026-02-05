@@ -4,7 +4,6 @@ Utilities for building user-related CloudEvents payloads.
 
 from __future__ import annotations
 
-from typing import Dict, Any
 from uuid import UUID
 
 from app.models.user import User as UserModel

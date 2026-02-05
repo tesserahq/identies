@@ -4,7 +4,6 @@ from app.commands.service_accounts.create_service_account_command import (
     CreateServiceAccountCommand,
 )
 from app.schemas.service_account import ServiceAccountCreateRequest
-from app.services.user_service import UserService
 
 
 def test_create_service_account_success(db: Session, faker):

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, Query
