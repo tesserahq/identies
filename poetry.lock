@@ -2343,11 +2343,11 @@ optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
-cryptography = "^46.0.3"
-faststream = {version = "^0.6.3", extras = ["nats"]}
+cryptography = "^46.0.4"
+faststream = {version = "^0.6.6", extras = ["nats"]}
 jinja2 = "^3.1.6"
 opentelemetry-instrumentation-sqlalchemy = "^0.60b1"
 opentelemetry-sdk = "^1.39.1"
@@ -2360,10 +2360,8 @@ starlette = ">=0.50.0"
 urllib3 = ">=1.26.0"
 
 [package.source]
-type = "git"
-url = "https://github.com/tesserahq/tessera-sdk-py.git"
-reference = "main"
-resolved_reference = "ab3caca7b20a0ceeaa8624723addefcf5c48fa1e"
+type = "directory"
+url = "../tessera-sdk-py"
 
 [[package]]
 name = "typing-extensions"
@@ -2578,4 +2576,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "986e43718c998430942b2345ac019a78a947ada90e4ce2f723516b4e8f28e547"
+content-hash = "08e9b2bef3d406451dc5ac11ec21f817094e344d8493b9341100ed0b55faa8a7"

@@ -50,11 +50,11 @@ def build_link_token_created_event(
 
 def build_external_account_linked_event(
     external_account: ExternalAccountModel,
-    user: UserModel,
+    current_user: UserModel,
 ) -> Event:
     """Create a CloudEvent for external account linking."""
     account_schema = ExternalAccountResponse.model_validate(external_account)
-    user_schema = UserSchema.model_validate(user)
+    user_schema = UserSchema.model_validate(current_user)
 
     return Event(
         source=event_source(),
@@ -64,15 +64,15 @@ def build_external_account_linked_event(
             "user": user_schema.model_dump(mode="json"),
         },
         subject=f"/external-accounts/{external_account.id}",
-        user_id=str(user.id),
+        user_id=str(current_user.id),
         labels={
             "external_account_id": str(external_account.id),
-            "user_id": str(user.id),
+            "user_id": str(current_user.id),
             "platform": external_account.platform,
         },
         tags=[
             f"external_account_id:{str(external_account.id)}",
-            f"user_id:{str(user.id)}",
+            f"user_id:{str(current_user.id)}",
             f"platform:{external_account.platform}",
         ],
     )

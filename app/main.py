@@ -79,6 +79,8 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     from app.routers.me_router import router as me_router
     from app.routers.system_router import router as system_router
     from app.routers.external_account_router import router as external_account_router
+    from app.routers.jwks_router import router as jwks_router
+    from app.routers.token_exchange_router import router as token_exchange_router
 
     app.include_router(user_router)
     app.include_router(userinfo_router)
@@ -88,6 +90,8 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     app.include_router(me_router)
     app.include_router(system_router)
     app.include_router(external_account_router)
+    app.include_router(jwks_router)
+    app.include_router(token_exchange_router)
 
     # Initialize fastapi-pagination
     add_pagination(app)

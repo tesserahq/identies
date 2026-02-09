@@ -1,23 +1,25 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
+
+from app.auth.rbac import build_rbac_dependencies
+from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
+from app.db import get_db
 from app.models.user import User
-from app.schemas.user import UserResponse
+from app.routers.utils.dependencies import get_current_user, get_user_by_id
 from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
     ApiKeyCreateResponse,
     ApiKeyResponse,
 )
-from app.db import get_db
-from sqlalchemy.orm import Session
-from app.services.user_service import UserService
+from app.schemas.external_account import ExternalAccountResponse
+from app.schemas.user import UserResponse
 from app.services.api_key_service import ApiKeyService
-from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
-from app.routers.utils.dependencies import get_current_user
-from app.auth.rbac import build_rbac_dependencies
-from uuid import UUID
+from app.services.external_account_service import ExternalAccountService
+from app.services.user_service import UserService
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["User"])
 
@@ -33,25 +35,25 @@ rbac = build_rbac_dependencies(
 )
 
 
+RESOURCE = "external_account"
+rbac_external_account = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
+)
+
+
 @router.get(
     "/users/{user_id}", response_model=UserResponse, operation_id="get_user_by_id"
 )
-async def get_user_by_id(
-    user_id: UUID,
+async def read_user(
+    user: User = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     """
     Get a specific user by ID.
 
     Returns the user with the specified ID, or 404 if not found.
     """
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     return user
 
 
@@ -60,21 +62,14 @@ async def get_user_by_id(
     response_model=UserResponse,
     operation_id="get_user_by_id",
 )
-async def get_internal_user_by_id(
-    user_id: UUID,
-    db: Session = Depends(get_db),
+async def read_internal_user(
+    user: User = Depends(get_user_by_id),
 ):
     """
     Get a specific user by ID.
 
     Returns the user with the specified ID, or 404 if not found.
     """
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     return user
 
 
@@ -102,7 +97,7 @@ async def list_users(
     operation_id="list_user_api_keys",
 )
 async def list_user_api_keys(
-    user_id: UUID,
+    user: User = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
@@ -111,16 +106,33 @@ async def list_user_api_keys(
 
     Returns a paginated list of API keys for the specified user.
     """
-    # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
     api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(user_id)
+    query = api_key_service.get_user_api_keys_query(user.id)
+    return paginate(query)
+
+
+@router.get(
+    "/users/{user_id}/external-accounts",
+    response_model=Page[ExternalAccountResponse],
+    operation_id="list_user_external_accounts",
+)
+async def list_user_external_accounts(
+    user: User = Depends(get_user_by_id),
+    _rbac_external_account: bool = Depends(rbac_external_account["read"]),
+    platform: Optional[str] = Query(
+        None,
+        description="Filter by platform (e.g. telegram)",
+    ),
+    _authorized: bool = Depends(rbac["read"]),
+    db: Session = Depends(get_db),
+):
+    """
+    List external accounts for a specific user (paginated).
+    """
+    external_account_service = ExternalAccountService(db)
+    query = external_account_service.get_external_accounts_query(
+        user.id, platform=platform
+    )
     return paginate(query)
 
 
@@ -130,8 +142,8 @@ async def list_user_api_keys(
     operation_id="create_user_api_key",
 )
 async def create_user_api_key(
-    user_id: UUID,
     api_key_data: ApiKeyCreateRequest,
+    user: User = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -141,20 +153,12 @@ async def create_user_api_key(
 
     Returns the new API key with the full key shown only once.
     """
-    # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
     create_api_key_command = CreateApiKeyCommand(db)
 
     # Create the API key
     api_key, full_key = create_api_key_command.execute(
         ApiKeyCreate(
-            user_id=user_id,
+            user_id=user.id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
         ),

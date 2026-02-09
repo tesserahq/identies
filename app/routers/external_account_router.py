@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm import Session
@@ -19,16 +19,31 @@ from app.commands.external_accounts.link_external_account_command import (
 )
 from app.db import get_db
 from app.models.user import User
+from app.schemas.user import UserResponse
 from app.routers.utils.dependencies import get_current_user
 from app.schemas.external_account import (
+    CheckRequest,
+    CheckResponse,
     ExternalAccountResponse,
     LinkRequest,
     LinkTokenCreateRequest,
     LinkTokenResponse,
 )
 from app.services.external_account_service import ExternalAccountService
+from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/external-accounts", tags=["External Accounts"])
+
+
+async def infer_domain(_request: Request) -> str:
+    return "*"
+
+
+RESOURCE = "external_account"
+rbac_external_account = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
+)
 
 
 @router.post(
@@ -72,6 +87,34 @@ async def link_external_account(
     command = LinkExternalAccountCommand(db)
     account = command.execute(body, current_user)
     return ExternalAccountResponse.model_validate(account)
+
+
+@router.post(
+    "/check",
+    response_model=CheckResponse,
+    operation_id="check_external_account",
+)
+async def check_external_account(
+    body: CheckRequest,
+    db: Session = Depends(get_db),
+    _rbac_external_account: bool = Depends(rbac_external_account["read"]),
+):
+    """
+    Check if an external account (platform + external_id) is linked to a user.
+    Returns linked status, user, and external_account when found.
+    """
+    service = ExternalAccountService(db)
+    account = service.get_external_account_by_platform_and_external_id(
+        body.platform, body.external_id
+    )
+    if account is None:
+        return CheckResponse(linked=False, user=None, external_accounts=None)
+    user = account.user
+    return CheckResponse(
+        linked=True,
+        user=UserResponse.model_validate(user),
+        external_accounts=ExternalAccountResponse.model_validate(account),
+    )
 
 
 @router.get(

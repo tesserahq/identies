@@ -78,10 +78,10 @@ class LinkExternalAccountCommand:
         return account
 
     def _publish_external_account_linked_event(
-        self, external_account: ExternalAccount, user: User
+        self, external_account: ExternalAccount, current_user: User
     ) -> None:
         """Publish an external account linked event to NATS."""
-        event = build_external_account_linked_event(external_account, user)
+        event = build_external_account_linked_event(external_account, current_user)
 
         if self.nats_publisher is not None:
             self.logger.info(

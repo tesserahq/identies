@@ -8,3 +8,5 @@ output/*
 .rsync-ignore
 node_modules/
 tmp
+
+*.pem

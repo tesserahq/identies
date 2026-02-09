@@ -40,6 +40,19 @@ class ExternalAccountService:
             .first()
         )
 
+    def get_external_account_by_platform_and_external_id(
+        self, platform: str, external_id: str
+    ) -> Optional[ExternalAccount]:
+        """Fetch external account by platform and external_id."""
+        return (
+            self.db.query(ExternalAccount)
+            .filter(
+                ExternalAccount.platform == platform,
+                ExternalAccount.external_id == external_id,
+            )
+            .first()
+        )
+
     def get_external_accounts_query(
         self, user_id: UUID, platform: Optional[str] = None
     ) -> Query:
