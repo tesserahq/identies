@@ -33,7 +33,7 @@ class UserHandler:
         """
         user_id = payload["sub"]
 
-        user = self.user_service.get_user_by_external_id(user_id)
+        user = self.user_service.get_user_by_id_or_external_id(user_id)
         if user:
             return user
 

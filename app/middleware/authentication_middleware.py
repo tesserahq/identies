@@ -5,6 +5,8 @@ from fastapi import status
 
 from app.middleware.auth.token_handler import TokenHandler
 
+# from tessera_sdk.auth.token_handler import TokenHandler
+
 from typing import Any, Optional
 from tessera_sdk.core.database_manager import DatabaseManager
 from app.middleware.auth.user_handler import UserHandler
@@ -17,10 +19,12 @@ SKIP_AUTH_PATHS = [
     "/docs",
     "/api-keys/introspect",
     "/metrics",
+    "/.well-known/jwks.json",
 ]
 
 M2M_AUTH_PATHS = [
     "/internal/users",
+    "/oauth/token-exchange",
 ]
 
 X_API_KEY_HEADER = "X-API-Key"
@@ -73,6 +77,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 content={"error": "Unauthorized"},
             )
 
+        request.state.jwt_payload = payload
+
         if any(request.url.path.startswith(path) for path in M2M_AUTH_PATHS):
             if self._is_allowed_service_account_for_m2m(payload):
                 return await call_next(request)
@@ -90,7 +96,6 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
     def _is_allowed_service_account_for_m2m(self, payload: dict[str, Any]) -> bool:
         account_type = payload.get(self.config.service_account_account_type_claim)
-        print(f"account_type: {account_type}")
         is_service_account = (
             isinstance(account_type, str)
             and account_type.lower() == self.config.service_account_account_type_value

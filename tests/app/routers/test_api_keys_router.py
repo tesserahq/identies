@@ -75,7 +75,6 @@ def test_create_api_key_invalid_data(client: TestClient):
 def test_list_api_keys_empty(client: TestClient):
     """Test listing API keys when user has none."""
     response = client.get("/me/api-keys")
-    print(response.json())
     # Assertions
     assert response.status_code == 200
     data = response.json()

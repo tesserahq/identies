@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.user import UserResponse
+
 
 class LinkTokenCreateRequest(BaseModel):
     """Request body for creating a link token."""
@@ -53,5 +55,24 @@ class ExternalAccountResponse(BaseModel):
     data: dict[str, Any]
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CheckRequest(BaseModel):
+    """Request body for checking if an external account is linked."""
+
+    platform: str = Field(
+        ..., min_length=1, description="External platform (e.g. telegram)"
+    )
+    external_id: str = Field(..., min_length=1, description="External platform user id")
+
+
+class CheckResponse(BaseModel):
+    """Response when checking if an external account is linked."""
+
+    linked: bool
+    user: Optional[UserResponse] = None
+    external_accounts: Optional[ExternalAccountResponse] = None
 
     model_config = ConfigDict(from_attributes=True)

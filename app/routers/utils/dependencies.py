@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.api_key import ApiKey
-from app.services.api_key_service import ApiKeyService
-from fastapi import Request
 from app.models.user import User
+from app.services.api_key_service import ApiKeyService
+from app.services.user_service import UserService
+from fastapi import Request
 from fastapi import status
 
 
@@ -43,3 +44,25 @@ def get_api_key_by_id(
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key
+
+
+def get_user_by_id(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+) -> User:
+    """FastAPI dependency to get a user by ID.
+
+    Args:
+        user_id: The UUID of the user to retrieve (from path).
+        db: Database session dependency.
+
+    Returns:
+        User: The retrieved user.
+
+    Raises:
+        HTTPException: If the user is not found.
+    """
+    user = UserService(db).get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user

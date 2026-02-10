@@ -42,6 +42,38 @@ class Settings(BaseSettings):
     oidc_api_audience: str = "https://test-api"
     oidc_issuer: str = "https://test.oidc.com/"
     oidc_algorithms: str = "RS256"
+    oidc_jwks_urls: Optional[str] = Field(
+        default=None, json_schema_extra={"env": "OIDC_JWKS_URLS"}
+    )
+
+    token_exchange_private_key_pem: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"env": "TOKEN_EXCHANGE_PRIVATE_KEY_PEM"},
+    )
+    token_exchange_public_key_pem: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"env": "TOKEN_EXCHANGE_PUBLIC_KEY_PEM"},
+    )
+    token_exchange_key_id: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"env": "TOKEN_EXCHANGE_KEY_ID"},
+    )
+    token_exchange_issuer: str = Field(
+        default="https://identies.tessera.com/",
+        json_schema_extra={"env": "TOKEN_EXCHANGE_ISSUER"},
+    )
+    token_exchange_audience: str = Field(
+        default="https://identies.tessera.com/",
+        json_schema_extra={"env": "TOKEN_EXCHANGE_AUDIENCE"},
+    )
+    token_exchange_ttl_seconds: int = Field(
+        default=600,
+        json_schema_extra={"env": "TOKEN_EXCHANGE_TTL_SECONDS"},
+    )
+    token_exchange_required_scope: Optional[str] = Field(
+        default=None,
+        json_schema_extra={"env": "TOKEN_EXCHANGE_REQUIRED_SCOPE"},
+    )
 
     # Service account detection (Auth0 M2M custom claims)
     service_account_account_type_claim: str = Field(
@@ -91,6 +123,25 @@ class Settings(BaseSettings):
         env_val = self.allowed_service_account_client_ids
         if env_val:
             return [v.strip() for v in env_val.split(",") if v.strip()]
+        return []
+
+    def get_token_exchange_audiences(self) -> list[str]:
+        """
+        Parse token_exchange_audience as a comma-separated string from env.
+        """
+        env_val = self.token_exchange_audience
+        if env_val:
+            return [v.strip() for v in env_val.split(",") if v.strip()]
+        return []
+
+    def get_oidc_jwks_urls(self) -> list[str]:
+        """
+        Parse OIDC_JWKS_URLS as a comma-separated string from env, fallback to oidc_domain.
+        """
+        if self.oidc_jwks_urls:
+            return [v.strip() for v in self.oidc_jwks_urls.split(",") if v.strip()]
+        if self.oidc_domain:
+            return [f"https://{self.oidc_domain}/.well-known/jwks.json"]
         return []
 
     @model_validator(mode="before")

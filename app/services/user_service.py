@@ -6,7 +6,6 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
 from app.schemas.service_account import ServiceAccountOnboard
 from datetime import datetime, timezone
-
 from app.utils.db.filtering import apply_filters
 
 
@@ -19,6 +18,18 @@ class UserService:
 
     def get_user_by_email(self, email: str) -> Optional[User]:
         return self.db.query(User).filter(User.email == email).first()
+
+    def get_user_by_id_or_external_id(self, id: str) -> User | None:
+        try:
+            uuid_id = UUID(str(id))
+            return (
+                self.db.query(User)
+                .filter(or_(User.id == uuid_id, User.external_id == str(id)))
+                .first()
+            )
+        except (ValueError, TypeError):
+            # Not a valid UUID, only match on external_id
+            return self.db.query(User).filter(User.external_id == str(id)).first()
 
     def get_user_by_external_id(self, external_id: str) -> Optional[User]:
         return self.db.query(User).filter(User.external_id == external_id).first()
