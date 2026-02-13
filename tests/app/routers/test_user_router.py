@@ -13,6 +13,7 @@ def test_get_userinfo_success(client, setup_user):
     assert "email" in user_data
     assert "first_name" in user_data
     assert "last_name" in user_data
+    assert "preferred_name" in user_data
     assert "created_at" in user_data
     assert "updated_at" in user_data
 
@@ -103,6 +104,7 @@ def test_list_users_success(client, setup_user):
     assert test_user_data["email"] == test_user.email
     assert test_user_data["first_name"] == test_user.first_name
     assert test_user_data["last_name"] == test_user.last_name
+    assert "preferred_name" in test_user_data
     assert "created_at" in test_user_data
     assert "updated_at" in test_user_data
 
@@ -223,6 +225,7 @@ def test_update_user_success(client, setup_user):
         "last_name": "Updated Last",
         "email": "updated@example.com",
         "theme_preference": "dark",
+        "preferred_name": "Preferred Display Name",
     }
 
     response = client.put("/user", json=update_data)
@@ -233,6 +236,7 @@ def test_update_user_success(client, setup_user):
     assert user_data["last_name"] == "Updated Last"
     assert user_data["email"] == "updated@example.com"
     assert user_data["theme_preference"] == "dark"
+    assert user_data["preferred_name"] == "Preferred Display Name"
     # Verify the user was actually updated by fetching again
     get_response = client.get("/userinfo")
     assert get_response.status_code == 200
@@ -241,20 +245,22 @@ def test_update_user_success(client, setup_user):
     assert updated_user_data["last_name"] == "Updated Last"
     assert updated_user_data["email"] == "updated@example.com"
     assert updated_user_data["theme_preference"] == "dark"
+    assert updated_user_data["preferred_name"] == "Preferred Display Name"
 
 
 def test_update_user_partial(client, setup_user):
     """Test that the PUT /user endpoint allows partial updates."""
-    # Update only first name
-    update_data = {"first_name": "Partial Update"}
+    # Update only preferred_name
+    update_data = {"preferred_name": "Nickname Only"}
 
     response = client.put("/user", json=update_data)
     assert response.status_code == 200
 
     user_data = response.json()
-    assert user_data["first_name"] == "Partial Update"
+    assert user_data["preferred_name"] == "Nickname Only"
     # Other fields should remain unchanged
     test_user = setup_user
+    assert user_data["first_name"] == test_user.first_name
     assert user_data["last_name"] == test_user.last_name
     assert user_data["email"] == test_user.email
 

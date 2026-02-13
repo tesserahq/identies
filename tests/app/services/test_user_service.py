@@ -15,6 +15,7 @@ def sample_user_data():
         "first_name": "Test",
         "last_name": "User",
         "provider": "google",
+        "preferred_name": "Testy",
     }
 
 
@@ -43,6 +44,7 @@ def test_create_user(db: Session, sample_user_data):
         == f"{sample_user_data['first_name']} {sample_user_data['last_name']}"
     )
     assert user.provider == sample_user_data["provider"]
+    assert user.preferred_name == sample_user_data["preferred_name"]
     assert user.verified is False
     assert user.verified_at is None
     assert user.created_at is not None
@@ -94,6 +96,7 @@ def test_update_user(db: Session, sample_user):
         "email": "updated@example.com",
         "first_name": "Updated",
         "last_name": "Name",
+        "preferred_name": "Preferred Nickname",
     }
     user_update = UserUpdate(**update_data)
 
@@ -106,6 +109,7 @@ def test_update_user(db: Session, sample_user):
     assert updated_user.email == update_data["email"]
     assert updated_user.first_name == update_data["first_name"]
     assert updated_user.last_name == update_data["last_name"]
+    assert updated_user.preferred_name == update_data["preferred_name"]
 
     assert (
         updated_user.full_name()
