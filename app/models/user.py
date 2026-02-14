@@ -32,6 +32,7 @@ class User(Base, TimestampMixin):
     avatar_asset_id = Column(String, nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
+    preferred_name = Column(String, nullable=True)
     provider = Column(String, nullable=True)
     confirmed_at = Column(DateTime, nullable=True)
     verified = Column(Boolean, default=False)

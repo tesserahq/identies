@@ -28,6 +28,9 @@ class UserBase(BaseModel):
     last_name: str
     """User's last name. Required field."""
 
+    preferred_name: Optional[str] = None
+    """User's preferred display name. Optional."""
+
     provider: Optional[str] = None
     """Authentication provider (e.g., 'google', 'github', etc.) if user signed up via OAuth."""
 
@@ -79,6 +82,9 @@ class UserUpdate(BaseModel):
 
     last_name: Optional[str] = None
     """Updated last name."""
+
+    preferred_name: Optional[str] = None
+    """Updated preferred display name."""
 
     provider: Optional[str] = None
     """Updated authentication provider."""
@@ -137,6 +143,9 @@ class UserResponse(BaseModel):
 
     last_name: str
     """User's last name. Required field."""
+
+    preferred_name: Optional[str] = None
+    """User's preferred display name. Optional."""
 
     provider: Optional[str] = None
     """Authentication provider (e.g., 'google', 'github', etc.) if user signed up via OAuth."""
@@ -198,6 +207,9 @@ class UserDetails(BaseModel):
 
     last_name: str
     """User's last name. Required field."""
+
+    preferred_name: Optional[str] = None
+    """User's preferred display name. Optional."""
 
     provider: Optional[str] = None
     """Authentication provider used by the user."""
