@@ -57,16 +57,10 @@ class CreateServiceAccountCommand:
             # We'll use a format like "system-{random}" to generate a unique external_id
             external_id = f"system-{secrets.token_urlsafe(16)}"
 
-            if not service_account_data.username:
-                username = f"system-{secrets.token_urlsafe(16)}"
-            else:
-                username = service_account_data.username
-
             service_account_onboard = ServiceAccountOnboard(
                 email=service_account_data.email,
                 first_name=service_account_data.first_name,
                 last_name=service_account_data.last_name,
-                username=username,
                 external_id=external_id,
                 service_account=True,
                 verified=True,

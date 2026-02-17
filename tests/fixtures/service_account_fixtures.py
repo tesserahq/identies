@@ -9,7 +9,6 @@ def setup_service_account(db, faker):
 
     user_data = {
         "email": email,
-        "username": faker.user_name(),
         "first_name": faker.first_name(),
         "last_name": faker.last_name(),
         "external_id": f"system-{faker.uuid4()}",
@@ -31,7 +30,6 @@ def setup_another_service_account(db, faker):
 
     user_data = {
         "email": email,
-        "username": faker.user_name(),
         "first_name": faker.first_name(),
         "last_name": faker.last_name(),
         "external_id": f"system-{faker.uuid4()}",

@@ -27,7 +27,6 @@ def test_build_service_account_created_event(setup_service_account):
     assert service_account_data["email"] == setup_service_account.email
     assert service_account_data["first_name"] == setup_service_account.first_name
     assert service_account_data["last_name"] == setup_service_account.last_name
-    assert service_account_data["username"] == setup_service_account.username
 
     # Verify labels and tags
     assert "service_account_id" in event.labels

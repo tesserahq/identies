@@ -14,7 +14,6 @@ def test_create_service_account_success(db: Session, faker):
         email=faker.email(),
         first_name=faker.first_name(),
         last_name=faker.last_name(),
-        username=faker.user_name(),
     )
 
     service_account = command.execute(service_account_data)
@@ -25,28 +24,9 @@ def test_create_service_account_success(db: Session, faker):
     assert service_account.email == service_account_data.email
     assert service_account.first_name == service_account_data.first_name
     assert service_account.last_name == service_account_data.last_name
-    assert service_account.username == service_account_data.username
     assert service_account.service_account is True
     assert service_account.external_id is not None
     assert service_account.external_id.startswith("system-")
-
-
-def test_create_service_account_without_username(db: Session, faker):
-    """Test creating a system account without username."""
-    command = CreateServiceAccountCommand(db)
-
-    service_account_data = ServiceAccountCreateRequest(
-        email=faker.email(),
-        first_name=faker.first_name(),
-        last_name=faker.last_name(),
-    )
-
-    service_account = command.execute(service_account_data)
-
-    # Assertions
-    assert service_account is not None
-    assert service_account.email == service_account_data.email
-    assert service_account.service_account is True
 
 
 def test_create_service_account_duplicate_email(db: Session, faker, setup_user):

@@ -27,7 +27,6 @@ def test_build_user_created_event(setup_user):
     assert user_data["email"] == setup_user.email
     assert user_data["first_name"] == setup_user.first_name
     assert user_data["last_name"] == setup_user.last_name
-    assert user_data["username"] == setup_user.username
 
     # Verify labels and tags
     assert "user_id" in event.labels
@@ -97,7 +96,6 @@ def test_user_created_event_data_completeness(setup_user):
     assert "email" in user_data
     assert "first_name" in user_data
     assert "last_name" in user_data
-    assert "username" in user_data
     assert user_data["email"] == setup_user.email
     assert user_data["first_name"] == setup_user.first_name
     assert user_data["last_name"] == setup_user.last_name

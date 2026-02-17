@@ -71,8 +71,6 @@ class UpdateServiceAccountCommand:
                 update_dict["first_name"] = service_account_update.first_name
             if service_account_update.last_name is not None:
                 update_dict["last_name"] = service_account_update.last_name
-            if service_account_update.username is not None:
-                update_dict["username"] = service_account_update.username
 
             # If no fields to update, return the user as-is
             if not update_dict:

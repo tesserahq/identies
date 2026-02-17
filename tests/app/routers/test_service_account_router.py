@@ -11,20 +11,10 @@ def service_account_create_data(faker):
         "email": faker.email(),
         "first_name": faker.first_name(),
         "last_name": faker.last_name(),
-        "username": faker.user_name(),
     }
 
 
 @pytest.fixture
-def service_account_create_data_no_username(faker):
-    """Create sample system account creation data without username for testing."""
-    return {
-        "email": faker.email(),
-        "first_name": faker.first_name(),
-        "last_name": faker.last_name(),
-    }
-
-
 def test_create_service_account(client: TestClient, service_account_create_data):
     """Test creating a new system account."""
     response = client.post("/service-accounts", json=service_account_create_data)
@@ -45,25 +35,6 @@ def test_create_service_account(client: TestClient, service_account_create_data)
     assert data["email"] == service_account_create_data["email"]
     assert data["first_name"] == service_account_create_data["first_name"]
     assert data["last_name"] == service_account_create_data["last_name"]
-    assert data["username"] == service_account_create_data["username"]
-
-
-def test_create_service_account_no_username(
-    client: TestClient, service_account_create_data_no_username
-):
-    """Test creating a system account without username."""
-    response = client.post(
-        "/service-accounts", json=service_account_create_data_no_username
-    )
-
-    # Assertions
-    assert response.status_code == 200
-    data = response.json()
-
-    # Check values
-    assert data["email"] == service_account_create_data_no_username["email"]
-    assert data["first_name"] == service_account_create_data_no_username["first_name"]
-    assert data["last_name"] == service_account_create_data_no_username["last_name"]
 
 
 def test_create_service_account_invalid_data(client: TestClient):

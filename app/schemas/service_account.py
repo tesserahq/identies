@@ -32,9 +32,6 @@ class ServiceAccountCreateRequest(BaseModel):
     last_name: str = Field(..., min_length=1)
     """Last name for the service account."""
 
-    username: Optional[str] = None
-    """Optional username for the service account."""
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -49,9 +46,6 @@ class ServiceAccountUpdateRequest(BaseModel):
 
     last_name: Optional[str] = Field(None, min_length=1)
     """Updated last name."""
-
-    username: Optional[str] = None
-    """Updated username."""
 
     model_config = ConfigDict(from_attributes=True)
 

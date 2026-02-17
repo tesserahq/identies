@@ -25,7 +25,6 @@ The `User` model represents both regular users and service accounts in the syste
 **Key Fields:**
 - `id` (UUID): Primary key
 - `email` (String): Unique email address
-- `username` (String, optional): Unique username
 - `first_name`, `last_name` (String): User's name
 - `external_id` (String, optional): ID from external identity provider
 - `provider` (String, optional): Identity provider name (e.g., "google", "github")

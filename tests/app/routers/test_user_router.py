@@ -117,7 +117,6 @@ def test_list_users_q_filter(client, db):
 
     matching_user = User(
         email=f"{token}@example.com",
-        username=f"{token}@example.com",
         first_name="Filter",
         last_name="Match",
         provider="google",
@@ -125,7 +124,6 @@ def test_list_users_q_filter(client, db):
     )
     non_matching_user = User(
         email="someone-else@example.com",
-        username="someone-else@example.com",
         first_name="Someone",
         last_name="Else",
         provider="google",
@@ -155,7 +153,6 @@ def test_list_users_multiple_users(client, setup_user, setup_another_user, db, f
     for i in range(2):
         user_data = {
             "email": faker.email(),
-            "username": faker.email(),
             "first_name": faker.first_name(),
             "last_name": faker.last_name(),
             "provider": "google",

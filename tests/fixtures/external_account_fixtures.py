@@ -14,7 +14,7 @@ def setup_external_account(db, setup_user, faker):
     """Create a test external account for the given user."""
     platform = "telegram"
     external_id = faker.numerify(text="##########")
-    data = {"username": faker.user_name()}
+    data = {}
     account = ExternalAccount(
         user_id=setup_user.id,
         platform=platform,

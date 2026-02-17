@@ -25,7 +25,7 @@ def test_create_link_token_with_data_and_ttl(client, faker):
     payload = {
         "platform": "telegram",
         "external_user_id": faker.numerify(text="##########"),
-        "data": {"username": "testbot"},
+        "data": {},
         "expires_in_seconds": 300,
     }
     response = client.post("/external-accounts/link-tokens", json=payload)

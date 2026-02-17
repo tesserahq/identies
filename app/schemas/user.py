@@ -68,9 +68,6 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     """Updated email address. Must be a valid email format."""
 
-    username: Optional[str] = None
-    """Updated username."""
-
     avatar_asset_id: Optional[str] = None
     """Updated avatar asset ID."""
 
