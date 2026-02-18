@@ -9,17 +9,14 @@ from app.commands.users.onboard_user_command import OnboardUserCommand
 from app.schemas.user import UserOnboard
 import requests
 from datetime import datetime
-from tessera_sdk.core.database_manager import DatabaseManager
+from app.utils.db.db_session_helper import db_session
 
 
 class UserHandler:
     """Handles user resolution from a validated JWT payload."""
 
-    def __init__(self, database_manager: DatabaseManager):
+    def __init__(self):
         self.config = get_settings()
-        self.db = database_manager.create_session()
-        self.user_service = UserService(self.db)
-
         if self.config.oidc_domain is None:
             raise ValueError("oidc domain is not set in the configuration.")
 
@@ -33,7 +30,11 @@ class UserHandler:
         """
         user_id = payload["sub"]
 
-        user = self.user_service.get_user_by_id_or_external_id(user_id)
+        user = None
+        with db_session() as db:
+            user_service = UserService(db)
+            user = user_service.get_user_by_id_or_external_id(user_id)
+
         if user:
             return user
 
@@ -67,7 +68,8 @@ class UserHandler:
     def handle_user_onboarding(self, payload: dict, userinfo: dict):
         """Onboard the user locally using the userinfo data."""
         if self.config.invite_only_access:
-            access_rule_service = AccessRuleService(self.db)
+            with db_session() as db:
+                access_rule_service = AccessRuleService(db)
             email = userinfo.get("email")
 
             if email and isinstance(email, str):
@@ -93,19 +95,21 @@ class UserHandler:
             provider = identity.get("provider")
 
         # Onboard the user locally
-        onboard_command = OnboardUserCommand(self.db)
-        user = onboard_command.execute(
-            UserOnboard(
-                external_id=user_id,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                avatar_url=avatar_url,
-                provider=provider,
-                verified=True,
-                verified_at=datetime.now(),
+        user = None
+        with db_session() as db:
+            onboard_command = OnboardUserCommand(db)
+            user = onboard_command.execute(
+                UserOnboard(
+                    external_id=user_id,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    avatar_url=avatar_url,
+                    provider=provider,
+                    verified=True,
+                    verified_at=datetime.now(),
+                )
             )
-        )
 
         return user
 
@@ -119,19 +123,20 @@ class UserHandler:
         email = azp + "@" + self.config.oidc_domain
 
         # Onboard the service account with generic values
-        onboard_command = OnboardUserCommand(self.db)
-        user = onboard_command.execute(
-            UserOnboard(
-                external_id=user_id,
-                email=email,  # Service accounts don't have emails
-                first_name="System",
-                last_name="Account",
-                avatar_url=None,  # No avatar for service accounts
-                provider=None,
-                verified=True,
-                verified_at=datetime.now(),
-                service_account=True,  # Mark as service account
+        with db_session() as db:
+            onboard_command = OnboardUserCommand(db)
+            user = onboard_command.execute(
+                UserOnboard(
+                    external_id=user_id,
+                    email=email,  # Service accounts don't have emails
+                    first_name="System",
+                    last_name="Account",
+                    avatar_url=None,  # No avatar for service accounts
+                    provider=None,
+                    verified=True,
+                    verified_at=datetime.now(),
+                    service_account=True,  # Mark as service account
+                )
             )
-        )
 
         return user
