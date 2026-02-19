@@ -6,7 +6,7 @@ from app.middleware.auth.exceptions import (
 from app.services.user_service import UserService
 from app.services.access_rule_service import AccessRuleService
 from app.commands.users.onboard_user_command import OnboardUserCommand
-from app.schemas.user import UserOnboard
+from app.schemas.user import User, UserOnboard
 import requests
 from datetime import datetime
 from app.utils.db.db_session_helper import db_session
@@ -34,9 +34,8 @@ class UserHandler:
         with db_session() as db:
             user_service = UserService(db)
             user = user_service.get_user_by_id_or_external_id(user_id)
-
-        if user:
-            return user
+            if user:
+                return User.model_validate(user)
 
         # Check if this is a service account (Auth0 M2M tokens include a custom claim)
         account_type = payload.get(self.config.service_account_account_type_claim)
@@ -70,15 +69,13 @@ class UserHandler:
         if self.config.invite_only_access:
             with db_session() as db:
                 access_rule_service = AccessRuleService(db)
-            email = userinfo.get("email")
-
-            if email and isinstance(email, str):
-                access_rule = access_rule_service.evaluate_email_access(email)
-                if not access_rule:
-                    raise InviteOnlyAccessException(email=email)
-            else:
-                # If no valid email, raise exception without email field
-                raise InviteOnlyAccessException()
+                email = userinfo.get("email")
+                if email and isinstance(email, str):
+                    access_rule = access_rule_service.evaluate_email_access(email)
+                    if not access_rule:
+                        raise InviteOnlyAccessException(email=email)
+                else:
+                    raise InviteOnlyAccessException()
 
         user_id = payload["sub"]
         email = userinfo.get("email")
@@ -95,7 +92,6 @@ class UserHandler:
             provider = identity.get("provider")
 
         # Onboard the user locally
-        user = None
         with db_session() as db:
             onboard_command = OnboardUserCommand(db)
             user = onboard_command.execute(
@@ -110,8 +106,7 @@ class UserHandler:
                     verified_at=datetime.now(),
                 )
             )
-
-        return user
+            return User.model_validate(user)
 
     def handle_service_account_onboarding(self, payload: dict):
         """Onboard a service account with generic values."""
@@ -138,5 +133,4 @@ class UserHandler:
                     service_account=True,  # Mark as service account
                 )
             )
-
-        return user
+            return User.model_validate(user)

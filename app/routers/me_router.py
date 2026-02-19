@@ -3,7 +3,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 from app.routers.utils.dependencies import get_current_user
-from app.schemas.user import UserUpdate, UserResponse
+from app.schemas.user import User, UserUpdate, UserResponse
 from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
@@ -17,7 +17,6 @@ from app.services.api_key_service import ApiKeyService
 from app.exceptions.service_account_error import ServiceAccountError
 from app.commands.users.update_user_command import UpdateUserCommand
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
-from app.models.user import User
 from app.auth.rbac import build_rbac_dependencies
 from uuid import UUID
 

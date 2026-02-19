@@ -111,7 +111,11 @@ class UserInDB(UserBase):
 class User(UserInDB):
     """Schema for user data returned in API responses. Inherits all fields from UserInDB."""
 
-    pass
+    external_id: Optional[str] = None
+    """External ID of the user."""
+
+    service_account: bool = False
+    """Whether this user is a service account. Defaults to False."""
 
 
 class UserResponse(BaseModel):

@@ -4,16 +4,15 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.api_key import ApiKey
-from app.models.user import User
+from app.models.user import User as UserModel
+from app.schemas.user import User
 from app.services.api_key_service import ApiKeyService
 from app.services.user_service import UserService
 from fastapi import Request
 from fastapi import status
 
 
-def get_current_user(
-    request: Request,
-) -> User:
+def get_current_user(request: Request) -> User:
     # Check if user is already set (for backward compatibility with middleware)
     if hasattr(request.state, "user") and request.state.user is not None:
         return request.state.user
@@ -49,7 +48,7 @@ def get_api_key_by_id(
 def get_user_by_id(
     user_id: UUID,
     db: Session = Depends(get_db),
-) -> User:
+) -> UserModel:
     """FastAPI dependency to get a user by ID.
 
     Args:
@@ -57,7 +56,7 @@ def get_user_by_id(
         db: Database session dependency.
 
     Returns:
-        User: The retrieved user.
+        UserModel: The retrieved user (ORM model, session remains open for request).
 
     Raises:
         HTTPException: If the user is not found.

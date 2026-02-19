@@ -6,7 +6,8 @@ from typing import Optional
 from app.auth.rbac import build_rbac_dependencies
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.db import get_db
-from app.models.user import User
+from app.models.user import User as UserModel
+from app.schemas.user import User
 from app.routers.utils.dependencies import get_current_user, get_user_by_id
 from app.schemas.api_key import (
     ApiKeyCreate,
@@ -46,7 +47,7 @@ rbac_external_account = build_rbac_dependencies(
     "/users/{user_id}", response_model=UserResponse, operation_id="get_user_by_id"
 )
 async def read_user(
-    user: User = Depends(get_user_by_id),
+    user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
 ):
     """
@@ -63,7 +64,7 @@ async def read_user(
     operation_id="get_user_by_id",
 )
 async def read_internal_user(
-    user: User = Depends(get_user_by_id),
+    user: UserModel = Depends(get_user_by_id),
 ):
     """
     Get a specific user by ID.
@@ -97,7 +98,7 @@ async def list_users(
     operation_id="list_user_api_keys",
 )
 async def list_user_api_keys(
-    user: User = Depends(get_user_by_id),
+    user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
@@ -117,7 +118,7 @@ async def list_user_api_keys(
     operation_id="list_user_external_accounts",
 )
 async def list_user_external_accounts(
-    user: User = Depends(get_user_by_id),
+    user: UserModel = Depends(get_user_by_id),
     _rbac_external_account: bool = Depends(rbac_external_account["read"]),
     platform: Optional[str] = Query(
         None,
@@ -143,7 +144,7 @@ async def list_user_external_accounts(
 )
 async def create_user_api_key(
     api_key_data: ApiKeyCreateRequest,
-    user: User = Depends(get_user_by_id),
+    user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

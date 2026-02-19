@@ -88,7 +88,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 content={"error": "Forbidden"},
             )
 
-        user_handler = UserHandler(self.database_manager)
+        user_handler = UserHandler()
         request.state.jwt_payload = payload
         request.state.user = user_handler.resolve_user(token, payload)
 
