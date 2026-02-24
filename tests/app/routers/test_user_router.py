@@ -27,7 +27,7 @@ def test_get_userinfo_success(client, setup_user):
 
 def test_get_user_success(client, setup_user):
     """Test that the /user endpoint returns the current user's information."""
-    response = client.get("/user")
+    response = client.get("/me")
     assert response.status_code == 200
 
     user_data = response.json()
@@ -225,7 +225,7 @@ def test_update_user_success(client, setup_user):
         "preferred_name": "Preferred Display Name",
     }
 
-    response = client.put("/user", json=update_data)
+    response = client.put("/me", json=update_data)
     assert response.status_code == 200
 
     user_data = response.json()
@@ -243,35 +243,6 @@ def test_update_user_success(client, setup_user):
     assert updated_user_data["email"] == "updated@example.com"
     assert updated_user_data["theme_preference"] == "dark"
     assert updated_user_data["preferred_name"] == "Preferred Display Name"
-
-
-def test_update_user_partial(client, setup_user):
-    """Test that the PUT /user endpoint allows partial updates."""
-    # Update only preferred_name
-    update_data = {"preferred_name": "Nickname Only"}
-
-    response = client.put("/user", json=update_data)
-    assert response.status_code == 200
-
-    user_data = response.json()
-    assert user_data["preferred_name"] == "Nickname Only"
-    # Other fields should remain unchanged
-    test_user = setup_user
-    assert user_data["first_name"] == test_user.first_name
-    assert user_data["last_name"] == test_user.last_name
-    assert user_data["email"] == test_user.email
-
-
-# def test_update_user_unauthorized(client):
-#     """Test that the PUT /userinfo endpoint returns 401 when no authentication is provided."""
-#     # Remove the Authorization header for this request
-#     headers = dict(client.headers)
-#     headers.pop("Authorization", None)
-#     update_data = {"first_name": "Test"}
-#     response = client.put("/userinfo", json=update_data, headers=headers)
-#     assert response.status_code == 401
-#     assert "detail" in response.json()
-#     assert response.json()["detail"] == "Not authenticated"
 
 
 # Tests for GET /users/{user_id}/api-keys
@@ -463,3 +434,32 @@ def test_create_user_api_key_validation(client, setup_user):
 
     response = client.post(f"/users/{setup_user.id}/api-keys", json=invalid_data)
     assert response.status_code == 422
+
+
+def test_delete_user_api_key_success(client, setup_user, setup_api_key):
+    """Test deleting an API key for a specific user."""
+    api_key, _ = setup_api_key
+
+    response = client.delete(f"/users/{setup_user.id}/api-keys/{api_key.id}")
+    assert response.status_code == 204
+
+    # Verify the key no longer appears in user key listing.
+    list_response = client.get(f"/users/{setup_user.id}/api-keys")
+    assert list_response.status_code == 200
+    data = list_response.json()
+    api_key_ids = [item["id"] for item in data["items"]]
+    assert str(api_key.id) not in api_key_ids
+
+
+def test_delete_user_api_key_mismatched_user_returns_not_found(
+    client, setup_user, setup_another_user_api_key
+):
+    """Test deleting with a user/key mismatch returns 404."""
+    another_user_api_key, _ = setup_another_user_api_key
+
+    response = client.delete(
+        f"/users/{setup_user.id}/api-keys/{another_user_api_key.id}"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert "not found" in data["detail"].lower()

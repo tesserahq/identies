@@ -1,14 +1,20 @@
-from fastapi import APIRouter, Depends, Request, Query
+from fastapi import APIRouter, Depends, Request, Query, HTTPException, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 
 from app.auth.rbac import build_rbac_dependencies
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
+from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.db import get_db
+from app.models.api_key import ApiKey
 from app.models.user import User as UserModel
 from app.schemas.user import User
-from app.routers.utils.dependencies import get_current_user, get_user_by_id
+from app.routers.utils.dependencies import (
+    get_current_user,
+    get_user_by_id,
+    get_api_key_by_id,
+)
 from app.schemas.api_key import (
     ApiKeyCreate,
     ApiKeyCreateRequest,
@@ -172,3 +178,44 @@ async def create_user_api_key(
         **response_data.model_dump(),
         full_key=full_key,
     )
+
+
+@router.delete(
+    "/users/{user_id}/api-keys/{key_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="delete_user_api_key",
+)
+async def delete_user_api_key(
+    user: UserModel = Depends(get_user_by_id),
+    api_key: ApiKey = Depends(get_api_key_by_id),
+    _authorized: bool = Depends(rbac["delete"]),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete an API key for a specific user.
+
+    Requires delete permission on user resources.
+    """
+    if api_key.user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found",
+        )
+
+    delete_api_key_command = DeleteApiKeyCommand(db)
+    try:
+        delete_api_key_command.execute(api_key.id, user.id, current_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        message = str(e).lower()
+        if "not found" in message:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete API key",
+        )

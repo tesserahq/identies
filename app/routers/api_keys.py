@@ -18,6 +18,10 @@ from app.services.api_key_service import ApiKeyService
 from app.models.user import User
 from app.models.api_key import ApiKey
 from app.auth.rbac import build_rbac_dependencies
+from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
+from app.schemas.api_key import ApiKeyCreate, ApiKeyCreateRequest, ApiKeyCreateResponse
+from app.services.user_service import UserService
+from uuid import UUID
 
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
@@ -198,4 +202,48 @@ async def introspect_api_key(
         key_id=verified_api_key.key_id,
         scopes=None,  # No scopes implemented yet
         expires_at=verified_api_key.expires_at,
+    )
+
+
+@router.post(
+    "/users/{user_id}/api-keys",
+    response_model=ApiKeyCreateResponse,
+    operation_id="create_user_api_key",
+)
+async def create_user_api_key(
+    user_id: UUID,
+    api_key_data: ApiKeyCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new API key for a specific user.
+
+    Returns the new API key with the full key shown only once.
+    """
+    # Verify the user exists
+    user_service = UserService(db)
+    user = user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    create_api_key_command = CreateApiKeyCommand(db)
+
+    # Create the API key
+    api_key, full_key = create_api_key_command.execute(
+        ApiKeyCreate(
+            user_id=user_id,
+            name=api_key_data.name,
+            expires_at=api_key_data.expires_at,
+        ),
+        current_user,
+    )
+
+    # Return the response with the full key
+    response_data = ApiKeyResponse.model_validate(api_key)
+    return ApiKeyCreateResponse(
+        **response_data.model_dump(),
+        full_key=full_key,
     )
