@@ -1,6 +1,6 @@
 """Router for external accounts and link tokens."""
 
-from typing import Optional
+from typing import Optional, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
@@ -19,8 +19,9 @@ from app.commands.external_accounts.link_external_account_command import (
 )
 from app.db import get_db
 from app.models.user import User
+from app.models.user import User as UserModel
 from app.schemas.user import UserResponse
-from app.routers.utils.dependencies import get_current_user
+from app.routers.utils.dependencies import get_current_user, get_user_by_id
 from app.schemas.external_account import (
     CheckRequest,
     CheckResponse,
@@ -41,6 +42,12 @@ async def infer_domain(_request: Request) -> str:
 
 RESOURCE = "external_account"
 rbac_external_account = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
+)
+
+RESOURCE = "user"
+rbac_user = build_rbac_dependencies(
     resource=RESOURCE,
     domain_resolver=infer_domain,
 )
@@ -134,7 +141,31 @@ async def list_external_accounts(
     List external accounts for the current user (paginated).
     """
     service = ExternalAccountService(db)
-    user_id = current_user.id
+    user_id = cast(UUID, current_user.id)
+    query = service.get_external_accounts_query(user_id, platform=platform)
+    return paginate(query)
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=Page[ExternalAccountResponse],
+    operation_id="list_user_external_accounts",
+)
+async def list_user_external_accounts(
+    user: UserModel = Depends(get_user_by_id),
+    _rbac_external_account: bool = Depends(rbac_external_account["read"]),
+    _rbac_user: bool = Depends(rbac_user["read"]),
+    db: Session = Depends(get_db),
+    platform: Optional[str] = Query(
+        None,
+        description="Filter by platform (e.g. telegram)",
+    ),
+):
+    """
+    List external accounts for a specific user (paginated).
+    """
+    service = ExternalAccountService(db)
+    user_id = cast(UUID, user.id)
     query = service.get_external_accounts_query(user_id, platform=platform)
     return paginate(query)
 

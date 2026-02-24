@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -7,8 +9,11 @@ from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
 from app.db import get_db
 from app.routers.utils.dependencies import get_current_user
-from app.routers.utils.dependencies import get_api_key_by_id
+from app.routers.utils.dependencies import get_api_key_by_id, get_user_by_id
 from app.schemas.api_key import (
+    ApiKeyCreate,
+    ApiKeyCreateRequest,
+    ApiKeyCreateResponse,
     ApiKeyResponse,
     ApiKeyIntrospectResponse,
     ApiKeyUpdateRequest,
@@ -19,9 +24,7 @@ from app.models.user import User
 from app.models.api_key import ApiKey
 from app.auth.rbac import build_rbac_dependencies
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
-from app.schemas.api_key import ApiKeyCreate, ApiKeyCreateRequest, ApiKeyCreateResponse
-from app.services.user_service import UserService
-from uuid import UUID
+from app.models.user import User as UserModel
 
 router = APIRouter(prefix="/api-keys", tags=["API Keys"])
 
@@ -50,6 +53,26 @@ async def get_api_key(
     Returns the API key details (without the secret part).
     """
     return ApiKeyResponse.model_validate(api_key)
+
+
+@router.get(
+    "/users/{user_id}",
+    response_model=Page[ApiKeyResponse],
+    operation_id="list_user_api_keys",
+)
+async def list_user_api_keys(
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["read"]),
+    db: Session = Depends(get_db),
+):
+    """
+    List all API keys for a specific user.
+
+    Returns a paginated list of API keys for the specified user.
+    """
+    api_key_service = ApiKeyService(db)
+    query = api_key_service.get_user_api_keys_query(user.id)
+    return paginate(query)
 
 
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
@@ -206,13 +229,14 @@ async def introspect_api_key(
 
 
 @router.post(
-    "/users/{user_id}/api-keys",
+    "/users/{user_id}",
     response_model=ApiKeyCreateResponse,
     operation_id="create_user_api_key",
 )
 async def create_user_api_key(
-    user_id: UUID,
     api_key_data: ApiKeyCreateRequest,
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -221,20 +245,12 @@ async def create_user_api_key(
 
     Returns the new API key with the full key shown only once.
     """
-    # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
     create_api_key_command = CreateApiKeyCommand(db)
 
     # Create the API key
     api_key, full_key = create_api_key_command.execute(
         ApiKeyCreate(
-            user_id=user_id,
+            user_id=user.id,
             name=api_key_data.name,
             expires_at=api_key_data.expires_at,
         ),
@@ -247,3 +263,44 @@ async def create_user_api_key(
         **response_data.model_dump(),
         full_key=full_key,
     )
+
+
+@router.delete(
+    "/users/{user_id}/{key_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="delete_user_api_key",
+)
+async def delete_user_api_key(
+    user: UserModel = Depends(get_user_by_id),
+    api_key: ApiKey = Depends(get_api_key_by_id),
+    _authorized: bool = Depends(rbac["delete"]),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete an API key for a specific user.
+
+    Requires delete permission on API key resources.
+    """
+    if api_key.user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found",
+        )
+
+    delete_api_key_command = DeleteApiKeyCommand(db)
+    try:
+        delete_api_key_command.execute(api_key.id, user.id, current_user)
+    except HTTPException:
+        raise
+    except Exception as e:
+        message = str(e).lower()
+        if "not found" in message:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete API key",
+        )

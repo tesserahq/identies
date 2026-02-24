@@ -245,13 +245,13 @@ def test_update_user_success(client, setup_user):
     assert updated_user_data["preferred_name"] == "Preferred Display Name"
 
 
-# Tests for GET /users/{user_id}/api-keys
+# Tests for GET /api-keys/users/{user_id}
 def test_list_user_api_keys_success(client, setup_user, setup_api_key):
     """Test listing API keys for a specific user."""
     # Create an API key for the user
     api_key, _ = setup_api_key
 
-    response = client.get(f"/users/{setup_user.id}/api-keys")
+    response = client.get(f"/api-keys/users/{setup_user.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -279,7 +279,7 @@ def test_list_user_api_keys_success(client, setup_user, setup_api_key):
 
 def test_list_user_api_keys_empty(client, setup_user):
     """Test listing API keys for a user with no API keys."""
-    response = client.get(f"/users/{setup_user.id}/api-keys")
+    response = client.get(f"/api-keys/users/{setup_user.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -296,7 +296,7 @@ def test_list_user_api_keys_empty(client, setup_user):
 
 def test_list_user_api_keys_not_found(client):
     """Test listing API keys for a non-existent user."""
-    response = client.get(f"/users/{uuid4()}/api-keys")
+    response = client.get(f"/api-keys/users/{uuid4()}")
 
     assert response.status_code == 404
     data = response.json()
@@ -326,7 +326,7 @@ def test_list_user_api_keys_multiple_keys(client, setup_user, db, faker):
 
     db.commit()
 
-    response = client.get(f"/users/{setup_user.id}/api-keys")
+    response = client.get(f"/api-keys/users/{setup_user.id}")
 
     assert response.status_code == 200
     data = response.json()
@@ -355,7 +355,7 @@ def api_key_create_data_no_expiry(faker):
 
 def test_create_user_api_key_success(client, setup_user, api_key_create_data):
     """Test creating a new API key for a specific user."""
-    response = client.post(f"/users/{setup_user.id}/api-keys", json=api_key_create_data)
+    response = client.post(f"/api-keys/users/{setup_user.id}", json=api_key_create_data)
 
     assert response.status_code == 200
     data = response.json()
@@ -383,7 +383,7 @@ def test_create_user_api_key_no_expiry(
 ):
     """Test creating an API key for a user without expiry."""
     response = client.post(
-        f"/users/{setup_user.id}/api-keys", json=api_key_create_data_no_expiry
+        f"/api-keys/users/{setup_user.id}", json=api_key_create_data_no_expiry
     )
 
     assert response.status_code == 200
@@ -398,7 +398,7 @@ def test_create_user_api_key_no_expiry(
 
 def test_create_user_api_key_not_found(client, api_key_create_data):
     """Test creating an API key for a non-existent user."""
-    response = client.post(f"/users/{uuid4()}/api-keys", json=api_key_create_data)
+    response = client.post(f"/api-keys/users/{uuid4()}", json=api_key_create_data)
 
     assert response.status_code == 404
     data = response.json()
@@ -411,7 +411,7 @@ def test_create_user_api_key_invalid_data(client, setup_user):
         "name": "",  # Empty name should fail validation
     }
 
-    response = client.post(f"/users/{setup_user.id}/api-keys", json=invalid_data)
+    response = client.post(f"/api-keys/users/{setup_user.id}", json=invalid_data)
 
     assert response.status_code == 422  # Validation error
 
@@ -423,7 +423,7 @@ def test_create_user_api_key_validation(client, setup_user):
         "expires_at": None,
     }
 
-    response = client.post(f"/users/{setup_user.id}/api-keys", json=invalid_data)
+    response = client.post(f"/api-keys/users/{setup_user.id}", json=invalid_data)
     assert response.status_code == 422
 
     # Test with name too long
@@ -432,7 +432,7 @@ def test_create_user_api_key_validation(client, setup_user):
         "expires_at": None,
     }
 
-    response = client.post(f"/users/{setup_user.id}/api-keys", json=invalid_data)
+    response = client.post(f"/api-keys/users/{setup_user.id}", json=invalid_data)
     assert response.status_code == 422
 
 
@@ -440,11 +440,11 @@ def test_delete_user_api_key_success(client, setup_user, setup_api_key):
     """Test deleting an API key for a specific user."""
     api_key, _ = setup_api_key
 
-    response = client.delete(f"/users/{setup_user.id}/api-keys/{api_key.id}")
+    response = client.delete(f"/api-keys/users/{setup_user.id}/{api_key.id}")
     assert response.status_code == 204
 
     # Verify the key no longer appears in user key listing.
-    list_response = client.get(f"/users/{setup_user.id}/api-keys")
+    list_response = client.get(f"/api-keys/users/{setup_user.id}")
     assert list_response.status_code == 200
     data = list_response.json()
     api_key_ids = [item["id"] for item in data["items"]]
@@ -458,7 +458,7 @@ def test_delete_user_api_key_mismatched_user_returns_not_found(
     another_user_api_key, _ = setup_another_user_api_key
 
     response = client.delete(
-        f"/users/{setup_user.id}/api-keys/{another_user_api_key.id}"
+        f"/api-keys/users/{setup_user.id}/{another_user_api_key.id}"
     )
     assert response.status_code == 404
     data = response.json()

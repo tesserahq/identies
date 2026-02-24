@@ -1,30 +1,13 @@
-from fastapi import APIRouter, Depends, Request, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 
 from app.auth.rbac import build_rbac_dependencies
-from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
-from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.db import get_db
-from app.models.api_key import ApiKey
 from app.models.user import User as UserModel
-from app.schemas.user import User
-from app.routers.utils.dependencies import (
-    get_current_user,
-    get_user_by_id,
-    get_api_key_by_id,
-)
-from app.schemas.api_key import (
-    ApiKeyCreate,
-    ApiKeyCreateRequest,
-    ApiKeyCreateResponse,
-    ApiKeyResponse,
-)
-from app.schemas.external_account import ExternalAccountResponse
+from app.routers.utils.dependencies import get_user_by_id
 from app.schemas.user import UserResponse
-from app.services.api_key_service import ApiKeyService
-from app.services.external_account_service import ExternalAccountService
 from app.services.user_service import UserService
 from sqlalchemy.orm import Session
 
@@ -37,13 +20,6 @@ async def infer_domain(_request: Request) -> Optional[str]:
 
 RESOURCE = "user"
 rbac = build_rbac_dependencies(
-    resource=RESOURCE,
-    domain_resolver=infer_domain,
-)
-
-
-RESOURCE = "external_account"
-rbac_external_account = build_rbac_dependencies(
     resource=RESOURCE,
     domain_resolver=infer_domain,
 )
@@ -96,126 +72,3 @@ async def list_users(
     user_service = UserService(db)
     query = user_service.get_users_query(q=q)
     return paginate(query)
-
-
-@router.get(
-    "/users/{user_id}/api-keys",
-    response_model=Page[ApiKeyResponse],
-    operation_id="list_user_api_keys",
-)
-async def list_user_api_keys(
-    user: UserModel = Depends(get_user_by_id),
-    _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
-):
-    """
-    List all API keys for a specific user.
-
-    Returns a paginated list of API keys for the specified user.
-    """
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(user.id)
-    return paginate(query)
-
-
-@router.get(
-    "/users/{user_id}/external-accounts",
-    response_model=Page[ExternalAccountResponse],
-    operation_id="list_user_external_accounts",
-)
-async def list_user_external_accounts(
-    user: UserModel = Depends(get_user_by_id),
-    _rbac_external_account: bool = Depends(rbac_external_account["read"]),
-    platform: Optional[str] = Query(
-        None,
-        description="Filter by platform (e.g. telegram)",
-    ),
-    _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
-):
-    """
-    List external accounts for a specific user (paginated).
-    """
-    external_account_service = ExternalAccountService(db)
-    query = external_account_service.get_external_accounts_query(
-        user.id, platform=platform
-    )
-    return paginate(query)
-
-
-@router.post(
-    "/users/{user_id}/api-keys",
-    response_model=ApiKeyCreateResponse,
-    operation_id="create_user_api_key",
-)
-async def create_user_api_key(
-    api_key_data: ApiKeyCreateRequest,
-    user: UserModel = Depends(get_user_by_id),
-    _authorized: bool = Depends(rbac["create"]),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Create a new API key for a specific user.
-
-    Returns the new API key with the full key shown only once.
-    """
-    create_api_key_command = CreateApiKeyCommand(db)
-
-    # Create the API key
-    api_key, full_key = create_api_key_command.execute(
-        ApiKeyCreate(
-            user_id=user.id,
-            name=api_key_data.name,
-            expires_at=api_key_data.expires_at,
-        ),
-        current_user,
-    )
-
-    # Return the response with the full key
-    response_data = ApiKeyResponse.model_validate(api_key)
-    return ApiKeyCreateResponse(
-        **response_data.model_dump(),
-        full_key=full_key,
-    )
-
-
-@router.delete(
-    "/users/{user_id}/api-keys/{key_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    operation_id="delete_user_api_key",
-)
-async def delete_user_api_key(
-    user: UserModel = Depends(get_user_by_id),
-    api_key: ApiKey = Depends(get_api_key_by_id),
-    _authorized: bool = Depends(rbac["delete"]),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Delete an API key for a specific user.
-
-    Requires delete permission on user resources.
-    """
-    if api_key.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found",
-        )
-
-    delete_api_key_command = DeleteApiKeyCommand(db)
-    try:
-        delete_api_key_command.execute(api_key.id, user.id, current_user)
-    except HTTPException:
-        raise
-    except Exception as e:
-        message = str(e).lower()
-        if "not found" in message:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API key not found",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete API key",
-        )
