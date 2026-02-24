@@ -112,6 +112,31 @@ def test_list_external_accounts_empty(client, setup_user):
     assert data["total"] == 0
 
 
+def test_list_user_external_accounts_success(
+    client, setup_user, setup_external_account
+):
+    """GET /external-accounts/users/{user_id} lists paginated accounts for the user."""
+    response = client.get(f"/external-accounts/users/{setup_user.id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert data["total"] >= 1
+    account = setup_external_account
+    ids = [item["id"] for item in data["items"]]
+    assert str(account.id) in ids
+
+
+def test_list_user_external_accounts_not_found(client):
+    """GET /external-accounts/users/{user_id} returns 404 when user is missing."""
+    response = client.get(f"/external-accounts/users/{uuid4()}")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
 def test_delete_external_account_success(client, setup_user, setup_external_account):
     """DELETE /external-accounts/{id} returns 204 when owner."""
     account = setup_external_account
