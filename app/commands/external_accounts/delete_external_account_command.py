@@ -10,6 +10,7 @@ from tessera_sdk.events.nats_router import NatsEventPublisher
 from app.events.external_account_events import (
     build_external_account_deleted_event,
 )
+from app.exceptions.forbidden_error import ForbiddenError
 from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.models.external_account import ExternalAccount
 from app.models.user import User
@@ -50,8 +51,12 @@ class DeleteExternalAccountCommand:
         account = self.service.get_external_account(
             external_account_id, current_user.id
         )
+
         if not account:
             raise ResourceNotFoundError("External account not found")
+
+        if account.user_id != current_user.id:
+            raise ForbiddenError("You are not allowed to delete this external account")
 
         self.service.delete_external_account(external_account_id, current_user.id)
 
