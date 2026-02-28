@@ -45,6 +45,17 @@ class ApplicationService:
         self.db.refresh(application)
         return application
 
+    def create_applications_batch(
+        self, data: List[ApplicationCreate]
+    ) -> List[Application]:
+        """Create multiple applications in a single transaction."""
+        applications = [Application(**item.model_dump()) for item in data]
+        self.db.add_all(applications)
+        self.db.commit()
+        for app in applications:
+            self.db.refresh(app)
+        return applications
+
     def update_application(
         self, application_id: UUID, data: ApplicationUpdate
     ) -> Optional[Application]:

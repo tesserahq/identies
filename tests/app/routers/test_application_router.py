@@ -118,6 +118,34 @@ def test_delete_application_not_found(client):
     assert "not found" in response.json()["detail"]
 
 
+def test_create_applications_batch(client, sample_application_data):
+    """Test batch creating applications."""
+    payload = {
+        "applications": [
+            {
+                "name": "App 1",
+                "url": "https://app1.com",
+                "logo": "https://app1.com/logo.png",
+            },
+            {"name": "App 2", "url": "https://app2.com"},
+        ]
+    }
+
+    response = client.post("/applications/batch", json=payload)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert "items" in data
+    assert len(data["items"]) == 2
+    assert data["items"][0]["name"] == "App 1"
+    assert data["items"][0]["url"] == "https://app1.com"
+    assert data["items"][0]["logo"] == "https://app1.com/logo.png"
+    assert "id" in data["items"][0]
+    assert data["items"][1]["name"] == "App 2"
+    assert data["items"][1]["url"] == "https://app2.com"
+    assert "id" in data["items"][1]
+
+
 def test_list_applications_with_search_query(client, sample_application_data):
     """Test listing applications with search query."""
     create_response = client.post("/applications/", json=sample_application_data)

@@ -141,6 +141,26 @@ def test_search_applications(db: Session, sample_application):
         assert len(results) >= 1
 
 
+def test_create_applications_batch(db: Session, sample_application_data):
+    """Test batch creating applications."""
+    service = ApplicationService(db)
+    app1 = ApplicationCreate(**sample_application_data)
+    app2 = ApplicationCreate(
+        name="Another App",
+        url="https://another.com",
+        logo=None,
+        description=None,
+    )
+
+    applications = service.create_applications_batch([app1, app2])
+
+    assert len(applications) == 2
+    assert applications[0].id is not None
+    assert applications[0].name == sample_application_data["name"]
+    assert applications[1].id is not None
+    assert applications[1].name == "Another App"
+
+
 def test_create_application_without_optional_fields(db: Session):
     """Test creating an application without optional fields."""
     application_data = {"name": "Minimal App"}

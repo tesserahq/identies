@@ -1,7 +1,7 @@
 """Pydantic schemas for Application."""
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -64,3 +64,17 @@ class Application(ApplicationInDB):
     """Schema for application data returned in API responses."""
 
     pass
+
+
+class ApplicationBatchCreateRequest(BaseModel):
+    """Request body for batch creating applications."""
+
+    applications: List[ApplicationCreate]
+    """List of applications to create."""
+
+
+class ApplicationBatchCreateResponse(BaseModel):
+    """Response for batch create applications."""
+
+    items: List[Application]
+    """List of created applications with ids and timestamps."""

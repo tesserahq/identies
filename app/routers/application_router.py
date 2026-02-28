@@ -12,7 +12,13 @@ from app.auth.rbac import build_rbac_dependencies
 from app.db import get_db
 from app.models.application import Application as ApplicationModel
 from app.routers.utils.dependencies import get_application_by_id
-from app.schemas.application import Application, ApplicationCreate, ApplicationUpdate
+from app.schemas.application import (
+    Application,
+    ApplicationBatchCreateRequest,
+    ApplicationBatchCreateResponse,
+    ApplicationCreate,
+    ApplicationUpdate,
+)
 from app.services.application_service import ApplicationService
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
@@ -51,6 +57,22 @@ async def get_application(
 ):
     """Get a specific application by ID."""
     return application
+
+
+@router.post(
+    "/batch",
+    response_model=ApplicationBatchCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_applications_batch(
+    body: ApplicationBatchCreateRequest,
+    _authorized: bool = Depends(rbac["create"]),
+    db: Session = Depends(get_db),
+):
+    """Create multiple applications in one request."""
+    service = ApplicationService(db)
+    applications = service.create_applications_batch(body.applications)
+    return ApplicationBatchCreateResponse(items=applications)
 
 
 @router.post("/", response_model=Application, status_code=status.HTTP_201_CREATED)
