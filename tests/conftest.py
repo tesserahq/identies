@@ -39,6 +39,7 @@ pytest_plugins = [
     "tests.fixtures.api_key_fixtures",
     "tests.fixtures.service_account_fixtures",
     "tests.fixtures.external_account_fixtures",
+    "tests.fixtures.application_fixtures",
 ]
 
 logger = logging.getLogger(__name__)
