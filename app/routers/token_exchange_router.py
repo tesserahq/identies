@@ -93,8 +93,6 @@ async def token_exchange(
         scope=scope,
     )
 
-    logger.info(f"Token exchange result: {result.access_token}")
-
     return TokenExchangeResponse(
         access_token=result.access_token,
         expires_in=result.expires_in,
