@@ -1,11 +1,18 @@
 import jwt
-from fastapi import HTTPException, status
+
 from app.config import get_settings
 from app.middleware.auth.exceptions import UnauthorizedException
+from app.services.api_key_service import ApiKeyService
+from app.utils.db.db_session_helper import db_session
+
+
+def _is_api_key(token: str) -> bool:
+    """Return True if the token looks like an API key (ak_<key_id>.<secret>)."""
+    return bool(token and token.startswith("ak_") and "." in token)
 
 
 class TokenHandler:
-    """Does all the token verification using PyJWT"""
+    """Verifies JWT tokens and API keys, returning a payload-like dict for both."""
 
     def __init__(self):
         self.config = get_settings()
@@ -28,8 +35,26 @@ class TokenHandler:
         audiences.extend(self.config.get_token_exchange_audiences())
         return [audience for audience in dict.fromkeys(audiences) if audience]
 
-    def verify(self, token: str):
-        # This gets the 'kid' from the passed token
+    def verify(self, token: str) -> dict:
+        """
+        Verify token as either an API key or JWT.
+        Returns a payload-like dict with at least 'sub' for user resolution.
+        """
+        if _is_api_key(token):
+            return self._verify_api_key(token)
+        return self._verify_jwt(token)
+
+    def _verify_api_key(self, token: str) -> dict:
+        """Verify API key and return a payload with 'sub' set to user id for UserHandler."""
+        with db_session() as db:
+            api_key_service = ApiKeyService(db)
+            api_key = api_key_service.verify_api_key(token)
+            if not api_key:
+                raise UnauthorizedException("Invalid or expired API key")
+            return {"sub": str(api_key.user_id)}
+
+    def _verify_jwt(self, token: str) -> dict:
+        """Verify JWT and return decoded payload."""
         allowed_issuers = self._allowed_issuers()
         allowed_audiences = self._allowed_audiences()
         last_error: Exception | None = None

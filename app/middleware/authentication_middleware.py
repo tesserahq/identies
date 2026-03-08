@@ -7,8 +7,8 @@ from app.middleware.auth.token_handler import TokenHandler
 
 # from tessera_sdk.auth.token_handler import TokenHandler
 
-from typing import Any, Optional
-from tessera_sdk.core.database_manager import DatabaseManager
+from typing import Any
+
 from app.middleware.auth.user_handler import UserHandler
 from app.config import get_settings
 from app.middleware.auth.exceptions import UnauthorizedException
@@ -31,40 +31,23 @@ X_API_KEY_HEADER = "X-API-Key"
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
-    def __init__(
-        self,
-        app,
-        database_manager: Optional[DatabaseManager] = None,
-    ):
+    def __init__(self, app):
         super().__init__(app)
-        # Store database manager for creating sessions
-        self.database_manager = database_manager
         self.config = get_settings()
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path in SKIP_AUTH_PATHS:
             return await call_next(request)
 
-        # Check for X-API-Key header first
-        x_api_key = request.headers.get(X_API_KEY_HEADER)
-        if x_api_key:
-            # TODO: This is wrong, we should not let the endpoint handle X-API-Key authentication
-            # Let the endpoint handle X-API-Key authentication
-            return await call_next(request)
-
-        # Check for Authorization Bearer header
-        authorization = request.headers.get("Authorization")
-        if not authorization or not authorization.startswith("Bearer "):
+        # Resolve token from X-API-Key or Authorization Bearer (same flow for both)
+        token = request.headers.get(X_API_KEY_HEADER)
+        if not token:
+            authorization = request.headers.get("Authorization")
+            if authorization and authorization.startswith("Bearer "):
+                token = authorization[len("Bearer ") :]
+        if not token:
             return JSONResponse(
                 status_code=401, content={"error": "Missing or invalid token"}
-            )
-
-        token = authorization[len("Bearer ") :]
-
-        if self.database_manager is None:
-            return JSONResponse(
-                status_code=500,
-                content={"error": "Server authentication misconfigured"},
             )
 
         token_handler = TokenHandler()

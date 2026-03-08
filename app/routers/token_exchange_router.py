@@ -6,6 +6,9 @@ from app.db import get_db
 from app.schemas.token_exchange import TokenExchangeRequest, TokenExchangeResponse
 from app.services.token_exchange_service import TokenExchangeService
 from app.services.user_service import UserService
+from app.core.logging_config import get_logger
+
+logger = get_logger()
 
 router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
@@ -89,6 +92,9 @@ async def token_exchange(
         audience=body.requested_audience,
         scope=scope,
     )
+
+
+    logger.info(f"Token exchange result: {result.access_token}")
 
     return TokenExchangeResponse(
         access_token=result.access_token,

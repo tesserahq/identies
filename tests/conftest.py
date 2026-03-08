@@ -10,6 +10,9 @@ from fastapi.security import HTTPAuthorizationCredentials
 from typing import Optional
 from app.db import Base, get_db
 from starlette.middleware.base import BaseHTTPMiddleware
+import os
+
+os.environ["ENV"] = "test"
 
 
 # Patch authorize BEFORE importing create_app (which imports routers)
