@@ -14,7 +14,8 @@ from app.config import get_settings
 from app.middleware.auth.exceptions import UnauthorizedException
 
 SKIP_AUTH_PATHS = [
-    "/health",
+    "/livez",
+    "/readyz",
     "/openapi.json",
     "/docs",
     "/api-keys/introspect",
