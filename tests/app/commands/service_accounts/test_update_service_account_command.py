@@ -5,7 +5,7 @@ from app.commands.service_accounts.update_service_account_command import (
     UpdateServiceAccountCommand,
 )
 from app.schemas.service_account import ServiceAccountUpdateRequest
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 
 
 def test_update_service_account_success(db: Session, setup_service_account, faker):

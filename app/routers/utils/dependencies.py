@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.api_key import ApiKey
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from fastapi import Request
 from app.models.user import User
 from fastapi import status
@@ -39,7 +39,7 @@ def get_api_key_by_id(
     Raises:
         HTTPException: If the API key is not found
     """
-    api_key = ApiKeyService(db).get_api_key_by_id(key_id)
+    api_key = ApiKeyRepository(db).get_api_key_by_id(key_id)
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key

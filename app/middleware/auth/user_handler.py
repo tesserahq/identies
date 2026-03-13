@@ -3,8 +3,8 @@ from app.middleware.auth.exceptions import (
     UnauthorizedException,
     InviteOnlyAccessException,
 )
-from app.services.user_service import UserService
-from app.services.access_rule_service import AccessRuleService
+from app.repositories.user_repository import UserRepository
+from app.repositories.access_rule_repository import AccessRuleRepository
 from app.commands.users.onboard_user_command import OnboardUserCommand
 from app.schemas.user import UserOnboard
 import requests
@@ -18,7 +18,7 @@ class UserHandler:
     def __init__(self, database_manager: DatabaseManager):
         self.config = get_settings()
         self.db = database_manager.create_session()
-        self.user_service = UserService(self.db)
+        self.user_repository = UserRepository(self.db)
 
         if self.config.oidc_domain is None:
             raise ValueError("oidc domain is not set in the configuration.")
@@ -33,7 +33,7 @@ class UserHandler:
         """
         user_id = payload["sub"]
 
-        user = self.user_service.get_user_by_external_id(user_id)
+        user = self.user_repository.get_user_by_external_id(user_id)
         if user:
             return user
 
@@ -67,11 +67,11 @@ class UserHandler:
     def handle_user_onboarding(self, payload: dict, userinfo: dict):
         """Onboard the user locally using the userinfo data."""
         if self.config.invite_only_access:
-            access_rule_service = AccessRuleService(self.db)
+            access_rule_repository = AccessRuleRepository(self.db)
             email = userinfo.get("email")
 
             if email and isinstance(email, str):
-                access_rule = access_rule_service.evaluate_email_access(email)
+                access_rule = access_rule_repository.evaluate_email_access(email)
                 if not access_rule:
                     raise InviteOnlyAccessException(email=email)
             else:

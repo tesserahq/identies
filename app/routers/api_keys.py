@@ -21,7 +21,7 @@ from app.schemas.api_key import (
     ApiKeyUpdateRequest,
 )
 from app.schemas.user import UserResponse
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.user import User
 from app.models.api_key import ApiKey
 from tessera_sdk.utils.authorization_dependency import authorize
@@ -188,8 +188,8 @@ async def introspect_api_key(
         return ApiKeyIntrospectResponse(active=False)
 
     # Verify the API key
-    api_key_service = ApiKeyService(db)
-    verified_api_key = api_key_service.verify_api_key(api_key)
+    api_key_repository = ApiKeyRepository(db)
+    verified_api_key = api_key_repository.verify_api_key(api_key)
 
     if not verified_api_key:
         return ApiKeyIntrospectResponse(active=False)

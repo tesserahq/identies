@@ -12,8 +12,8 @@ from app.schemas.api_key import (
 )
 from app.db import get_db
 from sqlalchemy.orm import Session
-from app.services.user_service import UserService
-from app.services.api_key_service import ApiKeyService
+from app.repositories.user_repository import UserRepository
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.exceptions.service_account_error import ServiceAccountError
 from app.commands.users.update_user_command import UpdateUserCommand
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
@@ -144,8 +144,8 @@ async def list_me_api_keys(
 
     Returns a paginated list of API keys for the specified user.
     """
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(current_user.id)
+    api_key_repository = ApiKeyRepository(db)
+    query = api_key_repository.get_user_api_keys_query(current_user.id)
     return paginate(query)
 
 
@@ -203,15 +203,15 @@ async def list_user_api_keys(
     Returns a paginated list of API keys for the specified user.
     """
     # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(user_id)
+    api_key_repository = ApiKeyRepository(db)
+    query = api_key_repository.get_user_api_keys_query(user_id)
     return paginate(query)
 
 
@@ -232,8 +232,8 @@ async def create_user_api_key(
     Returns the new API key with the full key shown only once.
     """
     # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"

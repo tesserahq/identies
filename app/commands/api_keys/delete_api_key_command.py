@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.api_key import ApiKey
 from app.models.user import User
 from app.events.api_key_events import build_api_key_deleted_event
@@ -18,7 +18,7 @@ class DeleteApiKeyCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.api_key_service = ApiKeyService(db)
+        self.api_key_repository = ApiKeyRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )
@@ -41,7 +41,7 @@ class DeleteApiKeyCommand:
         """
         try:
             # Get the API key before deletion for event publishing
-            api_key = self.api_key_service.get_api_key_by_id(api_key_id)
+            api_key = self.api_key_repository.get_api_key_by_id(api_key_id)
             if not api_key:
                 raise Exception("API key not found")
 
@@ -49,7 +49,7 @@ class DeleteApiKeyCommand:
                 raise Exception("API key not owned by user")
 
             # Delete the API key
-            success = self.api_key_service.delete_api_key(api_key_id, user_id)
+            success = self.api_key_repository.delete_api_key(api_key_id, user_id)
 
             if not success:
                 raise Exception("Failed to delete API key")

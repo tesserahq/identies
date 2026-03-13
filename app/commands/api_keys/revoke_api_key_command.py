@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.api_key import ApiKey
 from app.models.user import User
 from app.events.api_key_events import build_api_key_updated_event
@@ -18,7 +18,7 @@ class RevokeApiKeyCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.api_key_service = ApiKeyService(db)
+        self.api_key_repository = ApiKeyRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )
@@ -41,13 +41,13 @@ class RevokeApiKeyCommand:
         """
         try:
             # Revoke the API key
-            success = self.api_key_service.revoke_api_key(api_key_id, user_id)
+            success = self.api_key_repository.revoke_api_key(api_key_id, user_id)
 
             if not success:
                 raise Exception("API key not found or not owned by user")
 
             # Get the updated API key for event publishing
-            revoked_api_key = self.api_key_service.get_api_key_by_id(api_key_id)
+            revoked_api_key = self.api_key_repository.get_api_key_by_id(api_key_id)
             if not revoked_api_key:
                 raise Exception("Failed to retrieve revoked API key")
 

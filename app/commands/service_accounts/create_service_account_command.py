@@ -6,7 +6,7 @@ from app.schemas.service_account import (
     ServiceAccountCreateRequest,
     ServiceAccountOnboard,
 )
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_created_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
@@ -22,7 +22,7 @@ class CreateServiceAccountCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.user_service = UserService(db)
+        self.user_repository = UserRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )
@@ -43,7 +43,7 @@ class CreateServiceAccountCommand:
         """
         try:
             # Check if email already exists
-            existing_user = self.user_service.get_user_by_email(
+            existing_user = self.user_repository.get_user_by_email(
                 service_account_data.email
             )
             if existing_user:
@@ -66,7 +66,7 @@ class CreateServiceAccountCommand:
             )
 
             # Create the service account
-            user = self.user_service.onboard_service_account(service_account_onboard)
+            user = self.user_repository.onboard_service_account(service_account_onboard)
 
             if not user:
                 raise Exception("Failed to create service account")

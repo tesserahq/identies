@@ -12,8 +12,8 @@ from app.schemas.api_key import (
 )
 from app.db import get_db
 from sqlalchemy.orm import Session
-from app.services.user_service import UserService
-from app.services.api_key_service import ApiKeyService
+from app.repositories.user_repository import UserRepository
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.routers.utils.dependencies import get_current_user
 from app.auth.rbac import build_rbac_dependencies
@@ -46,8 +46,8 @@ async def get_user_by_id(
 
     Returns the user with the specified ID, or 404 if not found.
     """
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -69,8 +69,8 @@ async def get_internal_user_by_id(
 
     Returns the user with the specified ID, or 404 if not found.
     """
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -91,8 +91,8 @@ async def list_users(
 
     Returns a paginated list of all users.
     """
-    user_service = UserService(db)
-    query = user_service.get_users_query(q=q)
+    user_repository = UserRepository(db)
+    query = user_repository.get_users_query(q=q)
     return paginate(query)
 
 
@@ -112,15 +112,15 @@ async def list_user_api_keys(
     Returns a paginated list of API keys for the specified user.
     """
     # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(user_id)
+    api_key_repository = ApiKeyRepository(db)
+    query = api_key_repository.get_user_api_keys_query(user_id)
     return paginate(query)
 
 
@@ -142,8 +142,8 @@ async def create_user_api_key(
     Returns the new API key with the full key shown only once.
     """
     # Verify the user exists
-    user_service = UserService(db)
-    user = user_service.get_user(user_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"

@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.services.access_rule_service import AccessRuleService
+from app.repositories.access_rule_repository import AccessRuleRepository
 from app.schemas.access_rule import AccessRule, AccessRuleCreate, AccessRuleUpdate
 from app.auth.rbac import build_rbac_dependencies
 
@@ -35,8 +35,8 @@ async def get_access_rules(
 
     Returns a paginated list of access rules in the system.
     """
-    access_rule_service = AccessRuleService(db)
-    access_rules = access_rule_service.get_access_rules(skip=skip, limit=limit)
+    access_rule_repository = AccessRuleRepository(db)
+    access_rules = access_rule_repository.get_access_rules(skip=skip, limit=limit)
 
     # Convert SQLAlchemy models to Pydantic schemas
     access_rule_schemas = [AccessRule.model_validate(rule) for rule in access_rules]
@@ -55,8 +55,8 @@ async def get_access_rule(
 
     Returns the access rule with the specified ID, or 404 if not found.
     """
-    access_rule_service = AccessRuleService(db)
-    access_rule = access_rule_service.get_access_rule(access_rule_id)
+    access_rule_repository = AccessRuleRepository(db)
+    access_rule = access_rule_repository.get_access_rule(access_rule_id)
 
     if not access_rule:
         raise HTTPException(status_code=404, detail="Access rule not found")
@@ -76,10 +76,10 @@ async def create_access_rule(
     Creates a new access rule with the provided data.
     The kind and value combination must be unique.
     """
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
 
     # Check if access rule with same kind and value already exists
-    existing_rule = access_rule_service.get_access_rule_by_kind_value(
+    existing_rule = access_rule_repository.get_access_rule_by_kind_value(
         access_rule_data.kind, access_rule_data.value
     )
     if existing_rule:
@@ -89,7 +89,7 @@ async def create_access_rule(
         )
 
     try:
-        access_rule = access_rule_service.create_access_rule(access_rule_data)
+        access_rule = access_rule_repository.create_access_rule(access_rule_data)
         return access_rule
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -108,10 +108,10 @@ async def update_access_rule(
     Updates the access rule with the specified ID using the provided data.
     Only the fields provided in the request will be updated.
     """
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
 
     # Check if access rule exists
-    existing_rule = access_rule_service.get_access_rule(access_rule_id)
+    existing_rule = access_rule_repository.get_access_rule(access_rule_id)
     if not existing_rule:
         raise HTTPException(status_code=404, detail="Access rule not found")
 
@@ -129,7 +129,7 @@ async def update_access_rule(
         )
 
         # Check if another rule with the same kind/value combination exists
-        duplicate_rule = access_rule_service.get_access_rule_by_kind_value(
+        duplicate_rule = access_rule_repository.get_access_rule_by_kind_value(
             new_kind, new_value
         )
         if duplicate_rule and duplicate_rule.id != access_rule_id:
@@ -139,7 +139,7 @@ async def update_access_rule(
             )
 
     try:
-        updated_rule = access_rule_service.update_access_rule(
+        updated_rule = access_rule_repository.update_access_rule(
             access_rule_id, access_rule_data
         )
         return updated_rule
@@ -159,9 +159,9 @@ async def delete_access_rule(
     Deletes the access rule with the specified ID.
     Returns 204 No Content on successful deletion.
     """
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
 
-    success = access_rule_service.delete_access_rule(access_rule_id)
+    success = access_rule_repository.delete_access_rule(access_rule_id)
     if not success:
         raise HTTPException(status_code=404, detail="Access rule not found")
 
@@ -182,7 +182,7 @@ async def search_access_rules(
     Allows searching access rules using various filter criteria.
     All filters are optional and can be combined.
     """
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
 
     # Build filters dictionary
     filters: dict = {}
@@ -193,7 +193,7 @@ async def search_access_rules(
     if note is not None:
         filters["note"] = {"operator": "ilike", "value": f"%{note}%"}
 
-    access_rules = access_rule_service.search(filters)
+    access_rules = access_rule_repository.search(filters)
 
     # Convert SQLAlchemy models to Pydantic schemas
     access_rule_schemas = [AccessRule.model_validate(rule) for rule in access_rules]

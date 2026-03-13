@@ -7,7 +7,7 @@ from app.utils.security import generate_api_key, hash_secret, parse_api_key
 from datetime import datetime, timezone
 
 
-class ApiKeyService:
+class ApiKeyRepository:
     def __init__(self, db: Session):
         self.db = db
 

@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.schemas.api_key import ApiKeyCreate
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.api_key import ApiKey
 from app.models.user import User
 from app.events.api_key_events import build_api_key_created_event
@@ -18,7 +18,7 @@ class CreateApiKeyCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.api_key_service = ApiKeyService(db)
+        self.api_key_repository = ApiKeyRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )
@@ -42,7 +42,7 @@ class CreateApiKeyCommand:
         """
         try:
             # Create the api_key
-            api_key, full_key = self.api_key_service.create_api_key(api_key_data)
+            api_key, full_key = self.api_key_repository.create_api_key(api_key_data)
 
             self._publish_api_key_created_event(api_key, created_by)
 
