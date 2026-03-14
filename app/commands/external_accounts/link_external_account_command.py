@@ -16,7 +16,7 @@ from app.exceptions.external_account_error import (
 from app.models.external_account import ExternalAccount
 from app.models.user import User
 from app.schemas.external_account import LinkRequest
-from app.services.external_account_service import ExternalAccountService
+from app.repositories.external_account_repository import ExternalAccountRepository
 
 
 class LinkExternalAccountCommand:
@@ -30,7 +30,7 @@ class LinkExternalAccountCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.service = ExternalAccountService(db)
+        self.service = ExternalAccountRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )

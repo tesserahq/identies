@@ -12,8 +12,8 @@ from app.schemas.api_key import (
 )
 from app.db import get_db
 from sqlalchemy.orm import Session
-from app.services.user_service import UserService
-from app.services.api_key_service import ApiKeyService
+from app.repositories.user_repository import UserRepository
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.exceptions.service_account_error import ServiceAccountError
 from app.commands.users.update_user_command import UpdateUserCommand
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
@@ -92,8 +92,8 @@ async def list_me_api_keys(
 
     Returns a paginated list of API keys for the specified user.
     """
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(current_user.id)
+    api_key_repository = ApiKeyRepository(db)
+    query = api_key_repository.get_user_api_keys_query(current_user.id)
     return paginate(query)
 
 

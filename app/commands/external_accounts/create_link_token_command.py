@@ -11,7 +11,7 @@ from app.events.external_account_events import (
     build_link_token_created_event,
 )
 from app.schemas.external_account import LinkTokenCreateRequest
-from app.services.external_account_service import ExternalAccountService
+from app.repositories.external_account_repository import ExternalAccountRepository
 
 
 class CreateLinkTokenCommand:
@@ -26,7 +26,7 @@ class CreateLinkTokenCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.service = ExternalAccountService(db)
+        self.service = ExternalAccountRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )

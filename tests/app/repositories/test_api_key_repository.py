@@ -1,7 +1,7 @@
 import pytest
 from uuid import uuid4
 from datetime import datetime, timezone, timedelta
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.schemas.api_key import ApiKeyCreate
 from app.utils.security import parse_api_key, verify_api_key_secret
 
@@ -26,7 +26,7 @@ def sample_api_key_data_no_expiry():
 
 def test_create_api_key(db, setup_user, sample_api_key_data):
     """Test creating a new API key."""
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Create API key
     api_key_data = ApiKeyCreate(
@@ -34,7 +34,7 @@ def test_create_api_key(db, setup_user, sample_api_key_data):
         name=sample_api_key_data["name"],
         expires_at=sample_api_key_data["expires_at"],
     )
-    api_key, full_key = api_key_service.create_api_key(api_key_data)
+    api_key, full_key = api_key_repository.create_api_key(api_key_data)
 
     # Assertions
     assert api_key.id is not None
@@ -60,7 +60,7 @@ def test_create_api_key(db, setup_user, sample_api_key_data):
 
 def test_create_api_key_no_expiry(db, setup_user, sample_api_key_data_no_expiry):
     """Test creating an API key without expiry."""
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Create API key
     api_key_data = ApiKeyCreate(
@@ -68,7 +68,7 @@ def test_create_api_key_no_expiry(db, setup_user, sample_api_key_data_no_expiry)
         name=sample_api_key_data_no_expiry["name"],
         expires_at=sample_api_key_data_no_expiry["expires_at"],
     )
-    api_key, full_key = api_key_service.create_api_key(api_key_data)
+    api_key, full_key = api_key_repository.create_api_key(api_key_data)
 
     # Assertions
     assert api_key.id is not None
@@ -81,10 +81,10 @@ def test_create_api_key_no_expiry(db, setup_user, sample_api_key_data_no_expiry)
 def test_get_api_key_by_id(db, setup_api_key):
     """Test getting an API key by ID."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Get API key
-    retrieved_api_key = api_key_service.get_api_key_by_id(api_key.id)
+    retrieved_api_key = api_key_repository.get_api_key_by_id(api_key.id)
 
     # Assertions
     assert retrieved_api_key is not None
@@ -95,10 +95,10 @@ def test_get_api_key_by_id(db, setup_api_key):
 def test_get_api_key_by_key_id(db, setup_api_key):
     """Test getting an API key by key_id."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Get API key
-    retrieved_api_key = api_key_service.get_api_key_by_key_id(api_key.key_id)
+    retrieved_api_key = api_key_repository.get_api_key_by_key_id(api_key.key_id)
 
     # Assertions
     assert retrieved_api_key is not None
@@ -109,10 +109,10 @@ def test_get_api_key_by_key_id(db, setup_api_key):
 def test_get_user_api_keys(db, setup_user, setup_api_key):
     """Test getting all API keys for a user."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Get user API keys
-    api_keys = api_key_service.get_user_api_keys(setup_user.id)
+    api_keys = api_key_repository.get_user_api_keys(setup_user.id)
 
     # Assertions
     assert len(api_keys) >= 1
@@ -122,26 +122,26 @@ def test_get_user_api_keys(db, setup_user, setup_api_key):
 def test_revoke_api_key(db, setup_user, setup_api_key):
     """Test revoking an API key."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Revoke API key
-    success = api_key_service.revoke_api_key(api_key.id, setup_user.id)
+    success = api_key_repository.revoke_api_key(api_key.id, setup_user.id)
 
     # Assertions
     assert success is True
 
     # Verify the key is revoked
-    revoked_api_key = api_key_service.get_api_key_by_id(api_key.id)
+    revoked_api_key = api_key_repository.get_api_key_by_id(api_key.id)
     assert revoked_api_key.revoked is True
 
 
 def test_revoke_api_key_wrong_user(db, setup_another_user, setup_api_key):
     """Test revoking an API key with wrong user (should fail)."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Try to revoke API key with wrong user
-    success = api_key_service.revoke_api_key(api_key.id, setup_another_user.id)
+    success = api_key_repository.revoke_api_key(api_key.id, setup_another_user.id)
 
     # Assertions
     assert success is False
@@ -150,10 +150,10 @@ def test_revoke_api_key_wrong_user(db, setup_another_user, setup_api_key):
 def test_verify_api_key(db, setup_api_key):
     """Test verifying a valid API key."""
     api_key, full_key = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Verify API key
-    verified_api_key = api_key_service.verify_api_key(full_key)
+    verified_api_key = api_key_repository.verify_api_key(full_key)
 
     # Assertions
     assert verified_api_key is not None
@@ -163,10 +163,10 @@ def test_verify_api_key(db, setup_api_key):
 
 def test_verify_api_key_invalid_format(db):
     """Test verifying an API key with invalid format."""
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Verify invalid API key
-    verified_api_key = api_key_service.verify_api_key("invalid_key")
+    verified_api_key = api_key_repository.verify_api_key("invalid_key")
 
     # Assertions
     assert verified_api_key is None
@@ -174,10 +174,10 @@ def test_verify_api_key_invalid_format(db):
 
 def test_verify_api_key_not_found(db):
     """Test verifying a non-existent API key."""
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Verify non-existent API key
-    verified_api_key = api_key_service.verify_api_key("ak_nonexistent.secret")
+    verified_api_key = api_key_repository.verify_api_key("ak_nonexistent.secret")
 
     # Assertions
     assert verified_api_key is None
@@ -186,10 +186,10 @@ def test_verify_api_key_not_found(db):
 def test_verify_api_key_expired(db, setup_expired_api_key):
     """Test verifying an expired API key."""
     api_key, full_key = setup_expired_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Verify expired API key
-    verified_api_key = api_key_service.verify_api_key(full_key)
+    verified_api_key = api_key_repository.verify_api_key(full_key)
 
     # Assertions
     assert verified_api_key is None
@@ -198,10 +198,10 @@ def test_verify_api_key_expired(db, setup_expired_api_key):
 def test_verify_api_key_revoked(db, setup_revoked_api_key):
     """Test verifying a revoked API key."""
     api_key, full_key = setup_revoked_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Verify revoked API key
-    verified_api_key = api_key_service.verify_api_key(full_key)
+    verified_api_key = api_key_repository.verify_api_key(full_key)
 
     # Assertions
     assert verified_api_key is None
@@ -210,14 +210,14 @@ def test_verify_api_key_revoked(db, setup_revoked_api_key):
 def test_verify_api_key_wrong_secret(db, setup_api_key):
     """Test verifying an API key with wrong secret."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Create a key with wrong secret
     key_id, _ = parse_api_key("ak_test.wrong_secret")
     wrong_key = f"ak_{api_key.key_id}.wrong_secret"
 
     # Verify with wrong secret
-    verified_api_key = api_key_service.verify_api_key(wrong_key)
+    verified_api_key = api_key_repository.verify_api_key(wrong_key)
 
     # Assertions
     assert verified_api_key is None
@@ -226,26 +226,26 @@ def test_verify_api_key_wrong_secret(db, setup_api_key):
 def test_delete_api_key(db, setup_user, setup_api_key):
     """Test deleting an API key."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Delete API key
-    success = api_key_service.delete_api_key(api_key.id, setup_user.id)
+    success = api_key_repository.delete_api_key(api_key.id, setup_user.id)
 
     # Assertions
     assert success is True
 
     # Verify the key is deleted
-    deleted_api_key = api_key_service.get_api_key_by_id(api_key.id)
+    deleted_api_key = api_key_repository.get_api_key_by_id(api_key.id)
     assert deleted_api_key is None
 
 
 def test_delete_api_key_wrong_user(db, setup_another_user, setup_api_key):
     """Test deleting an API key with wrong user (should fail)."""
     api_key, _ = setup_api_key
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
 
     # Try to delete API key with wrong user
-    success = api_key_service.delete_api_key(api_key.id, setup_another_user.id)
+    success = api_key_repository.delete_api_key(api_key.id, setup_another_user.id)
 
     # Assertions
     assert success is False
@@ -253,20 +253,20 @@ def test_delete_api_key_wrong_user(db, setup_another_user, setup_api_key):
 
 def test_api_key_not_found_cases(db, setup_user):
     """Test various not found cases."""
-    api_key_service = ApiKeyService(db)
+    api_key_repository = ApiKeyRepository(db)
     non_existent_id = uuid4()
 
     # Get non-existent API key by ID
-    assert api_key_service.get_api_key_by_id(non_existent_id) is None
+    assert api_key_repository.get_api_key_by_id(non_existent_id) is None
 
     # Get by non-existent key_id
-    assert api_key_service.get_api_key_by_key_id("nonexistent") is None
+    assert api_key_repository.get_api_key_by_key_id("nonexistent") is None
 
     # Revoke non-existent API key
-    assert api_key_service.revoke_api_key(non_existent_id, setup_user.id) is False
+    assert api_key_repository.revoke_api_key(non_existent_id, setup_user.id) is False
 
     # Delete non-existent API key
-    assert api_key_service.delete_api_key(non_existent_id, setup_user.id) is False
+    assert api_key_repository.delete_api_key(non_existent_id, setup_user.id) is False
 
 
 def test_api_key_model_methods(

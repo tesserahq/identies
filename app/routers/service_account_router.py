@@ -28,8 +28,8 @@ from app.schemas.api_key import (
     ApiKeyCreateResponse,
     ApiKeyResponse,
 )
-from app.services.user_service import UserService
-from app.services.api_key_service import ApiKeyService
+from app.repositories.user_repository import UserRepository
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.user import User
 from app.auth.rbac import build_rbac_dependencies
 
@@ -79,8 +79,8 @@ async def list_service_accounts(
 
     Returns a paginated list of service accounts (users with service_account=True).
     """
-    user_service = UserService(db)
-    query = user_service.get_service_accounts_query()
+    user_repository = UserRepository(db)
+    query = user_repository.get_service_accounts_query()
     return paginate(query)
 
 
@@ -100,8 +100,8 @@ async def get_service_account(
 
     Returns the service account details, or 404 if not found or not a service account.
     """
-    user_service = UserService(db)
-    user = user_service.get_user(service_account_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(service_account_id)
 
     if not user:
         raise HTTPException(
@@ -191,8 +191,8 @@ async def list_service_account_api_keys(
     Returns a paginated list of API keys for the specified service account.
     """
     # Verify the service account exists
-    user_service = UserService(db)
-    user = user_service.get_user(service_account_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(service_account_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
@@ -204,8 +204,8 @@ async def list_service_account_api_keys(
             detail="User is not a service account",
         )
 
-    api_key_service = ApiKeyService(db)
-    query = api_key_service.get_user_api_keys_query(service_account_id)
+    api_key_repository = ApiKeyRepository(db)
+    query = api_key_repository.get_user_api_keys_query(service_account_id)
     return paginate(query)
 
 
@@ -227,8 +227,8 @@ async def create_service_account_api_key(
     Returns the new API key with the full key shown only once.
     """
     # Verify the service account exists
-    user_service = UserService(db)
-    user = user_service.get_user(service_account_id)
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(service_account_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"

@@ -7,9 +7,9 @@ from app.models.api_key import ApiKey
 from app.models.application import Application
 from app.models.user import User as UserModel
 from app.schemas.user import User
-from app.services.api_key_service import ApiKeyService
-from app.services.application_service import ApplicationService
-from app.services.user_service import UserService
+from app.repositories.api_key_repository import ApiKeyRepository
+from app.repositories.application_repository import ApplicationRepository
+from app.repositories.user_repository import UserRepository
 from fastapi import Request
 from fastapi import status
 
@@ -41,7 +41,7 @@ def get_api_key_by_id(
     Raises:
         HTTPException: If the API key is not found
     """
-    api_key = ApiKeyService(db).get_api_key_by_id(key_id)
+    api_key = ApiKeyRepository(db).get_api_key_by_id(key_id)
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key
@@ -63,7 +63,7 @@ def get_application_by_id(
     Raises:
         HTTPException: If the application is not found.
     """
-    application = ApplicationService(db).get_application(application_id)
+    application = ApplicationRepository(db).get_application(application_id)
     if application is None:
         raise HTTPException(status_code=404, detail="Application not found")
     return application
@@ -85,7 +85,7 @@ def get_user_by_id(
     Raises:
         HTTPException: If the user is not found.
     """
-    user = UserService(db).get_user(user_id)
+    user = UserRepository(db).get_user(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user

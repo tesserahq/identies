@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.schemas.service_account import ServiceAccountUpdateRequest
 from app.schemas.user import UserUpdate
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_updated_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
@@ -19,7 +19,7 @@ class UpdateServiceAccountCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.user_service = UserService(db)
+        self.user_service = UserRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )

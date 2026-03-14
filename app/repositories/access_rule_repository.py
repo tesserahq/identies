@@ -7,7 +7,7 @@ from app.utils.db.filtering import apply_filters
 from app.constants.access_rule_types import AccessRuleTypes
 
 
-class AccessRuleService:
+class AccessRuleRepository:
     def __init__(self, db: Session):
         self.db = db
 

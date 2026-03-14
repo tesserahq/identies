@@ -3,7 +3,7 @@ from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.schemas.user import UserUpdate
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.user_events import build_user_updated_event
 from tessera_sdk.events.nats_router import NatsEventPublisher
@@ -18,7 +18,7 @@ class UpdateUserCommand:
         self, db: Session, nats_publisher: Optional[NatsEventPublisher] = None
     ):
         self.db = db
-        self.user_service = UserService(db)
+        self.user_service = UserRepository(db)
         self.nats_publisher = (
             nats_publisher if nats_publisher is not None else NatsEventPublisher()
         )
