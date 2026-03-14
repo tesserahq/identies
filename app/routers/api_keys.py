@@ -19,7 +19,7 @@ from app.schemas.api_key import (
     ApiKeyUpdateRequest,
 )
 from app.schemas.user import UserResponse
-from app.services.api_key_service import ApiKeyService
+from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.user import User
 from app.models.api_key import ApiKey
 from app.auth.rbac import build_rbac_dependencies
@@ -70,7 +70,7 @@ async def list_user_api_keys(
 
     Returns a paginated list of API keys for the specified user.
     """
-    api_key_service = ApiKeyService(db)
+    api_key_service = ApiKeyRepository(db)
     query = api_key_service.get_user_api_keys_query(user.id)
     return paginate(query)
 
@@ -207,7 +207,7 @@ async def introspect_api_key(
         return ApiKeyIntrospectResponse(active=False)
 
     # Verify the API key
-    api_key_service = ApiKeyService(db)
+    api_key_service = ApiKeyRepository(db)
     verified_api_key = api_key_service.verify_api_key(api_key)
 
     if not verified_api_key:

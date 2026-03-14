@@ -30,7 +30,7 @@ from app.schemas.external_account import (
     LinkTokenCreateRequest,
     LinkTokenResponse,
 )
-from app.services.external_account_service import ExternalAccountService
+from app.repositories.external_account_repository import ExternalAccountRepository
 from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/external-accounts", tags=["External Accounts"])
@@ -110,7 +110,7 @@ async def check_external_account(
     Check if an external account (platform + external_id) is linked to a user.
     Returns linked status, user, and external_account when found.
     """
-    service = ExternalAccountService(db)
+    service = ExternalAccountRepository(db)
     account = service.get_external_account_by_platform_and_external_id(
         body.platform, body.external_id
     )
@@ -140,7 +140,7 @@ async def list_external_accounts(
     """
     List external accounts for the current user (paginated).
     """
-    service = ExternalAccountService(db)
+    service = ExternalAccountRepository(db)
     user_id = cast(UUID, current_user.id)
     query = service.get_external_accounts_query(user_id, platform=platform)
     return paginate(query)
@@ -164,7 +164,7 @@ async def list_user_external_accounts(
     """
     List external accounts for a specific user (paginated).
     """
-    service = ExternalAccountService(db)
+    service = ExternalAccountRepository(db)
     user_id = cast(UUID, user.id)
     query = service.get_external_accounts_query(user_id, platform=platform)
     return paginate(query)

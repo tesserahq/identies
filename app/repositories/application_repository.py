@@ -1,4 +1,4 @@
-"""Service for Application CRUD operations."""
+"""Repository for Application CRUD operations."""
 
 from typing import List, Optional
 from uuid import UUID
@@ -10,8 +10,8 @@ from app.schemas.application import ApplicationCreate, ApplicationUpdate
 from app.utils.db.filtering import apply_filters
 
 
-class ApplicationService:
-    """Service for application CRUD and search."""
+class ApplicationRepository:
+    """Repository for application CRUD and search."""
 
     def __init__(self, db: Session):
         self.db = db

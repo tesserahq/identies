@@ -13,7 +13,7 @@ class TokenExchangeResult:
     scope: str
 
 
-class TokenExchangeService:
+class TokenExchangeRepository:
     def __init__(self, settings: Settings):
         self.settings = settings
 

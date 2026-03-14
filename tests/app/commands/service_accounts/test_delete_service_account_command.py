@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.commands.service_accounts.delete_service_account_command import (
     DeleteServiceAccountCommand,
 )
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 
 
 def test_delete_service_account_success(db: Session, setup_service_account):
@@ -18,8 +18,8 @@ def test_delete_service_account_success(db: Session, setup_service_account):
     assert success is True
 
     # Verify the account was deleted
-    user_service = UserService(db)
-    deleted_account = user_service.get_user(account_id)
+    user_repository = UserRepository(db)
+    deleted_account = user_repository.get_user(account_id)
     assert deleted_account is None
 
 

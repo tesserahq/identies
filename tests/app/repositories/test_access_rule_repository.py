@@ -3,7 +3,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 from app.models.access_rule import AccessRule
 from app.schemas.access_rule import AccessRuleCreate, AccessRuleUpdate
-from app.services.access_rule_service import AccessRuleService
+from app.repositories.access_rule_repository import AccessRuleRepository
 from app.constants.access_rule_types import AccessRuleTypes
 
 
@@ -29,7 +29,7 @@ def test_create_access_rule(db: Session, sample_access_rule_data):
     """Test creating a new access rule."""
     # Create access rule
     access_rule_create = AccessRuleCreate(**sample_access_rule_data)
-    access_rule = AccessRuleService(db).create_access_rule(access_rule_create)
+    access_rule = AccessRuleRepository(db).create_access_rule(access_rule_create)
 
     # Assertions
     assert access_rule.id is not None
@@ -43,7 +43,9 @@ def test_create_access_rule(db: Session, sample_access_rule_data):
 def test_get_access_rule(db: Session, sample_access_rule):
     """Test getting an access rule by ID."""
     # Get access rule
-    retrieved_access_rule = AccessRuleService(db).get_access_rule(sample_access_rule.id)
+    retrieved_access_rule = AccessRuleRepository(db).get_access_rule(
+        sample_access_rule.id
+    )
 
     # Assertions
     assert retrieved_access_rule is not None
@@ -55,7 +57,7 @@ def test_get_access_rule(db: Session, sample_access_rule):
 def test_get_access_rule_by_kind_value(db: Session, sample_access_rule):
     """Test getting an access rule by kind and value combination."""
     # Get access rule by kind and value
-    retrieved_access_rule = AccessRuleService(db).get_access_rule_by_kind_value(
+    retrieved_access_rule = AccessRuleRepository(db).get_access_rule_by_kind_value(
         sample_access_rule.kind, sample_access_rule.value
     )
 
@@ -69,7 +71,7 @@ def test_get_access_rule_by_kind_value(db: Session, sample_access_rule):
 def test_get_access_rules(db: Session, sample_access_rule):
     """Test getting all access rules with pagination."""
     # Get all access rules
-    access_rules = AccessRuleService(db).get_access_rules()
+    access_rules = AccessRuleRepository(db).get_access_rules()
 
     # Assertions
     assert len(access_rules) >= 1
@@ -87,13 +89,13 @@ def test_get_access_rules_with_pagination(db: Session, sample_access_rule):
     db.refresh(another_rule)
 
     # Get first page with limit 1
-    access_rules = AccessRuleService(db).get_access_rules(skip=0, limit=1)
+    access_rules = AccessRuleRepository(db).get_access_rules(skip=0, limit=1)
 
     # Assertions
     assert len(access_rules) == 1
 
     # Get second page
-    access_rules = AccessRuleService(db).get_access_rules(skip=1, limit=1)
+    access_rules = AccessRuleRepository(db).get_access_rules(skip=1, limit=1)
 
     # Assertions
     assert len(access_rules) == 1
@@ -110,7 +112,7 @@ def test_update_access_rule(db: Session, sample_access_rule):
     access_rule_update = AccessRuleUpdate(**update_data)
 
     # Update access rule
-    updated_access_rule = AccessRuleService(db).update_access_rule(
+    updated_access_rule = AccessRuleRepository(db).update_access_rule(
         sample_access_rule.id, access_rule_update
     )
 
@@ -129,7 +131,7 @@ def test_update_access_rule_partial(db: Session, sample_access_rule):
     access_rule_update = AccessRuleUpdate(**update_data)
 
     # Update access rule
-    updated_access_rule = AccessRuleService(db).update_access_rule(
+    updated_access_rule = AccessRuleRepository(db).update_access_rule(
         sample_access_rule.id, access_rule_update
     )
 
@@ -143,28 +145,28 @@ def test_update_access_rule_partial(db: Session, sample_access_rule):
 
 def test_delete_access_rule(db: Session, sample_access_rule):
     """Test deleting an access rule."""
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
 
     # Delete access rule
-    success = access_rule_service.delete_access_rule(sample_access_rule.id)
+    success = access_rule_repository.delete_access_rule(sample_access_rule.id)
 
     # Assertions
     assert success is True
-    deleted_access_rule = access_rule_service.get_access_rule(sample_access_rule.id)
+    deleted_access_rule = access_rule_repository.get_access_rule(sample_access_rule.id)
     assert deleted_access_rule is None
 
 
 def test_access_rule_not_found_cases(db: Session):
     """Test various not found cases."""
-    access_rule_service = AccessRuleService(db)
+    access_rule_repository = AccessRuleRepository(db)
     non_existent_id = uuid4()
 
     # Get non-existent access rule
-    assert access_rule_service.get_access_rule(non_existent_id) is None
+    assert access_rule_repository.get_access_rule(non_existent_id) is None
 
     # Get by non-existent kind/value combination
     assert (
-        access_rule_service.get_access_rule_by_kind_value("nonexistent", "value")
+        access_rule_repository.get_access_rule_by_kind_value("nonexistent", "value")
         is None
     )
 
@@ -172,33 +174,33 @@ def test_access_rule_not_found_cases(db: Session):
     update_data = {"note": "Updated note"}
     access_rule_update = AccessRuleUpdate(**update_data)
     assert (
-        access_rule_service.update_access_rule(non_existent_id, access_rule_update)
+        access_rule_repository.update_access_rule(non_existent_id, access_rule_update)
         is None
     )
 
     # Delete non-existent access rule
-    assert access_rule_service.delete_access_rule(non_existent_id) is False
+    assert access_rule_repository.delete_access_rule(non_existent_id) is False
 
 
 def test_search_access_rules_with_filters(db: Session, sample_access_rule):
     """Test search method with dynamic filters."""
     # Search using ilike filter on kind
     filters = {"kind": {"operator": "ilike", "value": "%whitelist%"}}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert isinstance(results, list)
     assert any(ar.id == sample_access_rule.id for ar in results)
 
     # Search using exact match
     filters = {"kind": sample_access_rule.kind}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert len(results) >= 1
     assert any(ar.id == sample_access_rule.id for ar in results)
 
     # Search with no match
     filters = {"kind": {"operator": "==", "value": "nonexistent"}}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert len(results) == 0
 
@@ -207,7 +209,7 @@ def test_search_access_rules_by_value(db: Session, sample_access_rule):
     """Test searching access rules by value."""
     # Search by exact value
     filters = {"value": sample_access_rule.value}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert len(results) >= 1
     assert any(ar.id == sample_access_rule.id for ar in results)
@@ -215,7 +217,7 @@ def test_search_access_rules_by_value(db: Session, sample_access_rule):
     # Search by partial value using ilike
     partial_value = sample_access_rule.value.split(".")[0]  # Get first part of IP
     filters = {"value": {"operator": "ilike", "value": f"{partial_value}%"}}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert len(results) >= 1
     assert any(ar.id == sample_access_rule.id for ar in results)
@@ -225,7 +227,7 @@ def test_search_access_rules_by_note(db: Session, sample_access_rule):
     """Test searching access rules by note."""
     # Search by note content
     filters = {"note": {"operator": "ilike", "value": "%test%"}}
-    results = AccessRuleService(db).search(filters)
+    results = AccessRuleRepository(db).search(filters)
 
     assert len(results) >= 1
     assert any(ar.id == sample_access_rule.id for ar in results)
@@ -239,7 +241,7 @@ def test_create_access_rule_without_note(db: Session):
     }
 
     access_rule_create = AccessRuleCreate(**access_rule_data)
-    access_rule = AccessRuleService(db).create_access_rule(access_rule_create)
+    access_rule = AccessRuleRepository(db).create_access_rule(access_rule_create)
 
     # Assertions
     assert access_rule.id is not None
@@ -261,7 +263,7 @@ def test_unique_constraint_kind_value(db: Session, sample_access_rule):
 
     # This should raise an IntegrityError due to unique constraint
     with pytest.raises(Exception):  # SQLAlchemy IntegrityError
-        AccessRuleService(db).create_access_rule(access_rule_create)
+        AccessRuleRepository(db).create_access_rule(access_rule_create)
 
 
 # Email evaluation tests
@@ -274,14 +276,14 @@ def test_evaluate_email_access_exact_match(db: Session):
     db.add(email_rule)
     db.commit()
 
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test exact match
-    assert service.evaluate_email_access("test@example.com") is True
+    assert repository.evaluate_email_access("test@example.com") is True
     # Test case insensitive match
-    assert service.evaluate_email_access("TEST@EXAMPLE.COM") is True
+    assert repository.evaluate_email_access("TEST@EXAMPLE.COM") is True
     # Test different email
-    assert service.evaluate_email_access("other@example.com") is False
+    assert repository.evaluate_email_access("other@example.com") is False
 
 
 def test_evaluate_email_access_domain_match(db: Session):
@@ -293,16 +295,16 @@ def test_evaluate_email_access_domain_match(db: Session):
     db.add(domain_rule)
     db.commit()
 
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test domain match
-    assert service.evaluate_email_access("emi@datum.net") is True
-    assert service.evaluate_email_access("user@datum.net") is True
-    assert service.evaluate_email_access("admin@datum.net") is True
+    assert repository.evaluate_email_access("emi@datum.net") is True
+    assert repository.evaluate_email_access("user@datum.net") is True
+    assert repository.evaluate_email_access("admin@datum.net") is True
     # Test case insensitive match
-    assert service.evaluate_email_access("EMI@DATUM.NET") is True
+    assert repository.evaluate_email_access("EMI@DATUM.NET") is True
     # Test different domain
-    assert service.evaluate_email_access("emi@example.com") is False
+    assert repository.evaluate_email_access("emi@example.com") is False
 
 
 def test_evaluate_email_access_multiple_rules(db: Session):
@@ -319,34 +321,34 @@ def test_evaluate_email_access_multiple_rules(db: Session):
     db.add_all([email_rule, domain_rule])
     db.commit()
 
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test specific email match
-    assert service.evaluate_email_access("specific@example.com") is True
+    assert repository.evaluate_email_access("specific@example.com") is True
     # Test domain match
-    assert service.evaluate_email_access("any@allowed.com") is True
+    assert repository.evaluate_email_access("any@allowed.com") is True
     # Test no match
-    assert service.evaluate_email_access("other@example.com") is False
-    assert service.evaluate_email_access("any@blocked.com") is False
+    assert repository.evaluate_email_access("other@example.com") is False
+    assert repository.evaluate_email_access("any@blocked.com") is False
 
 
 def test_evaluate_email_access_invalid_emails(db: Session):
     """Test email evaluation with invalid email formats."""
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test invalid emails
-    assert service.evaluate_email_access("") is False
-    assert service.evaluate_email_access("invalid-email") is False
-    assert service.evaluate_email_access("@example.com") is False
-    assert service.evaluate_email_access("user@") is False
+    assert repository.evaluate_email_access("") is False
+    assert repository.evaluate_email_access("invalid-email") is False
+    assert repository.evaluate_email_access("@example.com") is False
+    assert repository.evaluate_email_access("user@") is False
 
 
 def test_evaluate_email_access_no_rules(db: Session):
     """Test email evaluation when no access rules exist."""
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Should return False when no rules exist
-    assert service.evaluate_email_access("test@example.com") is False
+    assert repository.evaluate_email_access("test@example.com") is False
 
 
 def test_evaluate_email_access_case_insensitive(db: Session):
@@ -363,16 +365,16 @@ def test_evaluate_email_access_case_insensitive(db: Session):
     db.add_all([email_rule, domain_rule])
     db.commit()
 
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test case insensitive matching
-    assert service.evaluate_email_access("test@example.com") is True
-    assert service.evaluate_email_access("TEST@EXAMPLE.COM") is True
-    assert service.evaluate_email_access("Test@Example.COM") is True
+    assert repository.evaluate_email_access("test@example.com") is True
+    assert repository.evaluate_email_access("TEST@EXAMPLE.COM") is True
+    assert repository.evaluate_email_access("Test@Example.COM") is True
 
-    assert service.evaluate_email_access("user@datum.net") is True
-    assert service.evaluate_email_access("USER@DATUM.NET") is True
-    assert service.evaluate_email_access("user@DATUM.net") is True
+    assert repository.evaluate_email_access("user@datum.net") is True
+    assert repository.evaluate_email_access("USER@DATUM.NET") is True
+    assert repository.evaluate_email_access("user@DATUM.net") is True
 
 
 def test_evaluate_email_access_mixed_rule_types(db: Session):
@@ -391,11 +393,11 @@ def test_evaluate_email_access_mixed_rule_types(db: Session):
     db.add_all([email_rule, domain_rule, ip_rule])
     db.commit()
 
-    service = AccessRuleService(db)
+    repository = AccessRuleRepository(db)
 
     # Test email and domain rules work
-    assert service.evaluate_email_access("allowed@example.com") is True
-    assert service.evaluate_email_access("any@trusted.org") is True
+    assert repository.evaluate_email_access("allowed@example.com") is True
+    assert repository.evaluate_email_access("any@trusted.org") is True
     # Test that non-email rules are ignored
-    assert service.evaluate_email_access("test@example.com") is False
-    assert service.evaluate_email_access("any@other.org") is False
+    assert repository.evaluate_email_access("test@example.com") is False
+    assert repository.evaluate_email_access("any@other.org") is False

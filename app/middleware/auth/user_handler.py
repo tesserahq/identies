@@ -3,8 +3,8 @@ from app.middleware.auth.exceptions import (
     UnauthorizedException,
     InviteOnlyAccessException,
 )
-from app.services.user_service import UserService
-from app.services.access_rule_service import AccessRuleService
+from app.repositories.user_repository import UserRepository
+from app.repositories.access_rule_repository import AccessRuleRepository
 from app.commands.users.onboard_user_command import OnboardUserCommand
 from app.schemas.user import User, UserOnboard
 import requests
@@ -32,7 +32,7 @@ class UserHandler:
 
         user = None
         with db_session() as db:
-            user_service = UserService(db)
+            user_service = UserRepository(db)
             user = user_service.get_user_by_id_or_external_id(user_id)
             if user:
                 return User.model_validate(user)
@@ -68,10 +68,10 @@ class UserHandler:
         """Onboard the user locally using the userinfo data."""
         if self.config.invite_only_access:
             with db_session() as db:
-                access_rule_service = AccessRuleService(db)
+                access_rule_repository = AccessRuleRepository(db)
                 email = userinfo.get("email")
                 if email and isinstance(email, str):
-                    access_rule = access_rule_service.evaluate_email_access(email)
+                    access_rule = access_rule_repository.evaluate_email_access(email)
                     if not access_rule:
                         raise InviteOnlyAccessException(email=email)
                 else:

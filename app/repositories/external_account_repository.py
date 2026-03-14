@@ -1,4 +1,4 @@
-"""Service for external accounts and link tokens."""
+"""Repository for external accounts and link tokens."""
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -11,8 +11,8 @@ from app.models.link_token import LinkToken
 from app.utils.security import generate_link_token
 
 
-class ExternalAccountService:
-    """Service for external account CRUD and link token create/consume."""
+class ExternalAccountRepository:
+    """Repository for external account CRUD and link token create/consume."""
 
     def __init__(self, db: Session):
         self.db = db

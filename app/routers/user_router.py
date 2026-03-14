@@ -8,7 +8,7 @@ from app.db import get_db
 from app.models.user import User as UserModel
 from app.routers.utils.dependencies import get_user_by_id
 from app.schemas.user import UserResponse
-from app.services.user_service import UserService
+from app.repositories.user_repository import UserRepository
 from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["User"])
@@ -69,6 +69,6 @@ async def list_users(
 
     Returns a paginated list of all users.
     """
-    user_service = UserService(db)
+    user_service = UserRepository(db)
     query = user_service.get_users_query(q=q)
     return paginate(query)

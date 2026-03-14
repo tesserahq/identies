@@ -19,7 +19,7 @@ from app.schemas.application import (
     ApplicationCreate,
     ApplicationUpdate,
 )
-from app.services.application_service import ApplicationService
+from app.repositories.application_repository import ApplicationRepository
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
@@ -45,7 +45,7 @@ async def list_applications(
 
     Returns a paginated list of applications. Optionally filter by search query.
     """
-    service = ApplicationService(db)
+    service = ApplicationRepository(db)
     query = service.get_applications_query(q=q)
     return paginate(query)
 
@@ -70,7 +70,7 @@ async def create_applications_batch(
     db: Session = Depends(get_db),
 ):
     """Create multiple applications in one request."""
-    service = ApplicationService(db)
+    service = ApplicationRepository(db)
     applications = service.create_applications_batch(body.applications)
     return ApplicationBatchCreateResponse(items=applications)
 
@@ -82,7 +82,7 @@ async def create_application(
     db: Session = Depends(get_db),
 ):
     """Create a new application."""
-    service = ApplicationService(db)
+    service = ApplicationRepository(db)
     application = service.create_application(application_data)
     return application
 
@@ -95,7 +95,7 @@ async def update_application(
     db: Session = Depends(get_db),
 ):
     """Update an existing application."""
-    service = ApplicationService(db)
+    service = ApplicationRepository(db)
     updated = service.update_application(application.id, application_data)
     if updated is None:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -109,7 +109,7 @@ async def delete_application(
     db: Session = Depends(get_db),
 ):
     """Delete an application."""
-    service = ApplicationService(db)
+    service = ApplicationRepository(db)
     success = service.delete_application(application.id)
     if not success:
         raise HTTPException(status_code=404, detail="Application not found")

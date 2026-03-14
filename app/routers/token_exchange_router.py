@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.schemas.token_exchange import TokenExchangeRequest, TokenExchangeResponse
-from app.services.token_exchange_service import TokenExchangeService
-from app.services.user_service import UserService
+from app.repositories.token_exchange_repository import TokenExchangeRepository
+from app.repositories.user_repository import UserRepository
 from app.core.logging_config import get_logger
 
 logger = get_logger()
@@ -80,13 +80,13 @@ async def token_exchange(
             detail="Invalid audience",
         )
 
-    user = UserService(db).get_user(body.user_id)
+    user = UserRepository(db).get_user(body.user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     scope = _normalize_scope(body.requested_scope)
-    service = TokenExchangeService(settings)
-    result = service.mint_delegated_token(
+    repository = TokenExchangeRepository(settings)
+    result = repository.mint_delegated_token(
         user_id=user.id,
         actor=actor,
         audience=body.requested_audience,

@@ -4,7 +4,7 @@ This document provides an overview of Identies' system design, core data models,
 
 ## System Overview
 
-Identies is built as a FastAPI-based microservice that provides identity and user management capabilities. It follows a service-oriented architecture with clear separation of concerns between models, services, routers, and commands.
+Identies is built as a FastAPI-based microservice that provides identity and user management capabilities. It follows a repository-oriented architecture with clear separation of concerns between models, repositories, routers, and commands.
 
 ## Technology Stack
 
@@ -336,7 +336,7 @@ The system is designed to support multi-tenant scenarios:
 app/
 ├── models/          # SQLAlchemy models
 ├── schemas/         # Pydantic schemas
-├── services/        # Business logic
+├── repositories/    # Data access layer
 ├── routers/         # API endpoints
 ├── commands/        # Complex operations
 ├── events/          # Event definitions
