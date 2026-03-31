@@ -9,7 +9,7 @@ from app.models.api_key import ApiKey as ApiKeyModel
 from app.models.user import User as UserModel
 from app.schemas.api_key import ApiKeyBase as ApiKeySchema
 from app.schemas.user import UserResponse as UserSchema
-from tessera_sdk.events.event import Event, event_type, event_source
+from tessera_sdk.infra.events.event import Event, event_type, event_source
 
 # ApiKey events
 API_KEY_CREATED = "api_key.created"

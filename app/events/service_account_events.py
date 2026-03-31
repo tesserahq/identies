@@ -8,7 +8,7 @@ from uuid import UUID
 
 from app.models.user import User as UserModel
 from app.schemas.user import UserBase as UserSchema
-from tessera_sdk.events.event import Event, event_type, event_source
+from tessera_sdk.infra.events.event import Event, event_type, event_source
 
 # Service account events
 SERVICE_ACCOUNT_CREATED = "service_account.created"

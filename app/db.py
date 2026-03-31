@@ -8,7 +8,7 @@ To move to a common package, use DatabaseManager directly.
 """
 
 from app.config import get_settings
-from tessera_sdk.core.database_manager import DatabaseManager
+from tessera_sdk.infra.database import DatabaseManager
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()

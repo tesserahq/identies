@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from tessera_sdk.events.nats_router import NatsEventPublisher
+from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
 from app.events.external_account_events import (
     build_external_account_linked_event,

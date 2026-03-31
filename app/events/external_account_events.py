@@ -11,7 +11,7 @@ from app.models.external_account import ExternalAccount as ExternalAccountModel
 from app.models.user import User as UserModel
 from app.schemas.external_account import ExternalAccountResponse
 from app.schemas.user import UserResponse as UserSchema
-from tessera_sdk.events.event import Event, event_source, event_type
+from tessera_sdk.infra.events.event import Event, event_source, event_type
 
 # External account and link token events
 LINK_TOKEN_CREATED = "link_token.created"

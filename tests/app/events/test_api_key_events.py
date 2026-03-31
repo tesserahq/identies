@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from tessera_sdk.events.event import event_type, event_source
+from tessera_sdk.infra.events.event import event_type, event_source
 from app.events.api_key_events import (
     build_api_key_created_event,
     build_api_key_updated_event,

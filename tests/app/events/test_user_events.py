@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from tessera_sdk.events.event import event_type, event_source
+from tessera_sdk.infra.events.event import event_type, event_source
 from app.events.user_events import (
     build_user_created_event,
     build_user_updated_event,
