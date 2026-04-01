@@ -15,8 +15,16 @@ from app.commands.service_accounts.delete_service_account_command import (
     DeleteServiceAccountCommand,
 )
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
+from app.commands.clients.create_client_command import CreateClientCommand
 from app.db import get_db
+from app.repositories.client_repository import ClientRepository
 from app.routers.utils.dependencies import get_current_user
+from app.schemas.client import (
+    ClientCreate,
+    ClientCreateRequest,
+    ClientCreateResponse,
+    ClientResponse,
+)
 from app.schemas.service_account import (
     ServiceAccountCreateRequest,
     ServiceAccountUpdateRequest,
@@ -258,3 +266,54 @@ async def create_service_account_api_key(
         **response_data.model_dump(),
         full_key=full_key,
     )
+
+
+@router.get(
+    "/{service_account_id}/clients",
+    response_model=list[ClientResponse],
+    operation_id="list_service_account_clients",
+)
+async def list_service_account_clients(
+    service_account_id: UUID,
+    _authorized: bool = Depends(rbac["read"]),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(service_account_id)
+    if not user or not user.service_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
+        )
+
+    return ClientRepository(db).list_by_owner(service_account_id)
+
+
+@router.post(
+    "/{service_account_id}/clients",
+    response_model=ClientCreateResponse,
+    operation_id="create_service_account_client",
+    status_code=201,
+)
+async def create_service_account_client(
+    service_account_id: UUID,
+    body: ClientCreateRequest,
+    _authorized: bool = Depends(rbac["create"]),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_repository = UserRepository(db)
+    user = user_repository.get_user(service_account_id)
+    if not user or not user.service_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
+        )
+
+    client, client_secret = CreateClientCommand(db).execute(
+        ClientCreate(
+            name=body.name, owner_id=service_account_id, created_by_id=current_user.id
+        ),
+        current_user,
+    )
+    response = ClientResponse.model_validate(client)
+    return ClientCreateResponse(**response.model_dump(), client_secret=client_secret)

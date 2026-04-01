@@ -41,6 +41,7 @@ def _key_id() -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
 
 
+@lru_cache
 def build_jwks() -> dict[str, list[dict[str, Any]]]:
     public_key = _public_key()
     jwk = json.loads(RSAAlgorithm.to_jwk(public_key))

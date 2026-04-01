@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.api_key import ApiKey
 from app.models.application import Application
+from app.models.client import Client
 from app.models.user import User as UserModel
 from app.schemas.user import User
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.repositories.application_repository import ApplicationRepository
+from app.repositories.client_repository import ClientRepository
 from app.repositories.user_repository import UserRepository
 from fastapi import Request
 from fastapi import status
@@ -89,3 +91,14 @@ def get_user_by_id(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+def get_client_by_id(
+    client_id: UUID,
+    db: Session = Depends(get_db),
+) -> Client:
+    """FastAPI dependency to get a client by ID."""
+    client = ClientRepository(db).get_client_by_id(client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return client

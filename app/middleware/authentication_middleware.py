@@ -21,6 +21,7 @@ SKIP_AUTH_PATHS = [
     "/api-keys/introspect",
     "/metrics",
     "/.well-known/jwks.json",
+    "/oauth/token",
 ]
 
 M2M_AUTH_PATHS = [
