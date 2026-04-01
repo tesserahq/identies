@@ -4,9 +4,17 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 
 from app.auth.rbac import build_rbac_dependencies
+from app.commands.clients.create_client_command import CreateClientCommand
 from app.db import get_db
 from app.models.user import User as UserModel
-from app.routers.utils.dependencies import get_user_by_id
+from app.repositories.client_repository import ClientRepository
+from app.routers.utils.dependencies import get_current_user, get_user_by_id
+from app.schemas.client import (
+    ClientCreate,
+    ClientCreateRequest,
+    ClientCreateResponse,
+    ClientResponse,
+)
 from app.schemas.user import UserResponse
 from app.repositories.user_repository import UserRepository
 from sqlalchemy.orm import Session
@@ -54,6 +62,40 @@ async def read_internal_user(
     Returns the user with the specified ID, or 404 if not found.
     """
     return user
+
+
+@router.get(
+    "/users/{user_id}/clients",
+    response_model=list[ClientResponse],
+    operation_id="list_user_clients",
+)
+async def list_user_clients(
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["read"]),
+    db: Session = Depends(get_db),
+):
+    return ClientRepository(db).list_by_owner(user.id)
+
+
+@router.post(
+    "/users/{user_id}/clients",
+    response_model=ClientCreateResponse,
+    operation_id="create_user_client",
+    status_code=201,
+)
+async def create_user_client(
+    body: ClientCreateRequest,
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["create"]),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    client, client_secret = CreateClientCommand(db).execute(
+        ClientCreate(name=body.name, owner_id=user.id, created_by_id=current_user.id),
+        current_user,
+    )
+    response = ClientResponse.model_validate(client)
+    return ClientCreateResponse(**response.model_dump(), client_secret=client_secret)
 
 
 @router.get("/users", response_model=Page[UserResponse], operation_id="list_users")

@@ -83,6 +83,18 @@ def parse_api_key(full_key: str) -> Tuple[str, str]:
     return key_id, secret
 
 
+def generate_client_credentials() -> Tuple[str, str]:
+    """
+    Generate new client credentials in the format 'cs_<client_id>' and a separate secret.
+
+    Returns:
+        Tuple[str, str]: A tuple containing (client_id, client_secret)
+    """
+    client_id = f"cs_{secrets.token_urlsafe(8)}"
+    client_secret = secrets.token_urlsafe(32)
+    return client_id, client_secret
+
+
 def generate_link_token() -> str:
     """
     Generate a short-lived, single-use link token for external account linking.
