@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Request, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -28,12 +30,8 @@ rbac = build_rbac_dependencies(
 )
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=Page[AccessRule])
 async def get_access_rules(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(
-        100, ge=1, le=1000, description="Maximum number of records to return"
-    ),
     _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
@@ -43,43 +41,8 @@ async def get_access_rules(
     Returns a paginated list of access rules in the system.
     """
     access_rule_repository = AccessRuleRepository(db)
-    access_rules = access_rule_repository.get_access_rules(skip=skip, limit=limit)
-
-    # Convert SQLAlchemy models to Pydantic schemas
-    access_rule_schemas = [AccessRule.model_validate(rule) for rule in access_rules]
-
-    return {"data": access_rule_schemas}
-
-
-@router.get("/search/", response_model=dict)
-async def search_access_rules(
-    kind: Optional[str] = Query(None, description="Filter by access rule kind"),
-    value: Optional[str] = Query(None, description="Filter by access rule value"),
-    note: Optional[str] = Query(None, description="Filter by note content"),
-    _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
-):
-    """
-    Search access rules with dynamic filters.
-
-    Allows searching access rules using various filter criteria.
-    All filters are optional and can be combined.
-    """
-    access_rule_repository = AccessRuleRepository(db)
-    filters: dict = {}
-    if kind is not None:
-        filters["kind"] = kind
-    if value is not None:
-        filters["value"] = value
-    if note is not None:
-        filters["note"] = {"operator": "ilike", "value": f"%{note}%"}
-
-    access_rules = access_rule_repository.search(filters)
-
-    # Convert SQLAlchemy models to Pydantic schemas
-    access_rule_schemas = [AccessRule.model_validate(rule) for rule in access_rules]
-
-    return {"data": access_rule_schemas}
+    query = access_rule_repository.get_access_rules_query()
+    return paginate(query)
 
 
 @router.get("/{access_rule_id}", response_model=AccessRule)

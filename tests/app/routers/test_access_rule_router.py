@@ -49,9 +49,13 @@ def test_get_access_rules(client, sample_access_rule_data):
     assert response.status_code == 200
 
     data = response.json()
-    assert "data" in data
-    assert isinstance(data["data"], list)
-    assert len(data["data"]) >= 1
+    assert "items" in data
+    assert isinstance(data["items"], list)
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
+    assert data["page"] == 1
+    assert data["size"] >= len(data["items"])
+    assert data["pages"] >= 1
 
 
 def test_get_access_rule_by_id(client, sample_access_rule_data):
@@ -146,35 +150,3 @@ def test_delete_access_rule_not_found(client):
     response = client.delete(f"/access-rules/{non_existent_id}")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
-
-
-def test_search_access_rules(client, sample_access_rule_data):
-    """Test searching access rules."""
-    # Create an access rule first
-    create_response = client.post("/access-rules/", json=sample_access_rule_data)
-    assert create_response.status_code == 200
-
-    # Search by kind
-    response = client.get("/access-rules/search/?kind=ip_whitelist")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "data" in data
-    assert isinstance(data["data"], list)
-    assert len(data["data"]) >= 1
-
-
-def test_search_access_rules_by_note(client, sample_access_rule_data):
-    """Test searching access rules by note content."""
-    # Create an access rule first
-    create_response = client.post("/access-rules/", json=sample_access_rule_data)
-    assert create_response.status_code == 200
-
-    # Search by note content
-    response = client.get("/access-rules/search/?note=test")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert "data" in data
-    assert isinstance(data["data"], list)
-    assert len(data["data"]) >= 1

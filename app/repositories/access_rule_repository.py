@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 from app.models.access_rule import AccessRule
 from app.schemas.access_rule import AccessRuleCreate, AccessRuleUpdate
 from app.utils.db.filtering import apply_filters
@@ -28,6 +28,10 @@ class AccessRuleRepository:
     def get_access_rules(self, skip: int = 0, limit: int = 100) -> List[AccessRule]:
         """Get a list of access rules with pagination."""
         return self.db.query(AccessRule).offset(skip).limit(limit).all()
+
+    def get_access_rules_query(self) -> Query:
+        """Get a query for access rules."""
+        return self.db.query(AccessRule)
 
     def create_access_rule(self, access_rule: AccessRuleCreate) -> AccessRule:
         """Create a new access rule."""
