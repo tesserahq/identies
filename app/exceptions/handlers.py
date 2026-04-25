@@ -1,6 +1,7 @@
 from traceback import format_exc
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from app.exceptions.access_rule_error import AccessRuleAlreadyExistsError
 from app.exceptions.external_account_error import (
     ExternalAccountAlreadyLinkedError,
     InvalidLinkTokenError,
@@ -10,6 +11,15 @@ from app.exceptions.service_account_error import ServiceAccountError
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(AccessRuleAlreadyExistsError)
+    async def access_rule_already_exists_handler(
+        request: Request, exc: AccessRuleAlreadyExistsError
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": str(exc)},
+        )
+
     @app.exception_handler(ResourceNotFoundError)
     async def resource_not_found_handler(request: Request, exc: ResourceNotFoundError):
         return JSONResponse(

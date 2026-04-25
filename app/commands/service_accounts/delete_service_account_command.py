@@ -2,6 +2,8 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
+from app.exceptions.service_account_error import ServiceAccountError
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_deleted_event
@@ -34,16 +36,18 @@ class DeleteServiceAccountCommand:
             bool: True if the service account was deleted successfully
 
         Raises:
-            Exception: If service account deletion fails
+            ResourceNotFoundError: If the service account is not found
+            ServiceAccountError: If the user is not a service account
+            Exception: If service account deletion fails unexpectedly
         """
         try:
             # Verify it's a service account
             user = self.user_service.get_user(service_account_id)
             if not user:
-                raise Exception("Service account not found")
+                raise ResourceNotFoundError("Service account not found")
 
             if not user.service_account:
-                raise Exception("User is not a service account")
+                raise ServiceAccountError("User is not a service account")
 
             # Store user data for event before deletion
             user_data = user
@@ -58,6 +62,8 @@ class DeleteServiceAccountCommand:
 
             return True
 
+        except (ResourceNotFoundError, ServiceAccountError):
+            raise
         except Exception as e:
             # Rollback the transaction if something goes wrong
             self.db.rollback()

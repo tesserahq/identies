@@ -132,8 +132,8 @@ def test_delete_access_rule(client, sample_access_rule_data):
 
     # Delete the access rule
     response = client.delete(f"/access-rules/{access_rule_id}")
-    assert response.status_code == 200
-    assert "deleted successfully" in response.json()["message"]
+    assert response.status_code == 204
+    assert response.content == b""
 
     # Verify it's deleted
     get_response = client.get(f"/access-rules/{access_rule_id}")

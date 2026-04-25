@@ -45,6 +45,7 @@ def test_delete_client(client, setup_client):
     db_client, _ = setup_client
     response = client.delete(f"/clients/{db_client.id}")
     assert response.status_code == 204
+    assert response.content == b""
 
 
 def test_delete_client_not_found(client):

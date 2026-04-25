@@ -142,6 +142,7 @@ def test_delete_external_account_success(client, setup_user, setup_external_acco
     account = setup_external_account
     response = client.delete(f"/external-accounts/{account.id}")
     assert response.status_code == 204
+    assert response.content == b""
     list_resp = client.get("/external-accounts")
     ids = [item["id"] for item in list_resp.json()["items"]]
     assert str(account.id) not in ids

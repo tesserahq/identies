@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.commands.service_accounts.delete_service_account_command import (
     DeleteServiceAccountCommand,
 )
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
+from app.exceptions.service_account_error import ServiceAccountError
 from app.repositories.user_repository import UserRepository
 
 
@@ -27,7 +29,7 @@ def test_delete_service_account_not_found(db: Session):
     """Test deleting a non-existent system account."""
     command = DeleteServiceAccountCommand(db)
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ResourceNotFoundError) as exc_info:
         command.execute(uuid4())
 
     assert "not found" in str(exc_info.value).lower()
@@ -37,7 +39,7 @@ def test_delete_service_account_not_service_account(db: Session, setup_user):
     """Test deleting a regular user (not a service account) fails."""
     command = DeleteServiceAccountCommand(db)
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ServiceAccountError) as exc_info:
         command.execute(setup_user.id)
 
     assert "not a service account" in str(exc_info.value).lower()
@@ -49,7 +51,7 @@ def test_delete_service_account_rollback_on_error(db: Session, setup_service_acc
     account_id = setup_service_account.id
 
     # Try to delete non-existent account (should fail and raise exception)
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(ResourceNotFoundError) as exc_info:
         command.execute(uuid4())
 
     # Verify the exception message indicates the error

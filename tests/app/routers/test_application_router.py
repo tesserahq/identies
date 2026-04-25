@@ -105,6 +105,7 @@ def test_delete_application(client, sample_application_data):
 
     response = client.delete(f"/applications/{application_id}")
     assert response.status_code == 204
+    assert response.content == b""
 
     get_response = client.get(f"/applications/{application_id}")
     assert get_response.status_code == 404

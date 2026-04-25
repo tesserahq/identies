@@ -281,9 +281,8 @@ def test_delete_service_account(client: TestClient, setup_service_account):
     response = client.delete(f"/service-accounts/{account_id}")
 
     # Assertions
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "Service account deleted successfully"
+    assert response.status_code == 204
+    assert response.content == b""
 
     # Verify the account was actually deleted
     get_response = client.get(f"/service-accounts/{account_id}")
@@ -295,7 +294,7 @@ def test_delete_service_account_not_found(client: TestClient):
     response = client.delete(f"/service-accounts/{uuid4()}")
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 404
     data = response.json()
     assert "not found" in data["detail"].lower()
 
@@ -305,7 +304,7 @@ def test_delete_service_account_not_service_account(client: TestClient, setup_us
     response = client.delete(f"/service-accounts/{setup_user.id}")
 
     # Assertions
-    assert response.status_code == 400
+    assert response.status_code == 403
     data = response.json()
     assert "not a service account" in data["detail"].lower()
 

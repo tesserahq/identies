@@ -210,6 +210,7 @@ def test_delete_api_key(client: TestClient, setup_api_key):
 
     # Assertions
     assert response.status_code == 204
+    assert response.content == b""
 
 
 def test_delete_api_key_not_found(client: TestClient):

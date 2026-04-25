@@ -3,11 +3,13 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.models.access_rule import AccessRule
 from app.models.api_key import ApiKey
 from app.models.application import Application
 from app.models.client import Client
 from app.models.user import User as UserModel
 from app.schemas.user import User
+from app.repositories.access_rule_repository import AccessRuleRepository
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.repositories.application_repository import ApplicationRepository
 from app.repositories.client_repository import ClientRepository
@@ -47,6 +49,17 @@ def get_api_key_by_id(
     if api_key is None:
         raise HTTPException(status_code=404, detail="API key not found")
     return api_key
+
+
+def get_access_rule_by_id(
+    access_rule_id: UUID,
+    db: Session = Depends(get_db),
+) -> AccessRule:
+    """FastAPI dependency to get an access rule by ID."""
+    access_rule = AccessRuleRepository(db).get_access_rule(access_rule_id)
+    if access_rule is None:
+        raise HTTPException(status_code=404, detail="Access rule not found")
+    return access_rule
 
 
 def get_application_by_id(

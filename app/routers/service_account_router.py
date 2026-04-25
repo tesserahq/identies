@@ -155,6 +155,7 @@ async def update_service_account(
 @router.delete(
     "/{service_account_id}",
     operation_id="delete_service_account",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_service_account(
     service_account_id: UUID,
@@ -168,18 +169,7 @@ async def delete_service_account(
     Permanently deletes the service account from the system.
     """
     delete_command = DeleteServiceAccountCommand(db)
-    try:
-        success = delete_command.execute(service_account_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Service account not found",
-            )
-        return {"message": "Service account deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    delete_command.execute(service_account_id)
 
 
 @router.get(

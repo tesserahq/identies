@@ -442,6 +442,7 @@ def test_delete_user_api_key_success(client, setup_user, setup_api_key):
 
     response = client.delete(f"/api-keys/users/{setup_user.id}/{api_key.id}")
     assert response.status_code == 204
+    assert response.content == b""
 
     # Verify the key no longer appears in user key listing.
     list_response = client.get(f"/api-keys/users/{setup_user.id}")
