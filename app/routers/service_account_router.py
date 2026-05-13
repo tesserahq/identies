@@ -260,7 +260,7 @@ async def create_service_account_api_key(
 
 @router.get(
     "/{service_account_id}/clients",
-    response_model=list[ClientResponse],
+    response_model=Page[ClientResponse],
     operation_id="list_service_account_clients",
 )
 async def list_service_account_clients(
@@ -276,7 +276,8 @@ async def list_service_account_clients(
             status_code=status.HTTP_404_NOT_FOUND, detail="Service account not found"
         )
 
-    return ClientRepository(db).list_by_owner(service_account_id)
+    query = ClientRepository(db).get_clients_by_owner_query(service_account_id)
+    return paginate(query)
 
 
 @router.post(

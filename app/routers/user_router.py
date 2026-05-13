@@ -66,7 +66,7 @@ async def read_internal_user(
 
 @router.get(
     "/users/{user_id}/clients",
-    response_model=list[ClientResponse],
+    response_model=Page[ClientResponse],
     operation_id="list_user_clients",
 )
 async def list_user_clients(
@@ -74,7 +74,8 @@ async def list_user_clients(
     _authorized: bool = Depends(rbac["read"]),
     db: Session = Depends(get_db),
 ):
-    return ClientRepository(db).list_by_owner(user.id)
+    query = ClientRepository(db).get_clients_by_owner_query(user.id)
+    return paginate(query)
 
 
 @router.post(

@@ -18,8 +18,13 @@ def test_list_user_clients(client, setup_user, setup_client):
     response = client.get(f"/users/{setup_user.id}/clients")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert len(data["items"]) >= 1
+    assert data["total"] >= 1
 
 
 def test_get_client(client, setup_client):

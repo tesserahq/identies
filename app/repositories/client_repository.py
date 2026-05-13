@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from app.models.client import Client
 from app.schemas.client import ClientCreate
@@ -45,13 +45,19 @@ class ClientRepository:
     def get_client_by_client_id(self, client_id: str) -> Optional[Client]:
         return self.db.query(Client).filter(Client.client_id == client_id).first()
 
-    def list_by_owner(self, owner_id: UUID) -> List[Client]:
+    def get_clients_by_owner_query(self, owner_id: UUID) -> Query:
+        """
+        Query for non-deleted clients owned by owner_id, newest first.
+        Suitable for use with fastapi-pagination's paginate().
+        """
         return (
             self.db.query(Client)
             .filter(Client.owner_id == owner_id, Client.deleted_at.is_(None))
             .order_by(Client.created_at.desc())
-            .all()
         )
+
+    def list_by_owner(self, owner_id: UUID) -> List[Client]:
+        return self.get_clients_by_owner_query(owner_id).all()
 
     def verify_client(self, client_id: str, client_secret: str) -> Optional[Client]:
         """Verify client_id + client_secret and return the client if valid."""
