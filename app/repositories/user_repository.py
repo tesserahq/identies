@@ -128,7 +128,7 @@ class UserRepository:
         Returns:
             Query: SQLAlchemy query object for users.
         """
-        query = self.db.query(User)
+        query = self.db.query(User).filter(User.service_account == False)
 
         q_normalized = (q or "").strip()
         if q_normalized:
@@ -147,6 +147,5 @@ class UserRepository:
                     User.email.ilike(pattern, escape="\\"),
                 )
             )
-            query = query.filter(User.service_account == False)
 
         return query.order_by(User.updated_at.desc())

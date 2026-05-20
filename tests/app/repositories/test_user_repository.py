@@ -168,3 +168,20 @@ def test_search_users_with_filters(db: Session, sample_user):
     results = UserRepository(db).search(filters)
 
     assert len(results) == 0
+
+
+def test_get_users_query_excludes_service_accounts(
+    db: Session, setup_user, setup_service_account
+):
+    """get_users_query must not return service accounts when searching."""
+    token = "svc-filter-test"
+
+    setup_user.first_name = token
+    setup_service_account.first_name = token
+    db.commit()
+
+    results = UserRepository(db).get_users_query(q=token).all()
+    result_ids = {u.id for u in results}
+
+    assert setup_user.id in result_ids
+    assert setup_service_account.id not in result_ids
