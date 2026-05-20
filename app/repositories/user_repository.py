@@ -147,5 +147,6 @@ class UserRepository:
                     User.email.ilike(pattern, escape="\\"),
                 )
             )
+            query = query.filter(User.service_account == False)
 
         return query.order_by(User.updated_at.desc())
