@@ -56,7 +56,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         try:
             payload = token_handler.verify(token)
-        except UnauthorizedException:
+        except UnauthorizedException as e:
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"error": "Unauthorized"},
@@ -79,17 +79,25 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-    def _is_allowed_service_account_for_m2m(self, payload: dict[str, Any]) -> bool:
+    def _has_service_account_claims(self, payload: dict[str, Any]) -> bool:
         account_type = payload.get(self.config.service_account_account_type_claim)
-        is_service_account = (
+        if not (
             isinstance(account_type, str)
-            and account_type.lower() == self.config.service_account_account_type_value
-        )
-
+            and account_type.lower()
+            == self.config.service_account_account_type_value.lower()
+        ):
+            return False
         client_id = payload.get(self.config.service_account_client_id_claim)
-        is_service_account_client_id = (
-            isinstance(client_id, str)
-            and client_id in self.config.get_allowed_service_account_client_ids()
-        )
+        return isinstance(client_id, str) and bool(client_id)
 
-        return is_service_account and is_service_account_client_id
+    def _is_local_identies_token(self, payload: dict[str, Any]) -> bool:
+        issuer = payload.get("iss")
+        return isinstance(issuer, str) and issuer == self.config.token_exchange_issuer
+
+    def _is_allowed_service_account_for_m2m(self, payload: dict[str, Any]) -> bool:
+        if not self._has_service_account_claims(payload):
+            return False
+        if self._is_local_identies_token(payload):
+            return True
+        client_id = payload[self.config.service_account_client_id_claim]
+        return client_id in self.config.get_allowed_service_account_client_ids()

@@ -88,6 +88,10 @@ class Settings(BaseSettings):
         default="https://mylinden.family/client_id",
         json_schema_extra={"env": "SERVICE_ACCOUNT_CLIENT_ID_CLAIM"},
     )
+    service_account_client_name_claim: str = Field(
+        default="https://mylinden.family/client_name",
+        json_schema_extra={"env": "SERVICE_ACCOUNT_CLIENT_NAME_CLAIM"},
+    )
 
     allowed_service_account_client_ids: Optional[str] = Field(
         default=None, json_schema_extra={"env": "ALLOWED_SERVICE_ACCOUNT_CLIENT_IDS"}

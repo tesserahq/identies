@@ -75,6 +75,37 @@ def test_oauth_token_success(anon_client, setup_client, oauth_env):
         issuer="identies",
     )
     assert decoded["sub"] == str(db_client.owner_id)
+    assert "https://mylinden.family/client_id" not in decoded
+    assert "https://mylinden.family/client_name" not in decoded
+    assert "https://mylinden.family/account_type" not in decoded
+
+
+def test_oauth_token_service_account_includes_custom_claims(
+    anon_client, setup_service_account_client, setup_service_account, oauth_env
+):
+    db_client, client_secret = setup_service_account_client
+    response = anon_client.post(
+        "/oauth/token",
+        json={
+            "grant_type": "client_credentials",
+            "client_id": db_client.client_id,
+            "client_secret": client_secret,
+            "audience": "https://api.example.com",
+        },
+    )
+    assert response.status_code == 200
+
+    decoded = jwt.decode(
+        response.json()["access_token"],
+        oauth_env["public_pem"],
+        algorithms=["RS256"],
+        audience="https://api.example.com",
+        issuer="identies",
+    )
+    assert decoded["sub"] == str(setup_service_account.id)
+    assert decoded["https://mylinden.family/client_id"] == db_client.client_id
+    assert decoded["https://mylinden.family/client_name"] == db_client.name
+    assert decoded["https://mylinden.family/account_type"] == "service_account"
 
 
 def test_oauth_token_wrong_secret(anon_client, setup_client, oauth_env):
