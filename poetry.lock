@@ -2308,7 +2308,7 @@ optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 cryptography = "^48.0.0"
@@ -2326,8 +2326,10 @@ starlette = ">=0.50.0"
 urllib3 = ">=1.26.0"
 
 [package.source]
-type = "directory"
-url = "../tessera-sdk-py"
+type = "git"
+url = "https://github.com/tesserahq/tessera-sdk-py.git"
+reference = "main"
+resolved_reference = "3f2c78c4352e2aa18c05df0c81291d89fed8ef04"
 
 [[package]]
 name = "typing-extensions"
@@ -2542,4 +2544,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "cb80ff2ad20c9927333c2298a95fa0c908667d2edcf476e2926e9992713d3d65"
+content-hash = "638fb1fb1cca16370b05255dfd9c7b9d2540829e22f02dc044aa46c7cdb01622"
