@@ -74,6 +74,8 @@ async def token_exchange(
         )
 
     allowed_audiences = settings.get_token_exchange_audiences()
+    logger.info(f"Allowed audiences: {allowed_audiences}")
+    logger.info(f"Requested audience: {body.requested_audience}")
     if body.requested_audience not in allowed_audiences:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
