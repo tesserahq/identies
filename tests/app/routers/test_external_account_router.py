@@ -115,8 +115,8 @@ def test_list_external_accounts_empty(client, setup_user):
 def test_list_user_external_accounts_success(
     client, setup_user, setup_external_account
 ):
-    """GET /external-accounts/users/{user_id} lists paginated accounts for the user."""
-    response = client.get(f"/external-accounts/users/{setup_user.id}")
+    """GET /users/{user_id}/external-accounts lists paginated accounts for the user."""
+    response = client.get(f"/users/{setup_user.id}/external-accounts")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -131,8 +131,8 @@ def test_list_user_external_accounts_success(
 
 
 def test_list_user_external_accounts_not_found(client):
-    """GET /external-accounts/users/{user_id} returns 404 when user is missing."""
-    response = client.get(f"/external-accounts/users/{uuid4()}")
+    """GET /users/{user_id}/external-accounts returns 404 when user is missing."""
+    response = client.get(f"/users/{uuid4()}/external-accounts")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 

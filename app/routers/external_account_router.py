@@ -34,6 +34,7 @@ from app.repositories.external_account_repository import ExternalAccountReposito
 from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/external-accounts", tags=["External Accounts"])
+user_external_accounts_router = APIRouter(tags=["External Accounts"])
 
 
 async def infer_domain(_request: Request) -> str:
@@ -146,8 +147,8 @@ async def list_external_accounts(
     return paginate(query)
 
 
-@router.get(
-    "/users/{user_id}",
+@user_external_accounts_router.get(
+    "/users/{user_id}/external-accounts",
     response_model=Page[ExternalAccountResponse],
     operation_id="list_user_external_accounts",
 )

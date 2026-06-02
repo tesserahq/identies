@@ -1,5 +1,5 @@
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 import rollbar
@@ -12,7 +12,9 @@ from app.core.logging_config import get_logger
 from fastapi_pagination import add_pagination
 from app.utils.metrics import PrometheusMiddleware, metrics
 from tessera_sdk.server.health import get_livez_readyz_router
-
+from tessera_sdk.server.dependencies.auth import get_current_user
+from fastapi.openapi.utils import get_openapi
+from app.models.user import User
 
 class EndpointFilter(logging.Filter):
     # Uvicorn endpoint access log filter
@@ -39,7 +41,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
         # Attach Rollbar handler to the root logger
         logger.addHandler(rollbar_handler)
 
-    app = FastAPI()
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     if not testing and not settings.disable_auth:
         logger.info("Main: Adding authentication middleware")
@@ -74,7 +76,10 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     from app.routers.application_router import router as application_router
     from app.routers.service_account_router import router as service_account_router
     from app.routers.me_router import router as me_router
-    from app.routers.external_account_router import router as external_account_router
+    from app.routers.external_account_router import (
+        router as external_account_router,
+        user_external_accounts_router,
+    )
     from app.routers.jwks_router import router as jwks_router
     from app.routers.token_exchange_router import router as token_exchange_router
     from app.routers.client_router import router as client_router
@@ -88,6 +93,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     app.include_router(service_account_router)
     app.include_router(me_router)
     app.include_router(external_account_router)
+    app.include_router(user_external_accounts_router)
     app.include_router(jwks_router)
     app.include_router(token_exchange_router)
     app.include_router(client_router)
@@ -113,3 +119,7 @@ if settings.otel_enabled:
 @app.get("/")
 def main_route():
     return {"message": "Hey, It is me Goku"}
+
+@app.get("/openapi.json")
+async def openapi(_user: User = Depends(get_current_user)):
+    return get_openapi(title="FastAPI", version="0.1.0", routes=app.routes)
