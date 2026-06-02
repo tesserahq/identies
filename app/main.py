@@ -16,6 +16,7 @@ from tessera_sdk.server.dependencies.auth import get_current_user
 from fastapi.openapi.utils import get_openapi
 from app.models.user import User
 
+
 class EndpointFilter(logging.Filter):
     # Uvicorn endpoint access log filter
     def filter(self, record: logging.LogRecord) -> bool:
@@ -119,6 +120,7 @@ if settings.otel_enabled:
 @app.get("/")
 def main_route():
     return {"message": "Hey, It is me Goku"}
+
 
 @app.get("/openapi.json")
 async def openapi(_user: User = Depends(get_current_user)):

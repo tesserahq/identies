@@ -16,8 +16,6 @@ from app.middleware.auth.exceptions import UnauthorizedException
 SKIP_AUTH_PATHS = [
     "/livez",
     "/readyz",
-    "/openapi.json",
-    "/docs",
     "/api-keys/introspect",
     "/metrics",
     "/.well-known/jwks.json",
