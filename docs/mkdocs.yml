@@ -1,10 +1,16 @@
 site_name: Identies API Documentation
 site_description: Identity service documentation for Identies
 
+docs_dir: .
+
 nav:
   - Home: index.md
-
-docs_dir: .
+  - Quick Setup: quick_setup.md
+  - Architecture: architecture.md
+  - Token Exchange: token_exchange.md
 
 plugins:
   - techdocs-core
+
+exclude_docs: |
+  mkdocs.yml
