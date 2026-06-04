@@ -4,5 +4,7 @@ site_description: Identity service documentation for Identies
 nav:
   - Home: index.md
 
+docs_dir: .
+
 plugins:
   - techdocs-core
