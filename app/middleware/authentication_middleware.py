@@ -12,6 +12,7 @@ from typing import Any
 from app.middleware.auth.user_handler import UserHandler
 from app.config import get_settings
 from app.middleware.auth.exceptions import UnauthorizedException
+from app.core.logging_config import get_logger
 
 SKIP_AUTH_PATHS = [
     "/livez",
@@ -29,7 +30,7 @@ M2M_AUTH_PATHS = [
 
 X_API_KEY_HEADER = "X-API-Key"
 
-
+logger = get_logger()
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
@@ -50,11 +51,14 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 status_code=401, content={"error": "Missing or invalid token"}
             )
 
+        logger.info("Token exists")
         token_handler = TokenHandler()
 
         try:
             payload = token_handler.verify(token)
+            logger.info("Payload: %s", payload)
         except UnauthorizedException as e:
+            logger.error("UnauthorizedException: %s", e)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"error": "Unauthorized"},
