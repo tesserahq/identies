@@ -31,6 +31,8 @@ M2M_AUTH_PATHS = [
 X_API_KEY_HEADER = "X-API-Key"
 
 logger = get_logger()
+
+
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
