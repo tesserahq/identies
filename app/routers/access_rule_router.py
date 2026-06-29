@@ -13,7 +13,8 @@ from app.constants.access_rule_types import AccessRuleTypes
 from app.db import get_db
 from app.models.access_rule import AccessRule as AccessRuleModel
 from app.repositories.access_rule_repository import AccessRuleRepository
-from app.routers.utils.dependencies import get_access_rule_by_id
+from app.routers.utils.dependencies import get_access_rule_by_id, get_current_user
+from app.schemas.user import User
 from app.schemas.access_rule import (
     AccessRule,
     AccessRuleCreate,
@@ -84,6 +85,7 @@ async def get_access_rule(
 async def create_access_rule(
     access_rule_data: AccessRuleCreate,
     _authorized: bool = Depends(rbac["create"]),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -93,7 +95,7 @@ async def create_access_rule(
     The kind and value combination must be unique.
     """
     command = CreateAccessRuleCommand(db)
-    access_rule = command.execute(access_rule_data)
+    access_rule = command.execute(access_rule_data, current_user)
     return access_rule
 
 
@@ -102,6 +104,7 @@ async def update_access_rule(
     access_rule_data: AccessRuleUpdate,
     access_rule: AccessRuleModel = Depends(get_access_rule_by_id),
     _authorized: bool = Depends(rbac["update"]),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -111,7 +114,7 @@ async def update_access_rule(
     Only the fields provided in the request will be updated.
     """
     command = UpdateAccessRuleCommand(db)
-    updated_rule = command.execute(access_rule, access_rule_data)
+    updated_rule = command.execute(access_rule, access_rule_data, current_user)
     return updated_rule
 
 
@@ -119,6 +122,7 @@ async def update_access_rule(
 async def delete_access_rule(
     access_rule_id: UUID,
     _authorized: bool = Depends(rbac["delete"]),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -128,4 +132,4 @@ async def delete_access_rule(
     Returns 204 No Content on successful deletion.
     """
     command = DeleteAccessRuleCommand(db)
-    command.execute(access_rule_id)
+    command.execute(access_rule_id, current_user)
