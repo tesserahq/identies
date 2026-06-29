@@ -17,6 +17,11 @@ class AccessRuleTypes:
     DOMAIN = "domain"
     """Domain-based access rule type. Used for restricting access based on domain names."""
 
+    _LABELS = {
+        EMAIL: "Email",
+        DOMAIN: "Domain",
+    }
+
     @classmethod
     def get_all_types(cls) -> list[str]:
         """Get all available access rule types.
@@ -25,6 +30,15 @@ class AccessRuleTypes:
             list[str]: A list of all valid access rule types.
         """
         return [cls.EMAIL, cls.DOMAIN]
+
+    @classmethod
+    def get_all_options(cls) -> list[dict[str, str]]:
+        """Get all access rule types as UI option objects.
+
+        Returns:
+            list[dict[str, str]]: Options with ``id`` and ``name`` keys.
+        """
+        return [{"id": t, "name": cls._LABELS[t]} for t in cls.get_all_types()]
 
     @classmethod
     def is_valid_type(cls, rule_type: str) -> bool:

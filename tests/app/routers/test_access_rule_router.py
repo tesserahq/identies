@@ -38,6 +38,26 @@ def test_create_access_rule_duplicate(client, sample_access_rule_data):
     assert "already exists" in response2.json()["detail"]
 
 
+def test_list_access_rule_types(client):
+    """Test getting paginated access rule type options."""
+    response = client.get("/access-rules/types")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
+    assert data["total"] == 2
+    assert data["page"] == 1
+    assert data["pages"] == 1
+    assert data["items"] == [
+        {"id": "email", "name": "Email"},
+        {"id": "domain", "name": "Domain"},
+    ]
+
+
 def test_get_access_rules(client, sample_access_rule_data):
     """Test getting list of access rules."""
     # Create an access rule first

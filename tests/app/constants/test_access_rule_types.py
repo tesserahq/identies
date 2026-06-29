@@ -41,3 +41,11 @@ class TestAccessRuleTypes:
         assert "email" in message
         assert "domain" in message
         assert "Valid access rule types are:" in message
+
+    def test_get_all_options(self):
+        """Test that get_all_options returns UI-friendly option objects."""
+        options = AccessRuleTypes.get_all_options()
+        assert options == [
+            {"id": "email", "name": "Email"},
+            {"id": "domain", "name": "Domain"},
+        ]

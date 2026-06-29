@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, status
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate as paginate_list
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 from uuid import UUID
@@ -9,11 +9,17 @@ from app.commands.access_rules.delete_access_rule_command import DeleteAccessRul
 from app.commands.access_rules.update_access_rule_command import (
     UpdateAccessRuleCommand,
 )
+from app.constants.access_rule_types import AccessRuleTypes
 from app.db import get_db
 from app.models.access_rule import AccessRule as AccessRuleModel
 from app.repositories.access_rule_repository import AccessRuleRepository
 from app.routers.utils.dependencies import get_access_rule_by_id
-from app.schemas.access_rule import AccessRule, AccessRuleCreate, AccessRuleUpdate
+from app.schemas.access_rule import (
+    AccessRule,
+    AccessRuleCreate,
+    AccessRuleTypeOption,
+    AccessRuleUpdate,
+)
 from app.auth.rbac import build_rbac_dependencies
 
 router = APIRouter(prefix="/access-rules", tags=["Access Rules"])
@@ -43,6 +49,22 @@ async def get_access_rules(
     access_rule_repository = AccessRuleRepository(db)
     query = access_rule_repository.get_access_rules_query()
     return paginate(query)
+
+
+@router.get(
+    "/types",
+    response_model=Page[AccessRuleTypeOption],
+    operation_id="list_access_rule_types",
+)
+async def list_access_rule_types(
+    _authorized: bool = Depends(rbac["read"]),
+):
+    """
+    List available access rule types for UI selection.
+
+    Returns a paginated list of access rule type options with id and name.
+    """
+    return paginate_list(AccessRuleTypes.get_all_options())
 
 
 @router.get("/{access_rule_id}", response_model=AccessRule)

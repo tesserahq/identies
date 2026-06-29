@@ -55,3 +55,10 @@ class AccessRule(AccessRuleInDB):
     """Schema for access rule data returned in API responses. Inherits all fields from AccessRuleInDB."""
 
     pass
+
+
+class AccessRuleTypeOption(BaseModel):
+    """Schema for access rule type options returned to the UI."""
+
+    id: str
+    name: str
