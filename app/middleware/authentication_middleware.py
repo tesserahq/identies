@@ -53,12 +53,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 status_code=401, content={"error": "Missing or invalid token"}
             )
 
-        logger.info("Token exists")
         token_handler = TokenHandler()
 
         try:
             payload = token_handler.verify(token)
-            logger.info("Payload: %s", payload)
         except UnauthorizedException as e:
             logger.error("UnauthorizedException: %s", e)
             return JSONResponse(

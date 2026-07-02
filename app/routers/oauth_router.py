@@ -33,8 +33,6 @@ async def oauth_token(
     settings = get_settings()
 
     allowed_audiences = settings.get_token_exchange_audiences()
-    logger.info(f"Allowed audiences: {allowed_audiences}")
-    logger.info(f"Body audience: {body.audience}")
     if body.audience not in allowed_audiences:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
