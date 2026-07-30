@@ -1,9 +1,15 @@
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app.config import get_settings
+from app.db import get_db
+from app.main import create_app
 from app.middleware.authentication_middleware import AuthenticationMiddleware
+from app.middleware.auth.exceptions import InviteOnlyAccessException
+from app.middleware.auth.token_handler import TokenHandler
+from app.middleware.auth.user_handler import UserHandler
 
 ACCOUNT_TYPE_CLAIM = "https://mylinden.family/account_type"
 CLIENT_ID_CLAIM = "https://mylinden.family/client_id"
@@ -71,3 +77,34 @@ def test_local_token_missing_service_account_claims(middleware):
 def test_local_token_wrong_account_type(middleware):
     payload = _sa_payload(iss=LOCAL_ISSUER, account_type="user")
     assert middleware._is_allowed_service_account_for_m2m(payload) is False
+
+
+def test_invite_only_rejection_returns_403_not_500(db, monkeypatch):
+    """Regression test: InviteOnlyAccessException raised during user resolution
+    inside AuthenticationMiddleware.dispatch() must be converted to a 403
+    JSONResponse instead of propagating as an unhandled 500."""
+    monkeypatch.setattr(TokenHandler, "verify", lambda self, token: {"sub": "test"})
+
+    def _raise_invite_only(self, token, payload):
+        raise InviteOnlyAccessException(email="user@example.com")
+
+    monkeypatch.setattr(UserHandler, "resolve_user", _raise_invite_only)
+
+    def override_get_db():
+        yield db
+
+    app = create_app(testing=False)
+    app.dependency_overrides[get_db] = override_get_db
+    client = TestClient(app)
+
+    response = client.get("/me", headers={"Authorization": "Bearer faketoken"})
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": {
+            "title": "Access not granted",
+            "detail": "Invitation required to access this service.",
+            "code": "INVITE_REQUIRED",
+            "email": "user@example.com",
+        }
+    }
