@@ -1,7 +1,7 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from fastapi.responses import JSONResponse
-from fastapi import status
+from fastapi import status, HTTPException
 
 from app.middleware.auth.token_handler import TokenHandler
 
@@ -77,7 +77,11 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         user_handler = UserHandler()
         request.state.jwt_payload = payload
-        request.state.user = user_handler.resolve_user(token, payload)
+        try:
+            request.state.user = user_handler.resolve_user(token, payload)
+        except HTTPException as e:
+            logger.error("%s: %s", type(e).__name__, e.detail)
+            return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
 
         return await call_next(request)
 
