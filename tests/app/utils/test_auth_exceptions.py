@@ -74,3 +74,42 @@ def test_invite_only_access_exception_with_custom_message_and_email():
     assert detail["detail"] == "Custom access denied message"
     assert detail["code"] == "INVITE_REQUIRED"
     assert detail["email"] == "user@company.com"
+
+
+def test_invite_only_access_exception_with_name():
+    """Test InviteOnlyAccessException returns first_name/last_name if provided."""
+    app = FastAPI()
+
+    @app.get("/test")
+    def test_endpoint():
+        raise InviteOnlyAccessException(
+            email="user@company.com", first_name="Jane", last_name="Doe"
+        )
+
+    client = TestClient(app)
+    response = client.get("/test")
+
+    assert response.status_code == 403
+    detail = response.json()["detail"]
+
+    assert detail["email"] == "user@company.com"
+    assert detail["first_name"] == "Jane"
+    assert detail["last_name"] == "Doe"
+
+
+def test_invite_only_access_exception_without_name():
+    """Test InviteOnlyAccessException omits name fields when not provided."""
+    app = FastAPI()
+
+    @app.get("/test")
+    def test_endpoint():
+        raise InviteOnlyAccessException(email="user@company.com")
+
+    client = TestClient(app)
+    response = client.get("/test")
+
+    assert response.status_code == 403
+    detail = response.json()["detail"]
+
+    assert "first_name" not in detail
+    assert "last_name" not in detail

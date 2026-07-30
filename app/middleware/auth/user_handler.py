@@ -66,22 +66,26 @@ class UserHandler:
 
     def handle_user_onboarding(self, payload: dict, userinfo: dict):
         """Onboard the user locally using the userinfo data."""
-        if self.config.invite_only_access:
-            with db_session() as db:
-                access_rule_repository = AccessRuleRepository(db)
-                email = userinfo.get("email")
-                if email and isinstance(email, str):
-                    access_rule = access_rule_repository.evaluate_email_access(email)
-                    if not access_rule:
-                        raise InviteOnlyAccessException(email=email)
-                else:
-                    raise InviteOnlyAccessException()
-
-        user_id = payload["sub"]
         email = userinfo.get("email")
         name = userinfo.get("name", "Unkown Unkown").split(" ")
         first_name = name[0]
-        last_name = name[1]
+        last_name = name[1] if len(name) > 1 else ""
+
+        if self.config.invite_only_access:
+            with db_session() as db:
+                access_rule_repository = AccessRuleRepository(db)
+                if email and isinstance(email, str):
+                    access_rule = access_rule_repository.evaluate_email_access(email)
+                    if not access_rule:
+                        raise InviteOnlyAccessException(
+                            email=email, first_name=first_name, last_name=last_name
+                        )
+                else:
+                    raise InviteOnlyAccessException(
+                        first_name=first_name, last_name=last_name
+                    )
+
+        user_id = payload["sub"]
         avatar_url = userinfo.get("picture")
 
         # Extract identity information from JWT payload

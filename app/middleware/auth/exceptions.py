@@ -8,9 +8,11 @@ class InviteOnlyAccessException(HTTPException):
         self,
         detail: str = "Invitation required to access this service.",
         email: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
         **kwargs,
     ):
-        """Returns HTTP 403 with custom payload including email if provided"""
+        """Returns HTTP 403 with custom payload including user info if provided"""
         payload = {
             "title": "Access not granted",
             "detail": detail,
@@ -19,6 +21,10 @@ class InviteOnlyAccessException(HTTPException):
 
         if email:
             payload["email"] = email
+        if first_name:
+            payload["first_name"] = first_name
+        if last_name:
+            payload["last_name"] = last_name
 
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
