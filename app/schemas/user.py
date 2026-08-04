@@ -94,6 +94,13 @@ class UserUpdate(BaseModel):
     """Updated theme preference. Can be 'system', 'dark', or 'light'."""
 
 
+class UserOffboardingScheduleRequest(BaseModel):
+    """Schema for scheduling a user's offboarding."""
+
+    scheduled_at: Optional[datetime] = None
+    """When offboarding should take effect. Defaults to 24 hours from now if omitted."""
+
+
 class UserInDB(UserBase):
     """Schema representing a user as stored in the database. Includes database-specific fields."""
 
@@ -175,6 +182,12 @@ class UserResponse(BaseModel):
 
     kind: UserKind = UserKind.HUMAN
     """What kind of principal this is: human, agent or service_account."""
+
+    offboarding_scheduled_at: Optional[datetime] = None
+    """When the user is scheduled to be offboarded, if any."""
+
+    offboarding_scheduled_by: Optional[UUID] = None
+    """ID of the admin who scheduled the offboarding, if any."""
 
     @model_validator(mode="after")
     def set_avatar_url_from_asset_id(self):

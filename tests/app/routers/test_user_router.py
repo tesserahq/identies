@@ -214,6 +214,71 @@ def test_avatar_url_fallback_to_original(client, setup_user):
         ] == user_data.get("avatar_url")
 
 
+def test_schedule_offboarding_success(client, setup_user):
+    """Test that POST /users/{user_id}/offboarding schedules offboarding with a 24h default."""
+    response = client.post(f"/users/{setup_user.id}/offboarding")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["offboarding_scheduled_at"] is not None
+    assert data["offboarding_scheduled_by"] == str(setup_user.id)
+
+
+def test_schedule_offboarding_with_explicit_time(client, setup_user):
+    """Test that POST /users/{user_id}/offboarding accepts a scheduled_at override."""
+    scheduled_at = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
+
+    response = client.post(
+        f"/users/{setup_user.id}/offboarding", json={"scheduled_at": scheduled_at}
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["offboarding_scheduled_at"] is not None
+
+
+def test_schedule_offboarding_already_scheduled_returns_409(client, setup_user):
+    """Test that scheduling offboarding twice returns 409 Conflict."""
+    first = client.post(f"/users/{setup_user.id}/offboarding")
+    assert first.status_code == 200
+
+    second = client.post(f"/users/{setup_user.id}/offboarding")
+    assert second.status_code == 409
+
+
+def test_schedule_offboarding_service_account_returns_403(
+    client, setup_service_account
+):
+    """Test that scheduling offboarding for a service account returns 403 Forbidden."""
+    response = client.post(f"/users/{setup_service_account.id}/offboarding")
+    assert response.status_code == 403
+
+
+def test_schedule_offboarding_user_not_found(client):
+    """Test that scheduling offboarding for a non-existent user returns 404."""
+    response = client.post(f"/users/{uuid4()}/offboarding")
+    assert response.status_code == 404
+
+
+def test_cancel_offboarding_success(client, setup_user):
+    """Test that DELETE /users/{user_id}/offboarding cancels a pending offboarding."""
+    schedule_response = client.post(f"/users/{setup_user.id}/offboarding")
+    assert schedule_response.status_code == 200
+
+    response = client.delete(f"/users/{setup_user.id}/offboarding")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["offboarding_scheduled_at"] is None
+    assert data["offboarding_scheduled_by"] is None
+
+
+def test_cancel_offboarding_not_scheduled_returns_404(client, setup_user):
+    """Test that cancelling offboarding for a user with none scheduled returns 404."""
+    response = client.delete(f"/users/{setup_user.id}/offboarding")
+    assert response.status_code == 404
+
+
 def test_update_user_success(client, setup_user):
     """Test that the PUT /userinfo endpoint successfully updates user information."""
     # Prepare update data

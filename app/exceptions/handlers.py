@@ -6,6 +6,10 @@ from app.exceptions.external_account_error import (
     ExternalAccountAlreadyLinkedError,
     InvalidLinkTokenError,
 )
+from app.exceptions.offboarding_error import (
+    OffboardingAlreadyScheduledError,
+    OffboardingNotScheduledError,
+)
 from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.exceptions.service_account_error import ServiceAccountError
 
@@ -47,6 +51,24 @@ def register_exception_handlers(app: FastAPI) -> None:
     ):
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(OffboardingAlreadyScheduledError)
+    async def offboarding_already_scheduled_handler(
+        request: Request, exc: OffboardingAlreadyScheduledError
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(OffboardingNotScheduledError)
+    async def offboarding_not_scheduled_handler(
+        request: Request, exc: OffboardingNotScheduledError
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
             content={"detail": str(exc)},
         )
 

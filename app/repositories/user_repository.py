@@ -123,6 +123,26 @@ class UserRepository:
         self.db.commit()
         return True
 
+    def schedule_offboarding(
+        self, user_id: UUID, scheduled_at: datetime, scheduled_by: UUID
+    ) -> Optional[User]:
+        db_user = self.db.query(User).filter(User.id == user_id).first()
+        if db_user:
+            db_user.offboarding_scheduled_at = scheduled_at  # type: ignore[assignment]
+            db_user.offboarding_scheduled_by = scheduled_by  # type: ignore[assignment]
+            self.db.commit()
+            self.db.refresh(db_user)
+        return db_user
+
+    def cancel_offboarding(self, user_id: UUID) -> Optional[User]:
+        db_user = self.db.query(User).filter(User.id == user_id).first()
+        if db_user:
+            db_user.offboarding_scheduled_at = None  # type: ignore[assignment]
+            db_user.offboarding_scheduled_by = None  # type: ignore[assignment]
+            self.db.commit()
+            self.db.refresh(db_user)
+        return db_user
+
     def verify_user(self, user_id: UUID) -> Optional[User]:
         db_user = self.get_user(user_id)
         if db_user:
