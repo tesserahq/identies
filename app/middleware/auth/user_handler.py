@@ -54,7 +54,14 @@ class UserHandler:
         """Fetch user information from the oidc userinfo endpoint."""
         userinfo_url = f"https://{self.config.oidc_domain}/userinfo"
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = requests.get(userinfo_url, headers=headers)
+        try:
+            response = requests.get(
+                userinfo_url, headers=headers, timeout=self.config.oidc_userinfo_timeout
+            )
+        except requests.exceptions.RequestException as error:
+            raise UnauthorizedException(
+                f"Failed to fetch user info from oidc. err: {error}"
+            )
 
         if response.status_code != 200:
             raise UnauthorizedException(
