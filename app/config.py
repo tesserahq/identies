@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     oidc_jwks_urls: Optional[str] = Field(
         default=None, json_schema_extra={"env": "OIDC_JWKS_URLS"}
     )
+    oidc_userinfo_timeout: float = Field(
+        default=5.0, json_schema_extra={"env": "OIDC_USERINFO_TIMEOUT"}
+    )
 
     token_exchange_private_key_pem: Optional[str] = Field(
         default=None,

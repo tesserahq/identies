@@ -1,3 +1,4 @@
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from fastapi.responses import JSONResponse
@@ -37,6 +38,11 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
         self.config = get_settings()
+        # Built once and reused across requests so the JWKS client's own
+        # key cache (cache_jwk_set/lifespan) is actually effective, instead
+        # of every request re-fetching the JWKS from the IDP.
+        self.token_handler = TokenHandler()
+        self.user_handler = UserHandler()
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path in SKIP_AUTH_PATHS:
@@ -53,10 +59,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 status_code=401, content={"error": "Missing or invalid token"}
             )
 
-        token_handler = TokenHandler()
-
         try:
-            payload = token_handler.verify(token)
+            # Token/JWKS verification does blocking network I/O; run it off
+            # the event loop so a slow IDP doesn't stall other requests.
+            payload = await run_in_threadpool(self.token_handler.verify, token)
         except UnauthorizedException as e:
             logger.error("UnauthorizedException: %s", e)
             return JSONResponse(
@@ -75,10 +81,12 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 content={"error": "Forbidden"},
             )
 
-        user_handler = UserHandler()
-        request.state.jwt_payload = payload
         try:
-            request.state.user = user_handler.resolve_user(token, payload)
+            # resolve_user may call out to the IDP's userinfo endpoint;
+            # keep that blocking call off the event loop as well.
+            request.state.user = await run_in_threadpool(
+                self.user_handler.resolve_user, token, payload
+            )
         except HTTPException as e:
             logger.error("%s: %s", type(e).__name__, e.detail)
             return JSONResponse(status_code=e.status_code, content={"detail": e.detail})

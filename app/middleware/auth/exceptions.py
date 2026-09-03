@@ -34,8 +34,10 @@ class InviteOnlyAccessException(HTTPException):
 
 class UnauthorizedException(HTTPException):
     def __init__(self, detail: str, **kwargs):
-        """Returns HTTP 403"""
-        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+        """Internal signal caught by AuthenticationMiddleware and always
+        converted to an HTTP 401 response; the status_code here is not
+        returned to clients directly."""
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
 
 class UnauthenticatedException(HTTPException):
