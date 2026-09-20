@@ -108,22 +108,34 @@ def test_agent_token_carries_no_service_account_claims(
     assert "https://mylinden.family/client_id" not in decoded
 
 
+AGENT_ID = "00000000-0000-0000-0000-000000000000"
+
+
 @pytest.mark.parametrize(
-    "path, body",
+    "method, path, body",
     [
-        ("/agents", {"name": "Escalation"}),
-        ("/agents/claim", {"code": "ac_x.y"}),
-        ("/oauth/token-exchange", {"user_id": "x", "requested_audience": AUDIENCE}),
+        ("POST", "/agents", {"name": "Escalation"}),
+        ("POST", "/agents/claim", {"code": "ac_x.y"}),
+        ("POST", f"/agents/{AGENT_ID}/claim-codes", None),
+        ("GET", f"/agents/{AGENT_ID}", None),
+        ("POST", f"/agents/{AGENT_ID}/rotate", None),
+        ("POST", f"/agents/{AGENT_ID}/revoke", None),
+        ("DELETE", f"/agents/{AGENT_ID}", None),
+        (
+            "POST",
+            "/oauth/token-exchange",
+            {"user_id": "x", "requested_audience": AUDIENCE},
+        ),
     ],
 )
 def test_agent_token_cannot_call_privileged_endpoints(
-    real_app_client, agent_client, path, body
+    real_app_client, agent_client, method, path, body
 ):
     _, client, secret = agent_client
     token = _mint(real_app_client, client, secret)
 
-    response = real_app_client.post(
-        path, json=body, headers={"Authorization": f"Bearer {token}"}
+    response = real_app_client.request(
+        method, path, json=body, headers={"Authorization": f"Bearer {token}"}
     )
 
     assert response.status_code == 403
@@ -212,3 +224,56 @@ def test_a_deleted_agent_can_no_longer_mint_tokens(db, real_app_client, agent_cl
         },
     )
     assert response.status_code == 401
+
+
+def _token_request(client, credentials):
+    return client.post(
+        "/oauth/token",
+        json={
+            "grant_type": "client_credentials",
+            "client_id": credentials["client_id"],
+            "client_secret": credentials["client_secret"],
+            "audience": AUDIENCE,
+        },
+    )
+
+
+def test_lifecycle_controls_who_can_mint_tokens(
+    real_app_client, setup_service_account_client
+):
+    """rotate / revoke / delete, checked against what the agent can actually do."""
+    service_client, service_secret = setup_service_account_client
+    service = {
+        "Authorization": f"Bearer {_mint(real_app_client, service_client, service_secret)}"
+    }
+    created = real_app_client.post(
+        "/agents", json={"name": "Claude"}, headers=service
+    ).json()
+    agent_id = created["agent"]["id"]
+    credentials = real_app_client.post(
+        "/agents/claim", json={"code": created["claim_code"]}, headers=service
+    ).json()
+
+    assert _token_request(real_app_client, credentials).status_code == 200
+    status = real_app_client.get(f"/agents/{agent_id}", headers=service).json()
+    assert status["last_used_at"] is not None  # recorded by the token mint above
+
+    # Rotate: the old secret stops minting, the new one works.
+    rotated = real_app_client.post(f"/agents/{agent_id}/rotate", headers=service).json()
+    assert _token_request(real_app_client, credentials).status_code == 401
+    assert _token_request(real_app_client, rotated).status_code == 200
+
+    # Revoke: cut off; rotate restores.
+    real_app_client.post(f"/agents/{agent_id}/revoke", headers=service)
+    assert _token_request(real_app_client, rotated).status_code == 401
+    restored = real_app_client.post(
+        f"/agents/{agent_id}/rotate", headers=service
+    ).json()
+    assert _token_request(real_app_client, restored).status_code == 200
+
+    # Delete: gone for good.
+    assert (
+        real_app_client.delete(f"/agents/{agent_id}", headers=service).status_code
+        == 204
+    )
+    assert _token_request(real_app_client, restored).status_code == 401

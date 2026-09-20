@@ -29,6 +29,7 @@ class Client(Base, TimestampMixin, SoftDeleteMixin):
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     revoked = Column(Boolean, default=False, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
 
     owner = relationship("User", foreign_keys=[owner_id])
     created_by = relationship("User", foreign_keys=[created_by_id])

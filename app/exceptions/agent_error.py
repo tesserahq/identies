@@ -20,3 +20,10 @@ class AgentAlreadyClaimedError(Exception):
 
     def __init__(self):
         super().__init__("Agent has already been claimed")
+
+
+class AgentNotClaimedError(Exception):
+    """The agent has no credentials yet (issue a claim code instead)."""
+
+    def __init__(self):
+        super().__init__("Agent has not been claimed")

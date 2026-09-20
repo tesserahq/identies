@@ -49,19 +49,27 @@ def make_client(db, monkeypatch):
     return _make
 
 
+ANY_ID = "00000000-0000-0000-0000-000000000000"
+ALL_AGENT_ENDPOINTS = [
+    ("POST", "/agents", {"name": "Claude"}),
+    ("POST", "/agents/claim", {"code": "ac_x.y"}),
+    ("POST", f"/agents/{ANY_ID}/claim-codes", None),
+    ("GET", f"/agents/{ANY_ID}", None),
+    ("POST", f"/agents/{ANY_ID}/rotate", None),
+    ("POST", f"/agents/{ANY_ID}/revoke", None),
+    ("DELETE", f"/agents/{ANY_ID}", None),
+]
+
+
 @pytest.mark.parametrize(
     "payload", [HUMAN, UNKNOWN_SERVICE], ids=["human", "unknown-service"]
 )
 def test_only_an_allowed_service_can_call_agent_endpoints(make_client, payload):
     client = make_client(payload)
 
-    for method, path, body in [
-        ("post", "/agents", {"name": "Claude"}),
-        ("post", "/agents/claim", {"code": "ac_x.y"}),
-        ("post", "/agents/00000000-0000-0000-0000-000000000000/claim-codes", None),
-    ]:
-        response = getattr(client, method)(path, json=body)
-        assert response.status_code == 403, path
+    for method, path, body in ALL_AGENT_ENDPOINTS:
+        response = client.request(method, path, json=body)
+        assert response.status_code == 403, (method, path)
 
 
 def test_agent_endpoints_require_a_token(make_client):
@@ -131,3 +139,63 @@ def test_create_agent_validates_the_name(make_client):
 
     assert client.post("/agents", json={"name": ""}).status_code == 422
     assert client.post("/agents", json={}).status_code == 422
+
+
+def test_lifecycle_status_rotate_revoke_delete(make_client):
+    client = make_client(ALLOWED_SERVICE)
+    created = client.post("/agents", json={"name": "Claude"}).json()
+    agent_id = created["agent"]["id"]
+
+    unclaimed = client.get(f"/agents/{agent_id}").json()
+    assert unclaimed["status"] == "unclaimed"
+    assert unclaimed["claim_expires_at"] is not None
+    assert unclaimed["client_id"] is None
+
+    # Nothing to rotate before the agent has been claimed.
+    assert client.post(f"/agents/{agent_id}/rotate").status_code == 409
+
+    claimed = client.post("/agents/claim", json={"code": created["claim_code"]}).json()
+    active = client.get(f"/agents/{agent_id}").json()
+    assert active["status"] == "active"
+    assert active["client_id"] == claimed["client_id"]
+    assert active["last_used_at"] is None
+    assert "client_secret" not in str(active)
+
+    rotated = client.post(f"/agents/{agent_id}/rotate")
+    assert rotated.status_code == 200
+    assert rotated.json()["client_id"] == claimed["client_id"]
+    assert rotated.json()["client_secret"] != claimed["client_secret"]
+
+    revoked = client.post(f"/agents/{agent_id}/revoke")
+    assert revoked.status_code == 200
+    assert revoked.json()["status"] == "revoked"
+    assert client.post(f"/agents/{agent_id}/revoke").json()["status"] == "revoked"
+
+    restored = client.post(f"/agents/{agent_id}/rotate")
+    assert restored.status_code == 200
+    assert client.get(f"/agents/{agent_id}").json()["status"] == "active"
+
+    assert client.delete(f"/agents/{agent_id}").status_code == 204
+    for method, path in [
+        ("GET", f"/agents/{agent_id}"),
+        ("POST", f"/agents/{agent_id}/rotate"),
+        ("POST", f"/agents/{agent_id}/revoke"),
+        ("DELETE", f"/agents/{agent_id}"),
+        ("POST", f"/agents/{agent_id}/claim-codes"),
+    ]:
+        assert client.request(method, path).status_code == 404, (method, path)
+
+
+def test_the_agent_endpoints_cannot_touch_humans_or_service_accounts(
+    make_client, setup_user, setup_service_account
+):
+    client = make_client(ALLOWED_SERVICE)
+
+    for user in (setup_user, setup_service_account):
+        for method, path in [
+            ("GET", f"/agents/{user.id}"),
+            ("POST", f"/agents/{user.id}/rotate"),
+            ("POST", f"/agents/{user.id}/revoke"),
+            ("DELETE", f"/agents/{user.id}"),
+        ]:
+            assert client.request(method, path).status_code == 404, (method, path)

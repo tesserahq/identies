@@ -47,7 +47,7 @@ def verify_api_key_secret(secret: str, secret_hash: str) -> bool:
     Returns:
         bool: True if the secret matches the hash, False otherwise
     """
-    return hash_secret(secret) == secret_hash
+    return hmac.compare_digest(hash_secret(secret), secret_hash)
 
 
 def parse_api_key(full_key: str) -> Tuple[str, str]:
@@ -92,8 +92,12 @@ def generate_client_credentials() -> Tuple[str, str]:
         Tuple[str, str]: A tuple containing (client_id, client_secret)
     """
     client_id = f"cs_{secrets.token_urlsafe(8)}"
-    client_secret = secrets.token_urlsafe(32)
-    return client_id, client_secret
+    return client_id, generate_client_secret()
+
+
+def generate_client_secret() -> str:
+    """Generate a new client secret (high entropy; only its hash is stored)."""
+    return secrets.token_urlsafe(32)
 
 
 def generate_link_token() -> str:

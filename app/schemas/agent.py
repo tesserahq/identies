@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,7 +36,7 @@ class AgentClaimRequest(BaseModel):
     code: str = Field(..., min_length=1)
 
 
-class AgentClaimResponse(BaseModel):
+class AgentCredentialsResponse(BaseModel):
     """The agent's OAuth client credentials. Returned only once.
 
     The agent exchanges them for short-lived JWT access tokens at ``/oauth/token``
@@ -53,3 +54,21 @@ class AgentClaimResponse(BaseModel):
     """When the client secret stops working (rotate it before then)."""
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AgentStatusResponse(BaseModel):
+    """Where an agent is in its lifecycle, for an owner-facing list."""
+
+    agent: UserResponse
+
+    status: Literal["unclaimed", "active", "revoked", "expired"]
+    """unclaimed: no credentials yet; active: can mint tokens; revoked: cut off (rotate
+    to restore); expired: the client secret ran out (rotate to renew)."""
+
+    client_id: str | None = None
+    client_expires_at: datetime | None = None
+    last_used_at: datetime | None = None
+    """When the credentials last minted a token."""
+
+    claim_expires_at: datetime | None = None
+    """When the open claim code expires (only while unclaimed)."""

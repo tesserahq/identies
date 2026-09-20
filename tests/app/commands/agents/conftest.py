@@ -17,3 +17,14 @@ def created_agent(db, publisher):
     return CreateAgentCommand(db, nats_publisher=publisher).execute(
         AgentCreateRequest(name="Claude")
     )
+
+
+@pytest.fixture
+def claimed_agent(db, publisher, created_agent):
+    """A claimed agent: (agent, client, plaintext client secret)."""
+    from app.commands.agents.claim_agent_command import ClaimAgentCommand
+
+    agent, code, _ = created_agent
+    client, secret = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
+    publisher.reset_mock()
+    return agent, client, secret

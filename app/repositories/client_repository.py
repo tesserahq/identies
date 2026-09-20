@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from app.models.client import Client
 from app.schemas.client import ClientCreate
 from app.utils.security import (
     generate_client_credentials,
+    generate_client_secret,
     hash_secret,
     verify_api_key_secret,
 )
@@ -72,7 +74,53 @@ class ClientRepository:
             return None
         if not verify_api_key_secret(client_secret, client.secret_hash):
             return None
+
+        client.last_used_at = datetime.now(timezone.utc)
+        self.db.commit()
         return client
+
+    def get_latest_client_for_owner(
+        self, owner_id: UUID, for_update: bool = False
+    ) -> Optional[Client]:
+        """The owner's newest non-deleted client (an agent has one, created at claim)."""
+        query = (
+            self.db.query(Client)
+            .filter(Client.owner_id == owner_id, Client.deleted_at.is_(None))
+            .order_by(Client.created_at.desc())
+        )
+        if for_update:
+            query = query.with_for_update()
+        return query.first()
+
+    def rotate_secret(self, client: Client, ttl_days: int) -> str:
+        """Replace the client's secret and return the new plaintext (shown once).
+
+        The old secret stops working immediately, a revoked client is restored (revoke
+        has no separate pause state) and the expiry restarts.
+        """
+        secret = generate_client_secret()
+        client.secret_hash = hash_secret(secret)
+        client.revoked = False
+        client.expires_at = datetime.now(timezone.utc) + timedelta(days=ttl_days)
+        self.db.commit()
+        self.db.refresh(client)
+        return secret
+
+    def revoke_all_for_owner(self, owner_id: UUID) -> List[Client]:
+        """Revoke every non-deleted client of the owner; returns those that changed."""
+        clients = (
+            self.db.query(Client)
+            .filter(
+                Client.owner_id == owner_id,
+                Client.deleted_at.is_(None),
+                Client.revoked.is_(False),
+            )
+            .all()
+        )
+        for client in clients:
+            client.revoked = True
+        self.db.commit()
+        return clients
 
     def revoke_client(self, client_pk: UUID) -> bool:
         client = self.db.query(Client).filter(Client.id == client_pk).first()
