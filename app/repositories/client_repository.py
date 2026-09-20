@@ -66,6 +66,9 @@ class ClientRepository:
             return None
         if not client.is_valid():
             return None
+        # A deleted owner's clients must not mint tokens, even if not yet revoked.
+        if client.owner is None or client.owner.deleted_at is not None:
+            return None
         if not verify_api_key_secret(client_secret, client.secret_hash):
             return None
         return client

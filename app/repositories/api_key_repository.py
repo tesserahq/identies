@@ -122,6 +122,10 @@ class ApiKeyRepository:
         if not db_api_key.is_valid():
             return None
 
+        # A deleted user's keys must not authenticate, even if not yet revoked.
+        if db_api_key.user is None or db_api_key.user.deleted_at is not None:
+            return None
+
         # Verify the secret
         if not self._verify_secret(secret, db_api_key.secret_hash):
             return None

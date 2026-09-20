@@ -1,4 +1,4 @@
-from app.models.mixins import TimestampMixin
+from app.models.mixins import SoftDeleteMixin, TimestampMixin
 from sqlalchemy import CheckConstraint, Column, String, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,7 +12,7 @@ from app.db import Base
 NON_INTERACTIVE_KINDS = (UserKind.AGENT.value, UserKind.SERVICE_ACCOUNT.value)
 
 
-class User(Base, TimestampMixin):
+class User(Base, TimestampMixin, SoftDeleteMixin):
     """User model for the application.
     This model represents a user in the system and includes fields for
     personal information, authentication, and relationships with other models.
@@ -25,7 +25,14 @@ class User(Base, TimestampMixin):
             "uq_users_external_id",
             "external_id",
             unique=True,
-            postgresql_where=text("external_id IS NOT NULL"),
+            postgresql_where=text("external_id IS NOT NULL AND deleted_at IS NULL"),
+        ),
+        # Partial so a soft-deleted user does not block re-creating the same email.
+        Index(
+            "uq_users_email_active",
+            "email",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
         ),
         CheckConstraint(
             "kind IN ('human', 'agent', 'service_account')", name="ck_users_kind"
@@ -33,7 +40,7 @@ class User(Base, TimestampMixin):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, nullable=False)
+    email = Column(String, nullable=False)
     avatar_url = Column(String, nullable=True)
     avatar_asset_id = Column(String, nullable=True)
     first_name = Column(String, nullable=False)
