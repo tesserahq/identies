@@ -5,14 +5,31 @@ docs_dir: .
 
 nav:
   - Home: index.md
-  - Quick Setup: quick_setup.md
-  - Architecture: architecture.md
-  - Token Exchange: token_exchange.md
-  - User Events: user_events.md
-  - Agents: agents.md
+  - Getting Started:
+      - Quick Setup: quick_setup.md
+      - Development: development.md
+  - Concepts:
+      - Concepts: concepts.md
+      - Architecture: architecture.md
+      - Design Decisions: decisions.md
+  - Identity and Access:
+      - Authentication: authentication.md
+      - Credentials: credentials.md
+      - Token Exchange: token_exchange.md
+      - Agents: agents.md
+  - Reference:
+      - API Reference: api_reference.md
+      - Events: events.md
+      - User Events: user_events.md
+      - Configuration: configuration.md
+      - Data Lifecycle: data_lifecycle.md
+  - Operations: operations.md
 
 plugins:
   - techdocs-core
+
+markdown_extensions:
+  - admonition
 
 exclude_docs: |
   mkdocs.yml

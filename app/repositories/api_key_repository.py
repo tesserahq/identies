@@ -98,6 +98,16 @@ class ApiKeyRepository:
             return True
         return False
 
+    def revoke_all_for_user(self, user_id: UUID) -> int:
+        """Revoke every active API key of the user; returns how many were revoked."""
+        count = (
+            self.db.query(ApiKey)
+            .filter(ApiKey.user_id == user_id, ApiKey.revoked.is_(False))
+            .update({"revoked": True}, synchronize_session=False)
+        )
+        self.db.commit()
+        return count
+
     def verify_api_key(self, full_key: str) -> Optional[ApiKey]:
         """
         Verify an API key and return the associated user's API key record.

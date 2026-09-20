@@ -9,6 +9,7 @@ from tessera_sdk.infra.events.event import Event, event_source, event_type
 CLIENT_CREATED = "client.created"
 CLIENT_REVOKED = "client.revoked"
 CLIENT_DELETED = "client.deleted"
+CLIENT_ROTATED = "client.rotated"
 
 
 def _build_client_event(
@@ -38,3 +39,7 @@ def build_client_revoked_event(client: ClientModel, user: UserModel) -> Event:
 
 def build_client_deleted_event(client: ClientModel, user: UserModel) -> Event:
     return _build_client_event(CLIENT_DELETED, client, user)
+
+
+def build_client_rotated_event(client: ClientModel, user: UserModel) -> Event:
+    return _build_client_event(CLIENT_ROTATED, client, user)

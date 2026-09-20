@@ -24,6 +24,7 @@ class ClientResponse(ClientBase):
     revoked: bool
     created_at: datetime
     expires_at: Optional[datetime] = None
+    last_used_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
