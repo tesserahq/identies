@@ -1,3 +1,4 @@
+import hmac
 import secrets
 import hashlib
 from typing import Tuple
@@ -103,3 +104,41 @@ def generate_link_token() -> str:
         str: A URL-safe random token (no hashing; looked up by value).
     """
     return secrets.token_urlsafe(32)
+
+
+def generate_agent_claim_code() -> Tuple[str, str, str]:
+    """
+    Generate an agent claim code in the format 'ac_<claim_id>.<secret>'.
+
+    The claim id is public (it locates the claim); the secret is high entropy and only
+    its hash is stored.
+
+    Returns:
+        Tuple[str, str, str]: (full_code, claim_id, secret)
+    """
+    claim_id = secrets.token_urlsafe(8)
+    secret = secrets.token_urlsafe(32)
+    return f"ac_{claim_id}.{secret}", claim_id, secret
+
+
+def parse_agent_claim_code(code: str) -> Tuple[str, str]:
+    """
+    Parse 'ac_<claim_id>.<secret>' into (claim_id, secret).
+
+    Raises:
+        ValueError: If the code is malformed.
+    """
+    if not code or not code.startswith("ac_"):
+        raise ValueError("Invalid claim code format")
+    body = code[3:]
+    if body.count(".") != 1:
+        raise ValueError("Invalid claim code format")
+    claim_id, secret = body.split(".", 1)
+    if not claim_id or not secret:
+        raise ValueError("Invalid claim code format")
+    return claim_id, secret
+
+
+def secrets_match(secret: str, secret_hash: str) -> bool:
+    """Constant-time check of a secret against its stored SHA256 hash."""
+    return hmac.compare_digest(hash_secret(secret), secret_hash)

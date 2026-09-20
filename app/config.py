@@ -100,6 +100,24 @@ class Settings(BaseSettings):
         default=None, json_schema_extra={"env": "ALLOWED_SERVICE_ACCOUNT_CLIENT_IDS"}
     )
 
+    # Agents (users with kind=agent, created by a trusted service on behalf of a human)
+    agent_email_domain: str = Field(
+        default="agents.example",
+        json_schema_extra={"env": "AGENT_EMAIL_DOMAIN"},
+    )
+    """Domain for the synthetic email given to agents. It must pass email validation
+    but must never deliver: the reserved .example TLD does both. (.invalid, .test and
+    .localhost are rejected by the email validator.)"""
+    agent_claim_ttl_minutes: int = Field(
+        default=15, json_schema_extra={"env": "AGENT_CLAIM_TTL_MINUTES"}
+    )
+    agent_claim_max_failed_attempts: int = Field(
+        default=5, json_schema_extra={"env": "AGENT_CLAIM_MAX_FAILED_ATTEMPTS"}
+    )
+    agent_api_key_ttl_days: int = Field(
+        default=30, json_schema_extra={"env": "AGENT_API_KEY_TTL_DAYS"}
+    )
+
     otel_exporter_otlp_endpoint: str = "http://localhost:4318"
     otel_service_name: str = SERVICE_NAME.lower()
     redis_host: str = Field(

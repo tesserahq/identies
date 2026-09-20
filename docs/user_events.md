@@ -10,7 +10,7 @@ their copy up to date by consuming the events below.
 
 | Event type | Published when |
 |---|---|
-| `user.created` | A user is onboarded (Auth0 login) or a service account is created |
+| `user.created` | A user is onboarded (Auth0 login), or a service account or [agent](agents.md) is created |
 | `user.updated` | A user's profile changes (`PUT /me`) or a service account is updated |
 | `user.deleted` | A user is removed (currently: service-account deletion) |
 

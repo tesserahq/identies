@@ -27,6 +27,7 @@ SKIP_AUTH_PATHS = [
 M2M_AUTH_PATHS = [
     "/internal/users",
     "/oauth/token-exchange",
+    "/agents",
 ]
 
 X_API_KEY_HEADER = "X-API-Key"

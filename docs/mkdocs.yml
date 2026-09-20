@@ -9,6 +9,7 @@ nav:
   - Architecture: architecture.md
   - Token Exchange: token_exchange.md
   - User Events: user_events.md
+  - Agents: agents.md
 
 plugins:
   - techdocs-core
