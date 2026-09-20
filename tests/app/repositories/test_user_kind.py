@@ -102,3 +102,53 @@ def test_user_response_exposes_kind(setup_user, setup_service_account):
         UserResponse.model_validate(setup_service_account).kind
         == UserKind.SERVICE_ACCOUNT
     )
+
+
+@pytest.mark.parametrize(
+    "kind, expected",
+    [
+        (UserKind.HUMAN, False),
+        (UserKind.AGENT, True),
+        (UserKind.SERVICE_ACCOUNT, True),
+    ],
+)
+def test_service_account_is_computed_from_kind(db, faker, kind, expected):
+    user = User(email=faker.email(), first_name="A", last_name="B", kind=kind)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    assert user.service_account is expected
+    # Usable in queries too.
+    found = db.query(User).filter(User.id == user.id, User.service_account == expected)
+    assert found.count() == 1
+    assert UserResponse.model_validate(user).service_account is expected
+
+
+def test_explicit_kind_wins_over_the_legacy_flag(db, faker):
+    user = User(
+        email=faker.email(),
+        first_name="A",
+        last_name="B",
+        kind=UserKind.HUMAN,
+        service_account=True,
+    )
+
+    assert user.kind == "human"
+    assert user.service_account is False
+
+
+def test_user_lists_exclude_agents_and_service_accounts(db, faker):
+    repository = UserRepository(db)
+    human = User(email=faker.email(), first_name="H", last_name="U")
+    agent = User(
+        email=faker.email(), first_name="A", last_name="G", kind=UserKind.AGENT
+    )
+    db.add_all([human, agent])
+    db.commit()
+
+    listed = {u.id for u in repository.get_users_query().all()}
+    service_accounts = {u.id for u in repository.get_service_accounts_query().all()}
+
+    assert human.id in listed and agent.id not in listed
+    assert agent.id in service_accounts and human.id not in service_accounts

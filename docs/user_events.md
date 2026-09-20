@@ -34,7 +34,7 @@ events.
 | `external_id`, `provider` | |
 | `verified`, `verified_at`, `confirmed_at` | |
 | `theme_preference` | |
-| `service_account` | `true` for service accounts |
+| `service_account` | Computed from `kind`: `true` for `agent` and `service_account`. Prefer `kind` |
 | `kind` | `human`, `agent` or `service_account`. Consumers must treat a missing `kind` as `human` |
 | `created_at`, `updated_at` | |
 

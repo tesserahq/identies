@@ -60,7 +60,7 @@ class UserOnboard(UserBase):
     """Unique identifier from the external authentication provider."""
 
     service_account: bool = False
-    """Whether this user is a service account. Kept for compatibility; prefer ``kind``."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
 
 
 class UserUpdate(BaseModel):
@@ -116,7 +116,7 @@ class User(UserInDB):
     """External ID of the user."""
 
     service_account: bool = False
-    """Whether this user is a service account. Kept for compatibility; prefer ``kind``."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
 
     kind: UserKind = UserKind.HUMAN
     """What kind of principal this is: human, agent or service_account."""
@@ -171,7 +171,7 @@ class UserResponse(BaseModel):
     """External ID of the user."""
 
     service_account: bool = False
-    """Whether this user is a service account. Kept for compatibility; prefer ``kind``."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
 
     kind: UserKind = UserKind.HUMAN
     """What kind of principal this is: human, agent or service_account."""

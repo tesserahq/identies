@@ -1,12 +1,15 @@
 from app.models.mixins import TimestampMixin
 from sqlalchemy import CheckConstraint, Column, String, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 import uuid
 
 from app.constants.user_kinds import UserKind
 from app.db import Base
+
+NON_INTERACTIVE_KINDS = (UserKind.AGENT.value, UserKind.SERVICE_ACCOUNT.value)
 
 
 class User(Base, TimestampMixin):
@@ -42,25 +45,38 @@ class User(Base, TimestampMixin):
     verified_at = Column(DateTime, nullable=True)
     external_id = Column(String, nullable=True)
     theme_preference = Column(String, default="system", nullable=True)
-    # Kept for compatibility; prefer kind. Existing checks (e.g. /me, user lists) still read it.
-    service_account = Column(Boolean, default=False)
     kind = Column(String(20), nullable=False)
+    # Legacy physical column behind the computed ``service_account`` property below.
+    # It is only written from kind (never read for behaviour) and is kept for one
+    # release so a rolling deploy does not break; the column is dropped in #171.
+    legacy_service_account = Column("service_account", Boolean, default=False)
 
     # Relationships
     api_keys = relationship("ApiKey", back_populates="user")
     external_accounts = relationship("ExternalAccount", back_populates="user")
 
     def __init__(self, **kwargs):
-        # kind is required in the database. Callers that predate it only set the
-        # service_account flag, so derive it instead of letting the insert fail.
+        # kind is required in the database. Callers that predate it only pass the
+        # service_account flag, so derive kind from it instead of letting the insert
+        # fail. An explicit kind always wins.
+        flag = kwargs.pop("service_account", None)
         if kwargs.get("kind") is None:
-            kwargs["kind"] = (
-                UserKind.SERVICE_ACCOUNT
-                if kwargs.get("service_account")
-                else UserKind.HUMAN
-            )
+            kwargs["kind"] = UserKind.SERVICE_ACCOUNT if flag else UserKind.HUMAN
         kwargs["kind"] = UserKind(kwargs["kind"]).value
+        kwargs["legacy_service_account"] = kwargs["kind"] in NON_INTERACTIVE_KINDS
         super().__init__(**kwargs)
+
+    @hybrid_property
+    def service_account(self) -> bool:
+        """True for non-interactive principals (agents and service accounts).
+
+        Computed from ``kind`` so the two can never disagree. Prefer ``kind`` in new code.
+        """
+        return self.kind in NON_INTERACTIVE_KINDS
+
+    @service_account.expression
+    def service_account(cls):
+        return cls.kind.in_(NON_INTERACTIVE_KINDS)
 
     def full_name(self) -> str:
         """Return the full name of the user."""
