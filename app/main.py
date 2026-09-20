@@ -72,6 +72,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     from app.routers.access_rule_router import router as access_rule_router
     from app.routers.application_router import router as application_router
     from app.routers.service_account_router import router as service_account_router
+    from app.routers.agent_router import router as agent_router
     from app.routers.me_router import router as me_router
     from app.routers.external_account_router import (
         router as external_account_router,
@@ -88,6 +89,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     app.include_router(access_rule_router)
     app.include_router(application_router)
     app.include_router(service_account_router)
+    app.include_router(agent_router)
     app.include_router(me_router)
     app.include_router(external_account_router)
     app.include_router(user_external_accounts_router)

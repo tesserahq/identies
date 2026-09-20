@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,7 +14,8 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
-    pass
+    expires_at: Optional[datetime] = None
+    """When the client secret stops working. None means it does not expire."""
 
 
 class ClientResponse(ClientBase):
@@ -21,6 +23,7 @@ class ClientResponse(ClientBase):
     client_id: str
     revoked: bool
     created_at: datetime
+    expires_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

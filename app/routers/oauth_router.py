@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from app.constants.user_kinds import UserKind
 from app.db import get_db
 from app.repositories.client_credentials_repository import (
     ClientCredentialsRepository,
@@ -47,7 +48,10 @@ async def oauth_token(
         )
 
     service_account_client = None
-    if client.owner.service_account:
+    # Only trusted machine clients get the service-account claims that open the
+    # privileged (M2M) endpoints. An agent is also non-interactive
+    # (service_account is true for it), but it must never be able to act as a service.
+    if client.owner.kind == UserKind.SERVICE_ACCOUNT.value:
         service_account_client = ServiceAccountClientContext(
             client_id=client.client_id,
             client_name=client.name,

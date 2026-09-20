@@ -31,6 +31,7 @@ class ClientRepository:
             name=client_data.name,
             owner_id=client_data.owner_id,
             created_by_id=client_data.created_by_id,
+            expires_at=client_data.expires_at,
         )
 
         self.db.add(db_client)
