@@ -119,3 +119,25 @@ def test_update_service_account_rollback_on_error(
     # Note: In the test environment, the db fixture uses transactions that rollback
     # at the end of each test, so we can't reliably verify persistence here.
     # The important thing is that the exception was raised correctly.
+
+
+def test_update_service_account_publishes_user_updated(
+    db: Session, setup_service_account
+):
+    """user.updated carries the new values so projections can refresh the row."""
+    from unittest.mock import MagicMock
+
+    publisher = MagicMock()
+
+    UpdateServiceAccountCommand(db, nats_publisher=publisher).execute(
+        setup_service_account.id,
+        ServiceAccountUpdateRequest(first_name="Renamed"),
+    )
+
+    events = {
+        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
+    }
+    user_updated = next(e for t, e in events.items() if t.endswith("user.updated"))
+    assert user_updated.event_data["user"]["id"] == str(setup_service_account.id)
+    assert user_updated.event_data["user"]["first_name"] == "Renamed"
+    assert any(t.endswith("service_account.updated") for t in events)

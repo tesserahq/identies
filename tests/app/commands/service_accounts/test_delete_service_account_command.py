@@ -63,3 +63,24 @@ def test_delete_service_account_rollback_on_error(db: Session, setup_service_acc
     # Note: In the test environment, the db fixture uses transactions that rollback
     # at the end of each test, so we can't reliably verify persistence here.
     # The important thing is that the exception was raised correctly.
+
+
+def test_delete_service_account_publishes_user_deleted_with_id(
+    db: Session, setup_service_account
+):
+    """user.deleted lets projections drop the row; the id must survive the delete."""
+    from unittest.mock import MagicMock
+
+    publisher = MagicMock()
+    account_id = setup_service_account.id
+
+    DeleteServiceAccountCommand(db, nats_publisher=publisher).execute(account_id)
+
+    events = {
+        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
+    }
+    user_deleted = next(e for t, e in events.items() if t.endswith("user.deleted"))
+    assert user_deleted.event_data["user"]["id"] == str(account_id)
+    assert user_deleted.event_data["user"]["service_account"] is True
+    # Existing consumers keep receiving service_account.deleted.
+    assert any(t.endswith("service_account.deleted") for t in events)

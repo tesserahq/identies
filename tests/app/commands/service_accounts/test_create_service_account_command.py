@@ -78,3 +78,25 @@ def test_create_service_account_rollback_on_error(db: Session, faker):
     # Note: In the test environment, the db fixture uses transactions that rollback
     # at the end of each test, so we can't reliably verify persistence here.
     # The important thing is that the exception was raised correctly.
+
+
+def test_create_service_account_publishes_user_created(db: Session, faker):
+    """user.created lets projections upsert the new service account by id."""
+    from unittest.mock import MagicMock
+
+    publisher = MagicMock()
+    account = CreateServiceAccountCommand(db, nats_publisher=publisher).execute(
+        ServiceAccountCreateRequest(
+            email=faker.email(),
+            first_name=faker.first_name(),
+            last_name=faker.last_name(),
+        )
+    )
+
+    events = {
+        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
+    }
+    user_created = next(e for t, e in events.items() if t.endswith("user.created"))
+    assert user_created.event_data["user"]["id"] == str(account.id)
+    assert user_created.event_data["user"]["service_account"] is True
+    assert any(t.endswith("service_account.created") for t in events)

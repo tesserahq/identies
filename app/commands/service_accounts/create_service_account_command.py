@@ -9,6 +9,7 @@ from app.schemas.service_account import (
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_created_event
+from app.events.user_events import build_user_created_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 from datetime import datetime
 
@@ -89,15 +90,21 @@ class CreateServiceAccountCommand:
         Args:
             user: The created service account
         """
-        event = build_service_account_created_event(user)
+        # user.created is the projection contract for downstream services;
+        # service_account.created is kept for existing consumers.
+        events = [
+            build_service_account_created_event(user),
+            build_user_created_event(user),
+        ]
 
         if self.nats_publisher is not None:
-            self.logger.info(
-                f"Publishing service-account-created event to NATS: {event.model_dump_json()}"
-            )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish service-account-created event to NATS"
+            for event in events:
+                self.logger.info(
+                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
                 )
+                try:
+                    self.nats_publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        f"Failed to publish {event.event_type} event to NATS"
+                    )

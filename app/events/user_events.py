@@ -1,5 +1,8 @@
 """
 Utilities for building user-related CloudEvents payloads.
+
+These events are a projection contract: downstream Tessera services upsert a local
+user row by Identies ``id`` from ``event_data["user"]``. See docs/user_events.md.
 """
 
 from __future__ import annotations
@@ -7,7 +10,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.models.user import User as UserModel
-from app.schemas.user import UserBase as UserSchema
+from app.schemas.user import User as UserSchema
 from tessera_sdk.infra.events.event import Event, event_type, event_source
 
 # User events

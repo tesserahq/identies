@@ -7,6 +7,7 @@ from app.exceptions.service_account_error import ServiceAccountError
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_deleted_event
+from app.events.user_events import build_user_deleted_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
 
@@ -77,15 +78,22 @@ class DeleteServiceAccountCommand:
             user: The deleted service account
             user_id: The ID of the service account that was deleted
         """
-        event = build_service_account_deleted_event(user, user_id)
+        # user.deleted is the projection contract for downstream services;
+        # service_account.deleted is kept for existing consumers. The payload is
+        # built from the in-memory user, so it still carries the id after deletion.
+        events = [
+            build_service_account_deleted_event(user, user_id),
+            build_user_deleted_event(user, user_id),
+        ]
 
         if self.nats_publisher is not None:
-            self.logger.info(
-                f"Publishing service-account-deleted event to NATS: {event.model_dump_json()}"
-            )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish service-account-deleted event to NATS"
+            for event in events:
+                self.logger.info(
+                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
                 )
+                try:
+                    self.nats_publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        f"Failed to publish {event.event_type} event to NATS"
+                    )

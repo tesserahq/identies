@@ -8,6 +8,7 @@ nav:
   - Quick Setup: quick_setup.md
   - Architecture: architecture.md
   - Token Exchange: token_exchange.md
+  - User Events: user_events.md
 
 plugins:
   - techdocs-core

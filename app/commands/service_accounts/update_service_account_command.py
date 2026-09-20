@@ -7,6 +7,7 @@ from app.schemas.user import UserUpdate
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.events.service_account_events import build_service_account_updated_event
+from app.events.user_events import build_user_updated_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
 
@@ -105,15 +106,21 @@ class UpdateServiceAccountCommand:
             user: The updated service account
             user_id: The ID of the service account that was updated
         """
-        event = build_service_account_updated_event(user, user_id)
+        # user.updated is the projection contract for downstream services;
+        # service_account.updated is kept for existing consumers.
+        events = [
+            build_service_account_updated_event(user, user_id),
+            build_user_updated_event(user, user_id),
+        ]
 
         if self.nats_publisher is not None:
-            self.logger.info(
-                f"Publishing service-account-updated event to NATS: {event.model_dump_json()}"
-            )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish service-account-updated event to NATS"
+            for event in events:
+                self.logger.info(
+                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
                 )
+                try:
+                    self.nats_publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        f"Failed to publish {event.event_type} event to NATS"
+                    )
