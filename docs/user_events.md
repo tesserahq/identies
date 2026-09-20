@@ -35,6 +35,7 @@ events.
 | `verified`, `verified_at`, `confirmed_at` | |
 | `theme_preference` | |
 | `service_account` | `true` for service accounts |
+| `kind` | `human`, `agent` or `service_account`. Consumers must treat a missing `kind` as `human` |
 | `created_at`, `updated_at` | |
 
 `user.deleted` still carries the full body, including `id`, after the row is gone.
@@ -45,7 +46,7 @@ events.
   soft-delete the local row; keep it as a tombstone if other rows reference it).
 - **Be idempotent and order-tolerant.** Delivery is at-least-once in intent, but see
   Durability. Use `updated_at` to ignore an older event that arrives after a newer one.
-- **Ignore unknown fields, tolerate missing ones.** New fields are added additively.
+- **Ignore unknown fields, tolerate missing ones.** A missing `kind` means `human`. New fields are added additively.
   Removing or renaming a key under `event_data.user` requires a version bump.
 
 ## Durability
@@ -58,5 +59,3 @@ row looks stale). There is no outbox in Identies today.
 
 - There is no human-user delete path in Identies, so `user.deleted` is only emitted for
   service accounts. When human deletion exists it must publish `user.deleted`.
-- `kind` (`human` | `agent` | `service_account`) will be added to this body as an
-  additive field; a missing `kind` should be treated as `human`.

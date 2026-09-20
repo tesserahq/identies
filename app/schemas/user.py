@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime
 
 from app.config import get_settings
+from app.constants.user_kinds import UserKind
 from vaulta_client.utils import sign_serve_url
 
 
@@ -117,6 +118,9 @@ class User(UserInDB):
     service_account: bool = False
     """Whether this user is a service account. Defaults to False."""
 
+    kind: UserKind = UserKind.HUMAN
+    """What kind of principal this is: human, agent or service_account."""
+
 
 class UserResponse(BaseModel):
     """Schema for user data returned in API responses, prioritizing avatar_asset_id over avatar_url."""
@@ -168,6 +172,9 @@ class UserResponse(BaseModel):
 
     service_account: bool = False
     """Whether this user is a service account. Defaults to False."""
+
+    kind: UserKind = UserKind.HUMAN
+    """What kind of principal this is: human, agent or service_account."""
 
     @model_validator(mode="after")
     def set_avatar_url_from_asset_id(self):

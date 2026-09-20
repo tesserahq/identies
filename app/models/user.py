@@ -1,10 +1,11 @@
 from app.models.mixins import TimestampMixin
-from sqlalchemy import Column, String, Boolean, DateTime, Index, text
+from sqlalchemy import CheckConstraint, Column, String, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 import uuid
 
+from app.constants.user_kinds import UserKind
 from app.db import Base
 
 
@@ -23,6 +24,9 @@ class User(Base, TimestampMixin):
             unique=True,
             postgresql_where=text("external_id IS NOT NULL"),
         ),
+        CheckConstraint(
+            "kind IN ('human', 'agent', 'service_account')", name="ck_users_kind"
+        ),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -39,12 +43,22 @@ class User(Base, TimestampMixin):
     external_id = Column(String, nullable=True)
     theme_preference = Column(String, default="system", nullable=True)
     service_account = Column(Boolean, default=False)
+    kind = Column(String(20), nullable=False)
 
     # Relationships
     api_keys = relationship("ApiKey", back_populates="user")
     external_accounts = relationship("ExternalAccount", back_populates="user")
 
     def __init__(self, **kwargs):
+        # kind is required in the database. Callers that predate it only set the
+        # service_account flag, so derive it instead of letting the insert fail.
+        if kwargs.get("kind") is None:
+            kwargs["kind"] = (
+                UserKind.SERVICE_ACCOUNT
+                if kwargs.get("service_account")
+                else UserKind.HUMAN
+            )
+        kwargs["kind"] = UserKind(kwargs["kind"]).value
         super().__init__(**kwargs)
 
     def full_name(self) -> str:

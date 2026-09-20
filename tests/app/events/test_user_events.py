@@ -196,3 +196,17 @@ def test_user_event_payload_marks_service_accounts(setup_service_account):
     assert user_data["id"] == str(setup_service_account.id)
     assert user_data["service_account"] is True
     assert user_data["external_id"].startswith("system-")
+
+
+def test_user_events_carry_kind(setup_user, setup_service_account):
+    """kind is part of the projection body on every lifecycle event."""
+    for user, expected in (
+        (setup_user, "human"),
+        (setup_service_account, "service_account"),
+    ):
+        for event in (
+            build_user_created_event(user),
+            build_user_updated_event(user, user.id),
+            build_user_deleted_event(user, user.id),
+        ):
+            assert event.event_data["user"]["kind"] == expected
