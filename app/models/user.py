@@ -42,6 +42,7 @@ class User(Base, TimestampMixin):
     verified_at = Column(DateTime, nullable=True)
     external_id = Column(String, nullable=True)
     theme_preference = Column(String, default="system", nullable=True)
+    # Kept for compatibility; prefer kind. Existing checks (e.g. /me, user lists) still read it.
     service_account = Column(Boolean, default=False)
     kind = Column(String(20), nullable=False)
 
