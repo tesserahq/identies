@@ -29,7 +29,8 @@ The `User` model represents both regular users and service accounts in the syste
 - `external_id` (String, optional): ID from external identity provider
 - `provider` (String, optional): Identity provider name (e.g., "google", "github")
 - `verified` (Boolean): Email verification status
-- `service_account` (Boolean): Flag indicating if this is a service account
+- `service_account` (Boolean, computed): True when `kind` is `agent` or `service_account`. Derived from `kind`, so the two can never disagree; kept for compatibility, prefer `kind`
+- `kind` (String, required): What kind of principal this is: `human`, `agent` or `service_account`. Identies models the principal only; relationships between principals (e.g. which human is responsible for an agent) belong to the products that own them
 - `avatar_url`, `avatar_asset_id` (String, optional): Avatar image references
 - `theme_preference` (String): UI theme preference
 
@@ -184,9 +185,8 @@ Commands handle complex operations with side effects:
 
 Events are emitted for important state changes:
 
-- **User Events**: User creation, updates
+- **User Events**: User creation, updates and deletion, including service accounts (see [User Events](user_events.md))
 - **API Key Events**: Key creation, revocation
-- **Service Account Events**: Service account lifecycle
 
 ## API Design
 

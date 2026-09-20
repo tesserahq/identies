@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime
 
 from app.config import get_settings
+from app.constants.user_kinds import UserKind
 from vaulta_client.utils import sign_serve_url
 
 
@@ -59,7 +60,7 @@ class UserOnboard(UserBase):
     """Unique identifier from the external authentication provider."""
 
     service_account: bool = False
-    """Whether this user is a service account. Defaults to False."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
 
 
 class UserUpdate(BaseModel):
@@ -115,7 +116,10 @@ class User(UserInDB):
     """External ID of the user."""
 
     service_account: bool = False
-    """Whether this user is a service account. Defaults to False."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
+
+    kind: UserKind = UserKind.HUMAN
+    """What kind of principal this is: human, agent or service_account."""
 
 
 class UserResponse(BaseModel):
@@ -167,7 +171,10 @@ class UserResponse(BaseModel):
     """External ID of the user."""
 
     service_account: bool = False
-    """Whether this user is a service account. Defaults to False."""
+    """Computed from ``kind``: true for agents and service accounts. Kept for compatibility; prefer ``kind``."""
+
+    kind: UserKind = UserKind.HUMAN
+    """What kind of principal this is: human, agent or service_account."""
 
     @model_validator(mode="after")
     def set_avatar_url_from_asset_id(self):
