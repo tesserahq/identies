@@ -36,12 +36,20 @@ class AgentClaimRequest(BaseModel):
 
 
 class AgentClaimResponse(BaseModel):
-    """The agent's API key. Returned only once."""
+    """The agent's OAuth client credentials. Returned only once.
 
-    api_key: str
-    """Full ``ak_<key_id>.<secret>`` key. Only its hash is stored."""
+    The agent exchanges them for short-lived JWT access tokens at ``/oauth/token``
+    (client credentials grant).
+    """
+
+    client_id: str
+    client_secret: str
+    """Only its hash is stored."""
 
     user_id: UUID
+    """The agent user; it is the ``sub`` of the tokens minted with these credentials."""
+
     expires_at: datetime | None = None
+    """When the client secret stops working (rotate it before then)."""
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,8 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, ForeignKey, Index, String
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -26,9 +28,15 @@ class Client(Base, TimestampMixin, SoftDeleteMixin):
     owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     revoked = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
 
     owner = relationship("User", foreign_keys=[owner_id])
     created_by = relationship("User", foreign_keys=[created_by_id])
 
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and self.expires_at <= datetime.now(
+            timezone.utc
+        )
+
     def is_valid(self) -> bool:
-        return not self.revoked and self.deleted_at is None
+        return not self.revoked and self.deleted_at is None and not self.is_expired()

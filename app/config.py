@@ -114,8 +114,8 @@ class Settings(BaseSettings):
     agent_claim_max_failed_attempts: int = Field(
         default=5, json_schema_extra={"env": "AGENT_CLAIM_MAX_FAILED_ATTEMPTS"}
     )
-    agent_api_key_ttl_days: int = Field(
-        default=30, json_schema_extra={"env": "AGENT_API_KEY_TTL_DAYS"}
+    agent_client_secret_ttl_days: int = Field(
+        default=30, json_schema_extra={"env": "AGENT_CLIENT_SECRET_TTL_DAYS"}
     )
 
     otel_exporter_otlp_endpoint: str = "http://localhost:4318"

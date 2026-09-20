@@ -10,46 +10,60 @@ from app.commands.agents import claim_agent_command as claim_module
 from app.commands.agents.claim_agent_command import ClaimAgentCommand
 from app.commands.agents.create_agent_command import CreateAgentCommand
 from app.config import get_settings
-from app.events.api_key_events import API_KEY_CREATED
+from app.events.client_events import CLIENT_CREATED
 from app.exceptions.agent_error import AgentClaimError
 from app.models.agent_claim import AgentClaim
-from app.models.api_key import ApiKey
+from app.models.client import Client
 from app.models.user import User
-from app.repositories.api_key_repository import ApiKeyRepository
+from app.repositories.client_repository import ClientRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.agent import AgentCreateRequest
 
 
-def test_claim_returns_a_working_key_for_the_agent(db, publisher, created_agent):
+def test_claim_returns_working_client_credentials_for_the_agent(
+    db, publisher, created_agent
+):
     agent, code, _ = created_agent
 
-    api_key, full_key = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
+    client, client_secret = ClaimAgentCommand(db, nats_publisher=publisher).execute(
+        code
+    )
 
-    assert full_key.startswith("ak_")
-    assert api_key.user_id == agent.id
-    verified = ApiKeyRepository(db).verify_api_key(full_key)
-    assert verified is not None and verified.user_id == agent.id
+    assert client.owner_id == agent.id
+    assert client.created_by_id == agent.id
+    verified = ClientRepository(db).verify_client(client.client_id, client_secret)
+    assert verified is not None and verified.owner_id == agent.id
 
 
-def test_key_expires_after_the_configured_ttl(db, publisher, created_agent):
+def test_client_secret_expires_after_the_configured_ttl(db, publisher, created_agent):
     _, code, _ = created_agent
-    api_key, _ = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
+    client, _ = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
 
     expected = datetime.now(timezone.utc) + timedelta(
-        days=get_settings().agent_api_key_ttl_days
+        days=get_settings().agent_client_secret_ttl_days
     )
-    expires_at = api_key.expires_at.replace(
-        tzinfo=api_key.expires_at.tzinfo or timezone.utc
+    assert abs((client.expires_at - expected).total_seconds()) < 60
+
+
+def test_an_expired_client_secret_stops_working(db, publisher, created_agent):
+    _, code, _ = created_agent
+    client, client_secret = ClaimAgentCommand(db, nats_publisher=publisher).execute(
+        code
     )
-    assert abs((expires_at - expected).total_seconds()) < 60
+    client.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    db.commit()
+
+    assert ClientRepository(db).verify_client(client.client_id, client_secret) is None
 
 
 def test_the_secret_is_never_stored(db, publisher, created_agent):
     _, code, _ = created_agent
-    _, full_key = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
+    client, client_secret = ClaimAgentCommand(db, nats_publisher=publisher).execute(
+        code
+    )
 
-    stored = db.query(ApiKey).filter(ApiKey.key_id == full_key[3:].split(".")[0]).one()
-    assert full_key.split(".")[1] not in stored.secret_hash
+    stored = db.query(Client).filter(Client.id == client.id).one()
+    assert client_secret not in stored.secret_hash
 
 
 def test_a_code_works_only_once(db, publisher, created_agent):
@@ -59,7 +73,7 @@ def test_a_code_works_only_once(db, publisher, created_agent):
 
     with pytest.raises(AgentClaimError):
         command.execute(code)
-    assert db.query(ApiKey).count() == 1
+    assert db.query(Client).count() == 1
 
 
 def test_expired_code_is_rejected(db, publisher, created_agent):
@@ -70,7 +84,7 @@ def test_expired_code_is_rejected(db, publisher, created_agent):
 
     with pytest.raises(AgentClaimError):
         ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
-    assert db.query(ApiKey).count() == 0
+    assert db.query(Client).count() == 0
 
 
 @pytest.mark.parametrize(
@@ -117,7 +131,7 @@ def test_claim_locks_after_too_many_wrong_secrets(db, publisher, created_agent):
     # Even the correct code no longer works once the claim is locked.
     with pytest.raises(AgentClaimError):
         command.execute(code)
-    assert db.query(ApiKey).count() == 0
+    assert db.query(Client).count() == 0
 
 
 def test_wrong_secrets_below_the_limit_do_not_lock_the_claim(
@@ -130,8 +144,8 @@ def test_wrong_secrets_below_the_limit_do_not_lock_the_claim(
     with pytest.raises(AgentClaimError):
         command.execute(f"ac_{claim_id}.wrong")
 
-    _, full_key = command.execute(code)
-    assert full_key.startswith("ak_")
+    client, _ = command.execute(code)
+    assert client.client_id.startswith("cs_")
 
 
 def test_deleted_agent_cannot_be_claimed(db, publisher, created_agent):
@@ -140,23 +154,25 @@ def test_deleted_agent_cannot_be_claimed(db, publisher, created_agent):
 
     with pytest.raises(AgentClaimError):
         ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
-    assert db.query(ApiKey).count() == 0
+    assert db.query(Client).count() == 0
 
 
-def test_claim_publishes_api_key_created(db, publisher, created_agent):
+def test_claim_publishes_client_created_without_the_secret(
+    db, publisher, created_agent
+):
     agent, code, _ = created_agent
     publisher.reset_mock()
 
-    ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
+    _, client_secret = ClaimAgentCommand(db, nats_publisher=publisher).execute(code)
 
     publisher.publish_sync.assert_called_once()
     event = publisher.publish_sync.call_args.args[0]
-    assert event.event_type.endswith(API_KEY_CREATED)
+    assert event.event_type.endswith(CLIENT_CREATED)
     assert event.event_data["user"]["id"] == str(agent.id)
-    assert "secret" not in str(event.event_data)
+    assert client_secret not in str(event.event_data)
 
 
-def test_concurrent_claims_of_one_code_mint_exactly_one_key(engine, monkeypatch):
+def test_concurrent_claims_of_one_code_mint_exactly_one_client(engine, monkeypatch):
     """Real concurrency: separate sessions/connections racing on the same code.
 
     The shared `db` fixture wraps everything in one transaction, so this test uses its
@@ -195,9 +211,7 @@ def test_concurrent_claims_of_one_code_mint_exactly_one_key(engine, monkeypatch)
             # this the threads would reach the database one after another, not together.
             session.execute(text("SELECT 1"))
             barrier.wait()
-            _, key = ClaimAgentCommand(session, nats_publisher=MagicMock()).execute(
-                code
-            )
+            ClaimAgentCommand(session, nats_publisher=MagicMock()).execute(code)
             results.append("ok")
         except AgentClaimError:
             results.append("rejected")
@@ -212,11 +226,11 @@ def test_concurrent_claims_of_one_code_mint_exactly_one_key(engine, monkeypatch)
 
     check = Session()
     try:
-        keys = check.query(ApiKey).filter(ApiKey.user_id == agent_id).count()
+        clients = check.query(Client).filter(Client.owner_id == agent_id).count()
         assert sorted(results) == ["ok", "rejected", "rejected", "rejected"]
-        assert keys == 1
+        assert clients == 1
     finally:
-        check.query(ApiKey).filter(ApiKey.user_id == agent_id).delete()
+        check.query(Client).filter(Client.owner_id == agent_id).delete()
         check.query(AgentClaim).filter(AgentClaim.agent_user_id == agent_id).delete()
         check.query(User).filter(User.id == agent_id).delete()
         check.commit()

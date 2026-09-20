@@ -90,8 +90,10 @@ def test_service_creates_claims_and_reissues(make_client):
 
     claimed = client.post("/agents/claim", json={"code": reissued.json()["claim_code"]})
     assert claimed.status_code == 200
-    assert claimed.json()["api_key"].startswith("ak_")
+    assert claimed.json()["client_id"].startswith("cs_")
+    assert claimed.json()["client_secret"]
     assert claimed.json()["user_id"] == body["agent"]["id"]
+    assert "api_key" not in claimed.json()
 
     again = client.post(f"/agents/{body['agent']['id']}/claim-codes")
     assert again.status_code == 409

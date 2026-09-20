@@ -20,8 +20,8 @@ def test_new_code_replaces_the_previous_one(db, publisher, created_agent):
     assert new_code != old_code
     with pytest.raises(AgentClaimError):
         ClaimAgentCommand(db, nats_publisher=publisher).execute(old_code)
-    _, key = ClaimAgentCommand(db, nats_publisher=publisher).execute(new_code)
-    assert key.startswith("ak_")
+    client, _ = ClaimAgentCommand(db, nats_publisher=publisher).execute(new_code)
+    assert client.client_id.startswith("cs_")
 
 
 def test_cannot_issue_a_code_for_a_claimed_agent(db, publisher, created_agent):

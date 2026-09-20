@@ -51,18 +51,21 @@ async def claim_agent(
     body: AgentClaimRequest,
     db: Session = Depends(get_db),
 ):
-    """Exchange a claim code for the agent's API key (returned once).
+    """Exchange a claim code for the agent's OAuth client credentials (returned once).
 
     Every failure returns the same 400 so a caller cannot tell an invalid code from an
     expired, used or locked one.
     """
     try:
-        api_key, full_key = ClaimAgentCommand(db).execute(body.code)
+        client, client_secret = ClaimAgentCommand(db).execute(body.code)
     except AgentClaimError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return AgentClaimResponse(
-        api_key=full_key, user_id=api_key.user_id, expires_at=api_key.expires_at
+        client_id=client.client_id,
+        client_secret=client_secret,
+        user_id=client.owner_id,
+        expires_at=client.expires_at,
     )
 
 
