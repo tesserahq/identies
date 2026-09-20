@@ -159,3 +159,40 @@ def test_user_event_with_optional_fields(setup_user, db):
     assert user_data.get("theme_preference") == "light"
     assert user_data.get("verified") is True
     assert user_data.get("verified_at") is not None
+
+
+def test_user_event_payload_is_a_full_projection(setup_user):
+    """Every lifecycle event carries what a consumer needs to upsert by Identies id."""
+    for event in (
+        build_user_created_event(setup_user),
+        build_user_updated_event(setup_user, setup_user.id),
+        build_user_deleted_event(setup_user, setup_user.id),
+    ):
+        user_data = event.event_data["user"]
+
+        assert user_data["id"] == str(setup_user.id)
+        assert user_data["external_id"] == setup_user.external_id
+        assert user_data["service_account"] is False
+        assert user_data["created_at"] is not None
+        assert user_data["updated_at"] is not None
+        for field in (
+            "email",
+            "first_name",
+            "last_name",
+            "preferred_name",
+            "avatar_url",
+            "avatar_asset_id",
+            "provider",
+            "verified",
+            "verified_at",
+        ):
+            assert field in user_data
+
+
+def test_user_event_payload_marks_service_accounts(setup_service_account):
+    event = build_user_created_event(setup_service_account)
+    user_data = event.event_data["user"]
+
+    assert user_data["id"] == str(setup_service_account.id)
+    assert user_data["service_account"] is True
+    assert user_data["external_id"].startswith("system-")
