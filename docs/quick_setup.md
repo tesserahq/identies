@@ -62,8 +62,18 @@ SERVICE_ACCOUNT_CLIENT_NAME_CLAIM=https://mylinden.family/client_name
 # Identies-issued tokens (issuer TOKEN_EXCHANGE_ISSUER) are allowed via signature + service-account claims.
 ALLOWED_SERVICE_ACCOUNT_CLIENT_IDS=conversa-client
 
+# Identies-issued tokens (client credentials, token exchange). See "Signing keys" below.
+TOKEN_EXCHANGE_ISSUER=https://identies.tessera.com/
+TOKEN_EXCHANGE_AUDIENCE=https://identies.tessera.com/
+TOKEN_EXCHANGE_PRIVATE_KEY_PEM="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+TOKEN_EXCHANGE_PUBLIC_KEY_PEM="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+
 # Custos Integration (for authorization)
 CUSTOS_API_URL=http://localhost:8000
+
+# Events: nothing is published unless this is true
+NATS_ENABLED=false
+NATS_URL=nats://localhost:4222
 
 # Optional: Invite-Only Access
 INVITE_ONLY_ACCESS=false
@@ -71,6 +81,21 @@ INVITE_ONLY_ACCESS=false
 # Optional: Disable Auth (for development only)
 DISABLE_AUTH=false
 ```
+
+### Signing keys (only if you will mint tokens)
+
+`POST /oauth/token` and `POST /oauth/token-exchange` sign tokens with an RSA key. Generate one and
+put the PEMs in the two variables above:
+
+```bash
+openssl genrsa -out identies-private.pem 2048
+openssl rsa -in identies-private.pem -pubout -out identies-public.pem
+```
+
+Keep the private key secret. See [Operations](operations.md#signing-keys) for what replacing it
+later means.
+
+Every setting is described in [Configuration](configuration.md).
 
 ## Step 4: Run Database Migrations
 
@@ -96,15 +121,20 @@ The API will be available at `http://localhost:8000` by default.
 Test that the service is running:
 
 ```bash
-# Health check
-curl http://localhost:8000/
+# Liveness probe (public)
+curl http://localhost:8000/livez
 
-# Expected response: {"message": "Hey, It is me Goku"}
+# Readiness probe (public). Identies registers no extra probes, so this does not check the database
+curl http://localhost:8000/readyz
 ```
+
+Every other route needs a credential (or `DISABLE_AUTH=true` for local development only), so
+`curl http://localhost:8000/` without a token returns `401`.
 
 ## Next Steps
 
-- Review the [Architecture](architecture.md) documentation to understand the system design
+- Read [Concepts](concepts.md) and [Authentication](authentication.md), then review the [Architecture](architecture.md)
+- To run the tests, see [Development](development.md)
 - Configure your OIDC provider settings
 - Set up Custos integration for authorization
 - Create your first user or service account via the API
@@ -195,4 +225,5 @@ Avoid disabling all WAF protections globally. Only bypass Browser Integrity Chec
 
 - Verify OIDC configuration matches your provider
 - Check that `DISABLE_AUTH=false` in production
-- Ensure Vaulta is accessible if using authorization features
+- Authorization checks call Custos: make sure `CUSTOS_API_URL` is reachable (`503 Authorization service unavailable` means it is not)
+- See [Operations](operations.md#troubleshooting) for the full troubleshooting table

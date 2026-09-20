@@ -1,5 +1,7 @@
 # User events (projection contract)
 
+This page is the contract for the **user** events. The catalog of every event Identies publishes is in [Events](events.md).
+
 Tessera product services (Linden, Custos, Sendly, Orcha, Eventa, Modela, ...) keep a
 local `users` row with the **same Identies UUID** so they can foreign-key records
 (`created_by_id`, members, actors) without calling Identies on every read. That row
