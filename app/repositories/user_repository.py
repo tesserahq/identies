@@ -2,6 +2,8 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, Query
+from app.models.api_key import ApiKey
+from app.models.client import Client
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
 from app.schemas.service_account import ServiceAccountOnboard
@@ -13,29 +15,53 @@ class UserRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_user(self, user_id: UUID) -> Optional[User]:
-        return self.db.query(User).filter(User.id == user_id).first()
+    def get_user(self, user_id: UUID, include_deleted: bool = False) -> Optional[User]:
+        query = self.db.query(User).filter(User.id == user_id)
+        if not include_deleted:
+            query = query.filter(User.deleted_at.is_(None))
+        return query.first()
 
     def get_user_by_email(self, email: str) -> Optional[User]:
-        return self.db.query(User).filter(User.email == email).first()
+        return (
+            self.db.query(User)
+            .filter(User.email == email, User.deleted_at.is_(None))
+            .first()
+        )
 
     def get_user_by_id_or_external_id(self, id: str) -> User | None:
         try:
             uuid_id = UUID(str(id))
             return (
                 self.db.query(User)
-                .filter(or_(User.id == uuid_id, User.external_id == str(id)))
+                .filter(
+                    or_(User.id == uuid_id, User.external_id == str(id)),
+                    User.deleted_at.is_(None),
+                )
                 .first()
             )
         except (ValueError, TypeError):
             # Not a valid UUID, only match on external_id
-            return self.db.query(User).filter(User.external_id == str(id)).first()
+            return (
+                self.db.query(User)
+                .filter(User.external_id == str(id), User.deleted_at.is_(None))
+                .first()
+            )
 
     def get_user_by_external_id(self, external_id: str) -> Optional[User]:
-        return self.db.query(User).filter(User.external_id == external_id).first()
+        return (
+            self.db.query(User)
+            .filter(User.external_id == external_id, User.deleted_at.is_(None))
+            .first()
+        )
 
     def get_users(self, skip: int = 0, limit: int = 100) -> List[User]:
-        return self.db.query(User).offset(skip).limit(limit).all()
+        return (
+            self.db.query(User)
+            .filter(User.deleted_at.is_(None))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def create_user(self, user: UserCreate) -> User:
         db_user = User(**user.model_dump())
@@ -67,7 +93,7 @@ class UserRepository:
         return db_user
 
     def update_user(self, user_id: UUID, user: UserUpdate) -> Optional[User]:
-        db_user = self.db.query(User).filter(User.id == user_id).first()
+        db_user = self.get_user(user_id)
         if db_user:
             update_data = user.model_dump(exclude_unset=True)
             for key, value in update_data.items():
@@ -77,15 +103,28 @@ class UserRepository:
         return db_user
 
     def delete_user(self, user_id: UUID) -> bool:
-        db_user = self.db.query(User).filter(User.id == user_id).first()
-        if db_user:
-            self.db.delete(db_user)
-            self.db.commit()
-            return True
-        return False
+        """Soft-delete a user and revoke everything that can authenticate as them.
+
+        The row is kept (as a tombstone for records that reference it); it is only
+        hidden from lookups. API keys and OAuth clients owned by the user are
+        revoked so no credential keeps working after deletion.
+        """
+        db_user = self.get_user(user_id)
+        if not db_user:
+            return False
+
+        db_user.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        self.db.query(ApiKey).filter(
+            ApiKey.user_id == user_id, ApiKey.revoked.is_(False)
+        ).update({"revoked": True}, synchronize_session=False)
+        self.db.query(Client).filter(
+            Client.owner_id == user_id, Client.revoked.is_(False)
+        ).update({"revoked": True}, synchronize_session=False)
+        self.db.commit()
+        return True
 
     def verify_user(self, user_id: UUID) -> Optional[User]:
-        db_user = self.db.query(User).filter(User.id == user_id).first()
+        db_user = self.get_user(user_id)
         if db_user:
             db_user.verified = True  # type: ignore[assignment]
             db_user.verified_at = datetime.now(timezone.utc)  # type: ignore[assignment]
@@ -105,7 +144,7 @@ class UserRepository:
         Returns:
             List[User]: Filtered list of users matching the criteria.
         """
-        query = self.db.query(User)
+        query = self.db.query(User).filter(User.deleted_at.is_(None))
         query = apply_filters(query, User, filters)
         return query.all()
 
@@ -116,7 +155,9 @@ class UserRepository:
         Returns:
             Query: SQLAlchemy query object for service accounts.
         """
-        return self.db.query(User).filter(User.service_account == True)
+        return self.db.query(User).filter(
+            User.service_account == True, User.deleted_at.is_(None)  # noqa: E712
+        )
 
     def get_users_query(self, q: str | None = None) -> Query:
         """
@@ -128,7 +169,9 @@ class UserRepository:
         Returns:
             Query: SQLAlchemy query object for users.
         """
-        query = self.db.query(User).filter(User.service_account == False)
+        query = self.db.query(User).filter(
+            User.service_account == False, User.deleted_at.is_(None)  # noqa: E712
+        )
 
         q_normalized = (q or "").strip()
         if q_normalized:

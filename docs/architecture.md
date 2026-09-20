@@ -33,6 +33,7 @@ The `User` model represents both regular users and service accounts in the syste
 - `kind` (String, required): What kind of principal this is: `human`, `agent` or `service_account`. Identies models the principal only; relationships between principals (e.g. which human is responsible for an agent) belong to the products that own them
 - `avatar_url`, `avatar_asset_id` (String, optional): Avatar image references
 - `theme_preference` (String): UI theme preference
+- `deleted_at` (DateTime, optional): Soft delete marker. Deleted users are hidden from all lookups but the row is kept, so records that reference it still resolve. Deleting a user revokes their API keys and OAuth clients, and API key / client validation also rejects a deleted user. `email` and `external_id` are unique among active users only, so they can be reused after deletion
 
 **Relationships:**
 - One-to-many with `ApiKey` (users can have multiple API keys)
