@@ -11,74 +11,74 @@ Identies is built as a FastAPI-based microservice that provides identity and use
 - **Framework**: FastAPI (Python 3.11+)
 - **Database**: PostgreSQL with SQLAlchemy ORM
 - **Migrations**: Alembic
-- **Authentication**: OIDC (OpenID Connect) with JWT tokens
+- **Authentication**: OIDC (OpenID Connect) JWTs, Identies-issued JWTs from OAuth client credentials, and API keys
 - **Authorization**: Custos integration for RBAC
 - **Dependency Management**: Poetry
 - **Observability**: OpenTelemetry, Prometheus metrics, Rollbar error tracking
 
 ## Core Data Models
 
-### User Model
+Every table has `created_at` and `updated_at`. Tables marked *soft-deletable* also have a
+`deleted_at` column; see [Data Lifecycle](data_lifecycle.md) for what deletion actually does to each.
 
-The `User` model represents both regular users and service accounts in the system.
+### User
 
-**Key Fields:**
-- `id` (UUID): Primary key
-- `email` (String): Unique email address
-- `first_name`, `last_name` (String): User's name
-- `external_id` (String, optional): ID from external identity provider
-- `provider` (String, optional): Identity provider name (e.g., "google", "github")
-- `verified` (Boolean): Email verification status
-- `service_account` (Boolean, computed): True when `kind` is `agent` or `service_account`. Derived from `kind`, so the two can never disagree; kept for compatibility, prefer `kind`
-- `kind` (String, required): What kind of principal this is: `human`, `agent` or `service_account`. Identies models the principal only; relationships between principals (e.g. which human is responsible for an agent) belong to the products that own them
-- `avatar_url`, `avatar_asset_id` (String, optional): Avatar image references
-- `theme_preference` (String): UI theme preference
-- `deleted_at` (DateTime, optional): Soft delete marker. Deleted users are hidden from all lookups but the row is kept, so records that reference it still resolve. Deleting a user revokes their API keys and OAuth clients, and API key / client validation also rejects a deleted user. `email` and `external_id` are unique among active users only, so they can be reused after deletion
+One row per principal: a human, a service account or an [agent](agents.md). Concepts in
+[Concepts](concepts.md).
 
-**Relationships:**
-- One-to-many with `ApiKey` (users can have multiple API keys)
+**Key fields**
 
-**Indexes:**
-- Unique index on `external_id` (where not null)
-- Unique constraint on `email`
+- `id` (UUID): primary key, and the identifier every other service uses for the user
+- `kind` (String, required): `human`, `agent` or `service_account` (`CHECK`-constrained). Identies models the principal only; relationships between principals (for example which human is responsible for an agent) belong to the products that own them
+- `service_account` (Boolean, **computed**): true when `kind` is `agent` or `service_account`. Kept for compatibility; prefer `kind`. The old physical column remains until [#171](https://github.com/tesserahq/identies/issues/171)
+- `email` (String): required. Agents get a synthetic, non-delivering address
+- `first_name`, `last_name`, `preferred_name`, `avatar_url`, `avatar_asset_id`, `theme_preference`
+- `external_id` (String, optional) and `provider`: the identity from the OIDC provider (`system-...` for service accounts, `agent-...` for agents)
+- `verified`, `verified_at`, `confirmed_at`
+- `deleted_at`: soft delete (*soft-deletable*)
 
-### ApiKey Model
+**Indexes:** `email` is unique among active users (`uq_users_email_active`, partial on `deleted_at IS NULL`); `external_id` is unique among active users where not null (`uq_users_external_id`).
 
-API keys provide programmatic access to the system.
+### Client
 
-**Key Fields:**
-- `id` (UUID): Primary key
-- `user_id` (UUID): Foreign key to User
-- `key_id` (String): Unique identifier for the key
-- `secret_hash` (String): Hashed secret (never stored in plain text)
-- `name` (String): Human-readable name for the key
-- `last_used_at` (DateTime, optional): Timestamp of last usage
-- `expires_at` (DateTime, optional): Expiration timestamp
-- `revoked` (Boolean): Revocation status
+An OAuth client: credentials owned by a principal ([Credentials](credentials.md#oauth-clients-and-client-credentials)).
 
-**Relationships:**
-- Many-to-one with `User`
+- `client_id` (`cs_...`, unique), `secret_hash` (never the secret), `name`
+- `owner_id`: the principal the client acts as (the `sub` of its tokens); `created_by_id`
+- `revoked`, `expires_at` (optional), `last_used_at`
+- `deleted_at` (*soft-deletable*, but deleting a client currently removes the row)
 
-**Indexes:**
-- Unique index on `key_id`
-- Index on `user_id` for efficient lookups
+### AgentClaim
 
-### AccessRule Model
+A one-time code that turns an agent into credentials ([Agents](agents.md#claim-codes)).
 
-Access rules control invite-only access to the system.
+- `agent_user_id`, `claim_id` (public, unique), `secret_hash`
+- `expires_at`, `claimed_at`, `invalidated_at`, `failed_attempts`
 
-**Key Fields:**
-- `id` (UUID): Primary key
-- `kind` (String): Type of access rule (e.g., "email", "domain")
-- `value` (String): The rule value (e.g., email address or domain)
-- `note` (String, optional): Administrative note
+### ApiKey
 
-**Indexes:**
-- Unique composite index on `(kind, value)`
+An opaque `ak_<key_id>.<secret>` credential ([Credentials](credentials.md#api-keys)).
 
-**Features:**
-- Supports soft deletion via `SoftDeleteMixin`
-- Timestamp tracking via `TimestampMixin`
+- `user_id`, `key_id` (unique), `secret_hash`, `name`
+- `last_used_at`, `expires_at` (optional), `revoked`
+
+### AccessRule
+
+An invite-only rule ([Authentication](authentication.md#invite-only-access)).
+
+- `kind` (`email` or `domain`), `value`, `note` (optional)
+- Unique on `(kind, value, deleted_at)`. *Soft-deletable*, but deleting a rule currently removes the row
+
+### ExternalAccount and LinkToken
+
+A person's account on an outside platform, and the short-lived single-use token used to link it.
+
+- `ExternalAccount`: `user_id`, `platform`, `external_id` (unique where not null), `data` (JSON)
+- `LinkToken`: `token` (unique), `platform`, `external_id`, `data`, `expires_at`, `used_at`
+
+### Application
+
+A small registry entry: `name`, `url`, `logo`, `description`. *Soft-deletable*, but deleting one currently removes the row.
 
 ## Database Integration
 
@@ -109,163 +109,60 @@ Database schema changes are managed through Alembic migrations:
 
 ## Authentication & Authorization
 
-### OIDC Integration
+The full description is in [Authentication](authentication.md); this is the summary.
 
-Identies integrates with OpenID Connect providers (such as Auth0) for authentication:
+- **Credentials**: OIDC access tokens (humans and OIDC machine-to-machine tokens), Identies-issued JWTs from OAuth client credentials, delegated tokens from token exchange, and API keys. See [Credentials](credentials.md).
+- **Verification**: an `ak_` key is checked in the database; a JWT is checked against Identies' own public key first, then against the configured OIDC JWKS providers.
+- **Three path classes**: public paths, **service-only** paths (a service-account token, no user), and authenticated paths. The class of every route is in the [API Reference](api_reference.md).
+- **Users**: resolved from the token subject; an unknown human is onboarded from the provider's userinfo (subject to invite-only access), and an unknown OIDC machine-to-machine client is onboarded as a service account.
+- **Permissions**: most authenticated routes ask [Custos](https://github.com/tesserahq/custos) whether the user may perform an `identies.<resource>` action, using the domain `*`.
 
-- **Token Verification**: JWT tokens verified using RS256 algorithm
-- **User Onboarding**: Automatic user creation from OIDC userinfo
-- **Identity Resolution**: Links external identities to local user records
-- **Provider Support**: Multiple identity providers (Google, GitHub, etc.)
-
-### Token Validation Service
-
-Identies serves as the central token validation service for the entire platform. It is responsible for communicating with external identity providers (Auth0 in production) to validate incoming JWT tokens.
-
-**Token Validation Flow:**
-
-1. **External Provider Communication**: Identies is the sole service that communicates directly with the external identity provider (Auth0) to validate tokens
-2. **Token Validation**: When a token is received, Identies validates it against the provider's public keys and verifies its signature, expiration, and claims
-3. **User Onboarding**: If the token is valid and the user doesn't exist in Identies' database, the user is automatically onboarded with information from the provider's userinfo endpoint
-4. **Response**: Identies returns either a success response (token is valid) or an error response (token is invalid, expired, or malformed)
-
-**Service Integration Pattern:**
-
-Other services in the ecosystem (such as Custos, Sendly, etc.) use Identies as their token validation authority:
-
-1. **Token Validation**: When a service receives a request with a JWT token, it directly validates the token against the public keys of the external authentication provider (such as Auth0).
-2. **User Extraction**: After validation, the service extracts the user ID from the token's claims.
-3. **User Onboarding Request**: If the user ID does not exist in the local database, the service sends a request to Identies to onboard the user.
-4. **Onboarding Response**: Identies processes the onboarding and responds with either:
-   - **Success**: The user is onboarded and available for future requests
-   - **Error**: Onboarding failed due to invalid, expired, or malformed token or other issues
-5. **Subsequent Requests**: For future requests, if the user exists locally, the service proceeds without contacting Identies. Only if the user is not found locally does it repeat the onboarding request to Identies.
-
-This pattern provides several benefits:
-- **Centralized Validation**: Single source of truth for token validation
-- **Reduced Load**: Services cache user information locally after initial validation
-- **Consistency**: All services use the same validation logic and user data
-- **Simplified Integration**: Services don't need to integrate directly with Auth0
-
-### Custos Integration
-
-Authorization is handled through [Custos](https://github.com/tesserahq/custos), a separate authorization service:
-
-- **RBAC**: Role-Based Access Control
-- **Permission Evaluation**: Centralized permission checking
-- **Service Communication**: API-based integration with Custos service
-
-### Authentication Middleware
-
-The `AuthenticationMiddleware` processes incoming requests:
-
-1. Extracts and validates JWT tokens
-2. Fetches user information from OIDC provider
-3. Onboards new users automatically
-4. Attaches user context to requests
+Other services normally verify Identies-issued and OIDC JWTs themselves against the published keys
+(the shared SDK supports several providers), and verify `ak_` API keys by calling Identies'
+introspect endpoint. Each consuming service keeps its own local copy of the users it needs, kept
+current from [events](events.md); how a service creates that copy is that service's concern.
 
 ## Service Layer Architecture
 
-### Service Pattern
+### Repositories
 
-Services encapsulate business logic and database operations:
+Data access, one per entity (`UserRepository`, `ClientRepository`, `ApiKeyRepository`,
+`AgentRepository`, `AgentClaimRepository`, ...). **Every user lookup excludes soft-deleted rows.**
 
-- **UserService**: User CRUD operations and queries
-- **ApiKeyService**: API key management and validation
-- **AccessRuleService**: Access rule evaluation and management
+### Commands
 
-### Command Pattern
+One class per operation with a single public `execute()`. Commands own business rules and publish
+events. Examples: `OnboardUserCommand`, `CreateApiKeyCommand`, `CreateClientCommand`, and for agents
+`CreateAgentCommand`, `ClaimAgentCommand`, `IssueAgentClaimCommand`, `RotateAgentCredentialsCommand`,
+`RevokeAgentCommand`, `DeleteAgentCommand`.
 
-Commands handle complex operations with side effects:
+### Events
 
-- **OnboardUserCommand**: User onboarding with validation
-- **CreateApiKeyCommand**: API key generation with secure hashing
-- **UpdateUserCommand**: User profile updates
-
-### Event System
-
-Events are emitted for important state changes:
-
-- **User Events**: User creation, updates and deletion, including service accounts (see [User Events](user_events.md))
-- **API Key Events**: Key creation, revocation
+Every state change publishes a CloudEvent through the shared SDK publisher. See [Events](events.md)
+for the catalog and [User Events](user_events.md) for the user projection contract.
 
 ## API Design
 
-### Router Structure
+The complete route list, with each route's access class and Custos permission, is the generated
+table in the [API Reference](api_reference.md). Routers are grouped by domain:
 
-Routers organize endpoints by domain:
+| Prefix | Domain |
+|---|---|
+| `/users`, `/internal/users`, `/me`, `/userinfo` | Users and the caller's own profile |
+| `/service-accounts` | Service accounts and their API keys and clients |
+| `/agents` | AI agents ([Agents](agents.md)); service only |
+| `/clients`, `/oauth` | OAuth clients, `POST /oauth/token`, token exchange |
+| `/api-keys`, `/me/api-keys` | API keys |
+| `/access-rules` | Invite-only access rules |
+| `/external-accounts` | Linking outside platform accounts |
+| `/applications` | Application registry |
+| `/.well-known/jwks.json`, `/livez`, `/readyz` | Keys and health |
 
-- `/users`: User management endpoints
-- `/api-keys`: API key management
-- `/service-accounts`: Service account operations
-- `/access-rules`: Access rule management
-- `/me`: Current user information
-- `/userinfo`: OIDC-compatible userinfo endpoint
+### Responses
 
-### User router (`app/routers/user_router.py`)
-
-The **User router** groups endpoints related to reading users and managing a user's API keys.
-
-#### Endpoints
-
-- **GET** `/users/{user_id}`: Fetch a user by ID (RBAC-protected).
-- **GET** `/users`: List users (RBAC-protected, paginated).
-- **GET** `/users/{user_id}/api-keys`: List API keys for a user (RBAC-protected, paginated).
-- **POST** `/users/{user_id}/api-keys`: Create an API key for a user (RBAC-protected).
-- **GET** `/internal/users/{user_id}`: Fetch a user by ID (**internal, service-account-only**; see below).
-
-#### Internal endpoint: `GET /internal/users/{user_id}` (service accounts only)
-
-This endpoint is intended to be called **only by Auth0 service accounts** using **Client Credentials (M2M) tokens**.
-
-- **Why**: Access to `/internal/*` endpoints is restricted based on **JWT claims** that identify the caller as a service account (not an end user).
-- **How**: Auth0 issues M2M access tokens and an Auth0 Action adds **custom claims** to those tokens, including an `account_type` claim set to `service_account`.
-- **Note**: The code changes that enforce this claim-based restriction are not implemented yet; this is the intended contract and should be relied on by internal consumers.
-
-Auth0 Action (Client Credentials exchange) used for M2M tokens:
-
-```javascript
-/**
-* Handler that will be called during the execution of a Client Credentials exchange.
-*
-* @param {Event} event - Details about client credentials grant request.
-* @param {CredentialsExchangeAPI} api - Interface whose methods can be used to change the behavior of client credentials grant.
-*/
-exports.onExecuteCredentialsExchange = async (event, api) => {
-  api.accessToken.setCustomClaim(
-    "https://mylinden.family/client_id",
-    event.client.client_id
-  );
-
-  api.accessToken.setCustomClaim(
-    "https://mylinden.family/client_name",
-    event.client.name
-  );
-
-  api.accessToken.setCustomClaim(
-    "https://mylinden.family/account_type",
-    "service_account"
-  );
-};
-```
-
-### Response Format
-
-All API responses follow a consistent format:
-
-```json
-{
-  "data": [...]
-}
-```
-
-### Pagination
-
-List endpoints support pagination via `fastapi-pagination`:
-
-- Configurable page size
-- Cursor-based or offset-based pagination
-- Metadata included in responses
+- Successful responses return the resource itself; lists return a page (`items`, `total`, `page`, `size`, `pages`) with offset pagination via `fastapi-pagination`.
+- Errors from routes are `{"detail": ...}`; errors from the authentication middleware are `{"error": ...}`.
+- `/docs` and `/redoc` are disabled; `GET /openapi.json` is served to authenticated callers only.
 
 ## Observability
 
@@ -295,32 +192,32 @@ Structured logging with configurable levels:
 
 ## Security Considerations
 
-### API Key Security
+### Secrets
 
-- Secrets are hashed using secure algorithms
-- Keys never returned in API responses
-- Revocation support for compromised keys
-- Expiration dates for temporary access
+- API key secrets, OAuth client secrets and agent claim secrets are **hashed**, shown once, and never returned again, logged or published in events.
+- Secret comparison is constant-time.
+- Claim codes are single-use, short-lived, locked after repeated wrong guesses, and every failure looks the same.
 
-### Database Security
+### Trust boundaries
 
-- Parameterized queries prevent SQL injection
-- Connection pooling limits resource exposure
-- Soft deletes preserve audit trails
+- **Service-only paths** accept only service-account tokens. Human tokens, API keys and **agents' own tokens** are rejected. Identies only puts the service-account claims on tokens for clients owned by a `kind = service_account` principal ([Design Decisions](decisions.md#agents-must-never-act-as-a-service)).
+- The agent endpoints act only on active agents; they cannot touch a human or a service account.
+- `POST /api-keys/introspect` is deliberately public and has no Custos dependency, because Custos calls it.
 
-### Authentication Security
+### Tokens
 
-- JWT token validation with signature verification
-- Token expiration enforcement
-- Secure secret management via environment variables
+- JWTs are signed RS256 with a single key published at `/.well-known/jwks.json`; there is no overlap period when it is replaced ([Operations](operations.md#signing-keys)).
+- Client-credential tokens last 15 minutes, so revocation takes up to 15 minutes to reach tokens already minted.
 
-## Multi-Tenancy
+### Data
 
-The system is designed to support multi-tenant scenarios:
+- Parameterized queries prevent SQL injection; connection pooling limits resource exposure.
+- Users are soft-deleted and their credentials revoked ([Data Lifecycle](data_lifecycle.md)).
 
-- Workspace-scoped resources
-- Tenant isolation at the application layer
-- URL-based tenant identification (not payload-based)
+## Tenancy
+
+Identies is **not** multi-tenant. Custos permission checks use the single domain `*`. Tenancy
+(family accounts, workspaces) is a concern of the products that use Identies.
 
 ## Development Patterns
 
