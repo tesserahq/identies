@@ -6,7 +6,6 @@ from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.exceptions.service_account_error import ServiceAccountError
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.events.service_account_events import build_service_account_deleted_event
 from app.events.user_events import build_user_deleted_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
@@ -59,7 +58,7 @@ class DeleteServiceAccountCommand:
             if not success:
                 raise Exception("Failed to delete service account")
 
-            self._publish_service_account_deleted_event(user_data, service_account_id)
+            self._publish_user_deleted_event(user_data, service_account_id)
 
             return True
 
@@ -70,30 +69,23 @@ class DeleteServiceAccountCommand:
             self.db.rollback()
             raise Exception(f"Failed to delete service account: {str(e)}")
 
-    def _publish_service_account_deleted_event(self, user: User, user_id: UUID) -> None:
+    def _publish_user_deleted_event(self, user: User, user_id: UUID) -> None:
         """
-        Publish a service account deleted event.
+        Publish a user deleted event.
 
         Args:
-            user: The deleted service account
-            user_id: The ID of the service account that was deleted
+            user: The deleted user
+            user_id: The ID of the user that was deleted
         """
-        # user.deleted is the projection contract for downstream services;
-        # service_account.deleted is kept for existing consumers. The payload is
-        # built from the in-memory user, so it still carries the id after deletion.
-        events = [
-            build_service_account_deleted_event(user, user_id),
-            build_user_deleted_event(user, user_id),
-        ]
+        event = build_user_deleted_event(user, user_id)
 
         if self.nats_publisher is not None:
-            for event in events:
-                self.logger.info(
-                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            self.logger.info(
+                f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            )
+            try:
+                self.nats_publisher.publish_sync(event, event.event_type)
+            except Exception:  # pragma: no cover - defensive logging
+                self.logger.exception(
+                    f"Failed to publish {event.event_type} event to NATS"
                 )
-                try:
-                    self.nats_publisher.publish_sync(event, event.event_type)
-                except Exception:  # pragma: no cover - defensive logging
-                    self.logger.exception(
-                        f"Failed to publish {event.event_type} event to NATS"
-                    )

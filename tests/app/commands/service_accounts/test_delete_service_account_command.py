@@ -76,11 +76,8 @@ def test_delete_service_account_publishes_user_deleted_with_id(
 
     DeleteServiceAccountCommand(db, nats_publisher=publisher).execute(account_id)
 
-    events = {
-        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
-    }
-    user_deleted = next(e for t, e in events.items() if t.endswith("user.deleted"))
+    publisher.publish_sync.assert_called_once()
+    user_deleted = publisher.publish_sync.call_args.args[0]
+    assert user_deleted.event_type.endswith("user.deleted")
     assert user_deleted.event_data["user"]["id"] == str(account_id)
     assert user_deleted.event_data["user"]["service_account"] is True
-    # Existing consumers keep receiving service_account.deleted.
-    assert any(t.endswith("service_account.deleted") for t in events)

@@ -134,10 +134,8 @@ def test_update_service_account_publishes_user_updated(
         ServiceAccountUpdateRequest(first_name="Renamed"),
     )
 
-    events = {
-        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
-    }
-    user_updated = next(e for t, e in events.items() if t.endswith("user.updated"))
+    publisher.publish_sync.assert_called_once()
+    user_updated = publisher.publish_sync.call_args.args[0]
+    assert user_updated.event_type.endswith("user.updated")
     assert user_updated.event_data["user"]["id"] == str(setup_service_account.id)
     assert user_updated.event_data["user"]["first_name"] == "Renamed"
-    assert any(t.endswith("service_account.updated") for t in events)

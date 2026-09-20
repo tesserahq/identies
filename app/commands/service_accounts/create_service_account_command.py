@@ -8,7 +8,6 @@ from app.schemas.service_account import (
 )
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.events.service_account_events import build_service_account_created_event
 from app.events.user_events import build_user_created_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 from datetime import datetime
@@ -74,7 +73,7 @@ class CreateServiceAccountCommand:
             if not user:
                 raise Exception("Failed to create service account")
 
-            self._publish_service_account_created_event(user)
+            self._publish_user_created_event(user)
 
             return user
 
@@ -83,28 +82,22 @@ class CreateServiceAccountCommand:
             self.db.rollback()
             raise Exception(f"Failed to create service account: {str(e)}")
 
-    def _publish_service_account_created_event(self, user: User) -> None:
+    def _publish_user_created_event(self, user: User) -> None:
         """
-        Publish a service account created event.
+        Publish a user created event.
 
         Args:
-            user: The created service account
+            user: The created user
         """
-        # user.created is the projection contract for downstream services;
-        # service_account.created is kept for existing consumers.
-        events = [
-            build_service_account_created_event(user),
-            build_user_created_event(user),
-        ]
+        event = build_user_created_event(user)
 
         if self.nats_publisher is not None:
-            for event in events:
-                self.logger.info(
-                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            self.logger.info(
+                f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            )
+            try:
+                self.nats_publisher.publish_sync(event, event.event_type)
+            except Exception:  # pragma: no cover - defensive logging
+                self.logger.exception(
+                    f"Failed to publish {event.event_type} event to NATS"
                 )
-                try:
-                    self.nats_publisher.publish_sync(event, event.event_type)
-                except Exception:  # pragma: no cover - defensive logging
-                    self.logger.exception(
-                        f"Failed to publish {event.event_type} event to NATS"
-                    )

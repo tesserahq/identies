@@ -18,9 +18,9 @@ The event type is namespaced by `tessera_sdk` `event_type()`, so the NATS subjec
 `event_type` end in `user.created` / `user.updated` / `user.deleted`. Subject:
 `/users/{id}`. Labels/tags: `user_id`.
 
-Service accounts additionally keep publishing `service_account.created|updated|deleted`
-for existing consumers. **User-projection sync only needs the `user.*` events**;
-do not subscribe to both.
+Service accounts are users too: creating, updating or deleting one publishes the same
+`user.*` events (with `service_account: true`). There are no separate `service_account.*`
+events.
 
 ## Payload
 

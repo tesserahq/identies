@@ -6,7 +6,6 @@ from app.schemas.service_account import ServiceAccountUpdateRequest
 from app.schemas.user import UserUpdate
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
-from app.events.service_account_events import build_service_account_updated_event
 from app.events.user_events import build_user_updated_event
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
@@ -87,9 +86,7 @@ class UpdateServiceAccountCommand:
             if not updated_user:
                 raise Exception("Service account not found")
 
-            self._publish_service_account_updated_event(
-                updated_user, service_account_id
-            )
+            self._publish_user_updated_event(updated_user, service_account_id)
 
             return updated_user
 
@@ -98,29 +95,23 @@ class UpdateServiceAccountCommand:
             self.db.rollback()
             raise Exception(f"Failed to update service account: {str(e)}")
 
-    def _publish_service_account_updated_event(self, user: User, user_id: UUID) -> None:
+    def _publish_user_updated_event(self, user: User, user_id: UUID) -> None:
         """
-        Publish a service account updated event.
+        Publish a user updated event.
 
         Args:
-            user: The updated service account
-            user_id: The ID of the service account that was updated
+            user: The updated user
+            user_id: The ID of the user that was updated
         """
-        # user.updated is the projection contract for downstream services;
-        # service_account.updated is kept for existing consumers.
-        events = [
-            build_service_account_updated_event(user, user_id),
-            build_user_updated_event(user, user_id),
-        ]
+        event = build_user_updated_event(user, user_id)
 
         if self.nats_publisher is not None:
-            for event in events:
-                self.logger.info(
-                    f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            self.logger.info(
+                f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
+            )
+            try:
+                self.nats_publisher.publish_sync(event, event.event_type)
+            except Exception:  # pragma: no cover - defensive logging
+                self.logger.exception(
+                    f"Failed to publish {event.event_type} event to NATS"
                 )
-                try:
-                    self.nats_publisher.publish_sync(event, event.event_type)
-                except Exception:  # pragma: no cover - defensive logging
-                    self.logger.exception(
-                        f"Failed to publish {event.event_type} event to NATS"
-                    )

@@ -93,10 +93,8 @@ def test_create_service_account_publishes_user_created(db: Session, faker):
         )
     )
 
-    events = {
-        c.args[0].event_type: c.args[0] for c in publisher.publish_sync.call_args_list
-    }
-    user_created = next(e for t, e in events.items() if t.endswith("user.created"))
+    publisher.publish_sync.assert_called_once()
+    user_created = publisher.publish_sync.call_args.args[0]
+    assert user_created.event_type.endswith("user.created")
     assert user_created.event_data["user"]["id"] == str(account.id)
     assert user_created.event_data["user"]["service_account"] is True
-    assert any(t.endswith("service_account.created") for t in events)
