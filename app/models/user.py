@@ -1,5 +1,14 @@
 from app.models.mixins import SoftDeleteMixin, TimestampMixin
-from sqlalchemy import CheckConstraint, Column, String, Boolean, DateTime, Index, text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -37,6 +46,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         CheckConstraint(
             "kind IN ('human', 'agent', 'service_account')", name="ck_users_kind"
         ),
+        Index("idx_users_offboarding_scheduled_at", "offboarding_scheduled_at"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -57,6 +67,15 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     # It is only written from kind (never read for behaviour) and is kept for one
     # release so a rolling deploy does not break; the column is dropped in #171.
     legacy_service_account = Column("service_account", Boolean, default=False)
+
+    # Offboarding: set when an admin schedules a user for removal. Execution
+    # (soft delete + IdP removal + user.deleted event) is handled by a
+    # separate background job once offboarding_scheduled_at elapses.
+    offboarding_scheduled_at = Column(DateTime, nullable=True)
+    offboarding_scheduled_by = Column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    deleted_event_published_at = Column(DateTime, nullable=True)
 
     # Relationships
     api_keys = relationship("ApiKey", back_populates="user")

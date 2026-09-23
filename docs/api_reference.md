@@ -94,6 +94,8 @@ poetry run python -m tests.docs.route_inventory --write
 | GET | `/users/{user_id}/clients` | Authenticated | `identies.user` : `read` | `list_user_clients` |
 | POST | `/users/{user_id}/clients` | Authenticated | `identies.user` : `create` | `create_user_client` |
 | GET | `/users/{user_id}/external-accounts` | Authenticated | `identies.external_account` : `read`, `identies.user` : `read` | `list_user_external_accounts` |
+| DELETE | `/users/{user_id}/offboarding` | Authenticated | `identies.user` : `delete` | `cancel_user_offboarding` |
+| POST | `/users/{user_id}/offboarding` | Authenticated | `identies.user` : `delete` | `schedule_user_offboarding` |
 
 <!-- END GENERATED ROUTES -->
 

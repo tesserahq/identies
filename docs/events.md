@@ -23,6 +23,7 @@ or to audit and react.
 | `user.created` | A human is onboarded; a service account or an [agent](agents.md) is created | `user` (full projection body) | `/users/{id}` |
 | `user.updated` | A profile changes (`PUT /me`) or a service account is updated | `user` | `/users/{id}` |
 | `user.deleted` | A service account or an agent is deleted | `user` (still includes `id`) | `/users/{id}` |
+| `user.offboarding_scheduled` | An admin schedules a human for offboarding (nothing is deleted yet) | `user`, `offboarding_scheduled_at`, `offboarding_scheduled_by` | `/users/{id}` |
 | `api_key.created` | An API key is created | `api_key`, `user` | `/api-keys/{id}` |
 | `api_key.updated` | An API key is updated or revoked | `api_key`, `user` | `/api-keys/{id}` |
 | `api_key.deleted` | An API key is deleted | `api_key`, `user` | `/api-keys/{id}` |

@@ -1,12 +1,14 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from tessera_sdk.infra.events.event import event_type, event_source
 from app.events.user_events import (
     build_user_created_event,
     build_user_updated_event,
     build_user_deleted_event,
+    build_user_offboarding_scheduled_event,
     USER_CREATED,
     USER_UPDATED,
     USER_DELETED,
+    USER_OFFBOARDING_SCHEDULED,
 )
 
 
@@ -83,6 +85,30 @@ def test_build_user_deleted_event(setup_user):
 
     # Verify labels and tags
     assert "user_id" in event.labels
+    assert event.labels["user_id"] == str(setup_user.id)
+    assert f"user_id:{str(setup_user.id)}" in event.tags
+
+
+def test_build_user_offboarding_scheduled_event(setup_user, setup_another_user, db):
+    """Test building a user offboarding scheduled event."""
+    scheduled_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    setup_user.offboarding_scheduled_at = scheduled_at
+    setup_user.offboarding_scheduled_by = setup_another_user.id
+    db.commit()
+    db.refresh(setup_user)
+
+    event = build_user_offboarding_scheduled_event(setup_user, setup_another_user.id)
+
+    assert event is not None
+    assert event.event_type == event_type(USER_OFFBOARDING_SCHEDULED)
+    assert event.source == event_source()
+    assert event.subject == f"/users/{setup_user.id}"
+    assert event.user_id == str(setup_another_user.id)
+
+    assert "user" in event.event_data
+    assert event.event_data["offboarding_scheduled_by"] == str(setup_another_user.id)
+    assert event.event_data["offboarding_scheduled_at"] is not None
+
     assert event.labels["user_id"] == str(setup_user.id)
     assert f"user_id:{str(setup_user.id)}" in event.tags
 

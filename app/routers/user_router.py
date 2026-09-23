@@ -5,6 +5,8 @@ from typing import Optional
 
 from app.auth.rbac import build_rbac_dependencies
 from app.commands.clients.create_client_command import CreateClientCommand
+from app.commands.users.cancel_offboarding_command import CancelOffboardingCommand
+from app.commands.users.schedule_offboarding_command import ScheduleOffboardingCommand
 from app.db import get_db
 from app.models.user import User as UserModel
 from app.repositories.client_repository import ClientRepository
@@ -15,7 +17,7 @@ from app.schemas.client import (
     ClientCreateResponse,
     ClientResponse,
 )
-from app.schemas.user import UserResponse
+from app.schemas.user import UserOffboardingScheduleRequest, UserResponse
 from app.repositories.user_repository import UserRepository
 from sqlalchemy.orm import Session
 
@@ -97,6 +99,52 @@ async def create_user_client(
     )
     response = ClientResponse.model_validate(client)
     return ClientCreateResponse(**response.model_dump(), client_secret=client_secret)
+
+
+@router.post(
+    "/users/{user_id}/offboarding",
+    response_model=UserResponse,
+    operation_id="schedule_user_offboarding",
+)
+async def schedule_user_offboarding(
+    body: Optional[UserOffboardingScheduleRequest] = None,
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["delete"]),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Schedule a user for offboarding.
+
+    Records intent only - the user is not soft-deleted or removed from the
+    identity provider until the scheduled time elapses and a background job
+    executes the offboarding. Defaults to 24 hours from now if no
+    scheduled_at is provided. Returns 409 if offboarding is already
+    scheduled for this user.
+    """
+    scheduled_at = body.scheduled_at if body else None
+    command = ScheduleOffboardingCommand(db)
+    return command.execute(user.id, current_user, scheduled_at=scheduled_at)
+
+
+@router.delete(
+    "/users/{user_id}/offboarding",
+    response_model=UserResponse,
+    operation_id="cancel_user_offboarding",
+)
+async def cancel_user_offboarding(
+    user: UserModel = Depends(get_user_by_id),
+    _authorized: bool = Depends(rbac["delete"]),
+    db: Session = Depends(get_db),
+):
+    """
+    Cancel a user's pending offboarding.
+
+    Only valid before the scheduled offboarding has executed. Returns 404
+    if the user has no offboarding scheduled.
+    """
+    command = CancelOffboardingCommand(db)
+    return command.execute(user.id)
 
 
 @router.get("/users", response_model=Page[UserResponse], operation_id="list_users")
