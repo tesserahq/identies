@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db import on_commit
 from app.events.access_rule_events import build_access_rule_created_event
 from app.exceptions.access_rule_error import AccessRuleAlreadyExistsError
 from app.models.access_rule import AccessRule
@@ -60,12 +61,18 @@ class CreateAccessRuleCommand:
             self.logger.info(
                 f"Publishing access_rule-created event to NATS: {event.model_dump_json()}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish access_rule-created event to NATS"
-                )
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        "Failed to publish access_rule-created event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)
 
     def _already_exists_error(
         self, access_rule_data: AccessRuleCreate

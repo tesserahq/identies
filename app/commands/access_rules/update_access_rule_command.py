@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.db import on_commit
 from app.events.access_rule_events import build_access_rule_updated_event
 from app.exceptions.access_rule_error import AccessRuleAlreadyExistsError
 from app.exceptions.resource_not_found_error import ResourceNotFoundError
@@ -91,12 +92,18 @@ class UpdateAccessRuleCommand:
             self.logger.info(
                 f"Publishing access_rule-updated event to NATS: {event.model_dump_json()}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish access_rule-updated event to NATS"
-                )
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        "Failed to publish access_rule-updated event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)
 
     def _already_exists_error(
         self, kind: str, value: str

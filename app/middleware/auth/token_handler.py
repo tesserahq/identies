@@ -3,7 +3,7 @@ import jwt
 from app.config import get_settings
 from app.middleware.auth.exceptions import UnauthorizedException
 from app.repositories.api_key_repository import ApiKeyRepository
-from app.utils.db.db_session_helper import db_session
+from app.db import session_scope
 
 
 def _is_api_key(token: str) -> bool:
@@ -46,7 +46,7 @@ class TokenHandler:
 
     def _verify_api_key(self, token: str) -> dict:
         """Verify API key and return a payload with 'sub' set to user id for UserHandler."""
-        with db_session() as db:
+        with session_scope() as db:
             api_key_repository = ApiKeyRepository(db)
             api_key = api_key_repository.verify_api_key(token)
             if not api_key:

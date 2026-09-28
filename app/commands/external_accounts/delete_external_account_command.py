@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from tessera_sdk.infra.events.nats_router import NatsEventPublisher
 
+from app.db import on_commit
 from app.events.external_account_events import (
     build_external_account_deleted_event,
 )
@@ -73,9 +74,15 @@ class DeleteExternalAccountCommand:
             self.logger.info(
                 f"Publishing external_account-deleted event to NATS: {event.model_dump_json()}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    "Failed to publish external_account-deleted event to NATS"
-                )
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        "Failed to publish external_account-deleted event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)

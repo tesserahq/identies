@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.db import on_commit
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.api_key import ApiKey
 from app.models.user import User
@@ -74,7 +75,15 @@ class RevokeApiKeyCommand:
             self.logger.info(
                 f"Publishing api_key-updated event to NATS: {event.model_dump_json()}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception("Failed to publish api_key-updated event to NATS")
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        "Failed to publish api_key-updated event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)

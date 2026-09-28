@@ -9,7 +9,7 @@ from app.commands.users.onboard_user_command import OnboardUserCommand
 from app.schemas.user import User, UserOnboard
 import requests
 from datetime import datetime
-from app.utils.db.db_session_helper import db_session
+from app.db import session_scope
 
 
 class UserHandler:
@@ -31,7 +31,7 @@ class UserHandler:
         user_id = payload["sub"]
 
         user = None
-        with db_session() as db:
+        with session_scope() as db:
             user_service = UserRepository(db)
             user = user_service.get_user_by_id_or_external_id(user_id)
             if user:
@@ -79,7 +79,7 @@ class UserHandler:
         last_name = name[1] if len(name) > 1 else ""
 
         if self.config.invite_only_access:
-            with db_session() as db:
+            with session_scope() as db:
                 access_rule_repository = AccessRuleRepository(db)
                 if email and isinstance(email, str):
                     access_rule = access_rule_repository.evaluate_email_access(email)
@@ -103,7 +103,7 @@ class UserHandler:
             provider = identity.get("provider")
 
         # Onboard the user locally
-        with db_session() as db:
+        with session_scope() as db:
             onboard_command = OnboardUserCommand(db)
             user = onboard_command.execute(
                 UserOnboard(
@@ -129,7 +129,7 @@ class UserHandler:
         email = azp + "@" + self.config.oidc_domain
 
         # Onboard the service account with generic values
-        with db_session() as db:
+        with session_scope() as db:
             onboard_command = OnboardUserCommand(db)
             user = onboard_command.execute(
                 UserOnboard(

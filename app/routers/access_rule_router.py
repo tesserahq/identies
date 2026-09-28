@@ -3,14 +3,13 @@ from fastapi_pagination import Page, paginate as paginate_list
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
 from app.commands.access_rules.create_access_rule_command import CreateAccessRuleCommand
 from app.commands.access_rules.delete_access_rule_command import DeleteAccessRuleCommand
 from app.commands.access_rules.update_access_rule_command import (
     UpdateAccessRuleCommand,
 )
 from app.constants.access_rule_types import AccessRuleTypes
-from app.db import get_db
+from app.db import DbSession
 from app.models.access_rule import AccessRule as AccessRuleModel
 from app.repositories.access_rule_repository import AccessRuleRepository
 from app.routers.utils.dependencies import get_access_rule_by_id, get_current_user
@@ -39,8 +38,8 @@ rbac = build_rbac_dependencies(
 
 @router.get("/", response_model=Page[AccessRule])
 async def get_access_rules(
+    db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     """
     Get a list of access rules with pagination.
@@ -84,9 +83,9 @@ async def get_access_rule(
 @router.post("/", response_model=AccessRule)
 async def create_access_rule(
     access_rule_data: AccessRuleCreate,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Create a new access rule.
@@ -102,10 +101,10 @@ async def create_access_rule(
 @router.put("/{access_rule_id}", response_model=AccessRule)
 async def update_access_rule(
     access_rule_data: AccessRuleUpdate,
+    db: DbSession,
     access_rule: AccessRuleModel = Depends(get_access_rule_by_id),
     _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Update an existing access rule.
@@ -121,9 +120,9 @@ async def update_access_rule(
 @router.delete("/{access_rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_access_rule(
     access_rule_id: UUID,
+    db: DbSession,
     _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Delete an access rule.

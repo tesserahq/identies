@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.commands.api_keys.update_api_key_command import UpdateApiKeyCommand
 from app.commands.api_keys.delete_api_key_command import DeleteApiKeyCommand
 from app.commands.api_keys.revoke_api_key_command import RevokeApiKeyCommand
-from app.db import get_db
+from app.db import DbSession
 from app.routers.utils.dependencies import get_current_user
 from app.routers.utils.dependencies import get_api_key_by_id, get_user_by_id
 from app.schemas.api_key import (
@@ -61,9 +60,9 @@ async def get_api_key(
     operation_id="list_user_api_keys",
 )
 async def list_user_api_keys(
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     """
     List all API keys for a specific user.
@@ -77,9 +76,9 @@ async def list_user_api_keys(
 
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
 async def revoke_api_key(
+    db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Revoke an API key by its ID.
@@ -107,9 +106,9 @@ async def revoke_api_key(
 @router.put("/{key_id}", response_model=ApiKeyResponse, operation_id="update_api_key")
 async def update_api_key(
     api_key_update_request: ApiKeyUpdateRequest,
+    db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Update an API key by its ID.
@@ -139,9 +138,9 @@ async def update_api_key(
     "/{key_id}", operation_id="delete_api_key", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_api_key(
+    db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Permanently delete an API key by its ID.
@@ -180,9 +179,9 @@ async def delete_api_key(
     operation_id="introspect_api_key",
 )
 async def introspect_api_key(
+    db: DbSession,
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
 ):
     """
     Introspect an API key to check if it's valid and get information about it.
@@ -235,10 +234,10 @@ async def introspect_api_key(
 )
 async def create_user_api_key(
     api_key_data: ApiKeyCreateRequest,
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Create a new API key for a specific user.
@@ -271,11 +270,11 @@ async def create_user_api_key(
     operation_id="delete_user_api_key",
 )
 async def delete_user_api_key(
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     api_key: ApiKey = Depends(get_api_key_by_id),
     _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Delete an API key for a specific user.

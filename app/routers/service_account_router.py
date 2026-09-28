@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Optional
 from fastapi_pagination import Page
@@ -16,7 +15,7 @@ from app.commands.service_accounts.delete_service_account_command import (
 )
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.commands.clients.create_client_command import CreateClientCommand
-from app.db import get_db
+from app.db import DbSession
 from app.repositories.client_repository import ClientRepository
 from app.routers.utils.dependencies import get_current_user
 from app.schemas.client import (
@@ -58,9 +57,9 @@ rbac = build_rbac_dependencies(
 @router.post("", response_model=UserResponse, operation_id="create_service_account")
 async def create_service_account(
     service_account_data: ServiceAccountCreateRequest,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Create a new service account.
@@ -78,9 +77,9 @@ async def create_service_account(
 
 @router.get("", response_model=Page[UserResponse], operation_id="list_service_accounts")
 async def list_service_accounts(
+    db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     List all service accounts.
@@ -99,9 +98,9 @@ async def list_service_accounts(
 )
 async def get_service_account(
     service_account_id: UUID,
+    db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Get a specific service account by ID.
@@ -133,9 +132,9 @@ async def get_service_account(
 async def update_service_account(
     service_account_id: UUID,
     service_account_update: ServiceAccountUpdateRequest,
+    db: DbSession,
     _authorized: bool = Depends(rbac["update"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Update a service account by ID.
@@ -159,9 +158,9 @@ async def update_service_account(
 )
 async def delete_service_account(
     service_account_id: UUID,
+    db: DbSession,
     _authorized: bool = Depends(rbac["delete"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Delete a service account by ID.
@@ -179,9 +178,9 @@ async def delete_service_account(
 )
 async def list_service_account_api_keys(
     service_account_id: UUID,
+    db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     List all API keys for a specific service account.
@@ -215,9 +214,9 @@ async def list_service_account_api_keys(
 async def create_service_account_api_key(
     service_account_id: UUID,
     api_key_data: ApiKeyCreateRequest,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Create a new API key for a specific service account.
@@ -265,9 +264,9 @@ async def create_service_account_api_key(
 )
 async def list_service_account_clients(
     service_account_id: UUID,
+    db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     user_repository = UserRepository(db)
     user = user_repository.get_user(service_account_id)
@@ -289,9 +288,9 @@ async def list_service_account_clients(
 async def create_service_account_client(
     service_account_id: UUID,
     body: ClientCreateRequest,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     user_repository = UserRepository(db)
     user = user_repository.get_user(service_account_id)

@@ -1,12 +1,11 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
 
 from app.auth.rbac import build_rbac_dependencies
 from app.commands.clients.delete_client_command import DeleteClientCommand
 from app.commands.clients.revoke_client_command import RevokeClientCommand
-from app.db import get_db
+from app.db import DbSession
 from app.models.client import Client
 from app.models.user import User
 from app.routers.utils.dependencies import get_client_by_id, get_current_user
@@ -37,10 +36,10 @@ async def get_client(
 
 @router.put("/{client_id}/revoke", operation_id="revoke_client")
 async def revoke_client(
+    db: DbSession,
     client: Client = Depends(get_client_by_id),
     current_user: User = Depends(get_current_user),
     _authorized: bool = Depends(rbac["update"]),
-    db: Session = Depends(get_db),
 ):
     try:
         RevokeClientCommand(db).execute(client.id, current_user)
@@ -55,10 +54,10 @@ async def revoke_client(
     operation_id="delete_client",
 )
 async def delete_client(
+    db: DbSession,
     client: Client = Depends(get_client_by_id),
     current_user: User = Depends(get_current_user),
     _authorized: bool = Depends(rbac["delete"]),
-    db: Session = Depends(get_db),
 ):
     try:
         success = DeleteClientCommand(db).execute(client.id, current_user)

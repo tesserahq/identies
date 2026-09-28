@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from typing import Optional
@@ -10,15 +10,12 @@ from app.schemas.api_key import (
     ApiKeyCreateResponse,
     ApiKeyResponse,
 )
-from app.db import get_db
-from sqlalchemy.orm import Session
-from app.repositories.user_repository import UserRepository
+from app.db import DbSession
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.exceptions.service_account_error import ServiceAccountError
 from app.commands.users.update_user_command import UpdateUserCommand
 from app.commands.api_keys.create_api_key_command import CreateApiKeyCommand
 from app.auth.rbac import build_rbac_dependencies
-from uuid import UUID
 
 router = APIRouter(tags=["Me"])
 
@@ -42,8 +39,8 @@ async def get_me(
 @router.put("/me", response_model=UserResponse, operation_id="update_me")
 async def update_me(
     user_update: UserUpdate,
+    db: DbSession,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Update information for the currently authenticated user.
@@ -84,8 +81,8 @@ rbac_api_key = build_rbac_dependencies(
     operation_id="list_user_api_keys",
 )
 async def list_me_api_keys(
+    db: DbSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     List all API keys for a specific user.
@@ -104,8 +101,8 @@ async def list_me_api_keys(
 )
 async def create_me_api_key(
     api_key_data: ApiKeyCreateRequest,
+    db: DbSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Create a new API key for a specific user.
