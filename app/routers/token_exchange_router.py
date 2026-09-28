@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import get_settings
-from app.db import get_db
+from app.db import DbSession
 from app.schemas.token_exchange import TokenExchangeRequest, TokenExchangeResponse
 from app.repositories.token_exchange_repository import TokenExchangeRepository
 from app.repositories.user_repository import UserRepository
@@ -47,7 +46,7 @@ def _extract_actor(payload: dict, claim_name: str) -> str | None:
 async def token_exchange(
     body: TokenExchangeRequest,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     settings = get_settings()
 

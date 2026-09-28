@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.db import on_commit
 from app.events.client_events import build_client_revoked_event
 from app.models.user import User
 from app.repositories.client_repository import ClientRepository
@@ -34,7 +35,13 @@ class RevokeClientCommand:
 
     def _publish_event(self, client, user: User) -> None:
         event = build_client_revoked_event(client, user)
-        try:
-            self.nats_publisher.publish_sync(event, event.event_type)
-        except Exception:  # pragma: no cover
-            self.logger.exception("Failed to publish client.revoked event to NATS")
+        publisher = self.nats_publisher
+
+        def publish() -> None:
+            try:
+                publisher.publish_sync(event, event.event_type)
+            except Exception:  # pragma: no cover
+                self.logger.exception("Failed to publish client.revoked event to NATS")
+
+        # Dispatch only after the transaction commits; dropped on rollback.
+        on_commit(publish)

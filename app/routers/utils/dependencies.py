@@ -1,8 +1,7 @@
 from uuid import UUID
-from fastapi import Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
-from app.db import get_db
+from app.db import DbSession
 from app.models.access_rule import AccessRule
 from app.models.api_key import ApiKey
 from app.models.application import Application
@@ -31,7 +30,7 @@ def get_current_user(request: Request) -> User:
 
 def get_api_key_by_id(
     key_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> ApiKey:
     """FastAPI dependency to get an API key by ID.
 
@@ -53,7 +52,7 @@ def get_api_key_by_id(
 
 def get_access_rule_by_id(
     access_rule_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> AccessRule:
     """FastAPI dependency to get an access rule by ID."""
     access_rule = AccessRuleRepository(db).get_access_rule(access_rule_id)
@@ -64,7 +63,7 @@ def get_access_rule_by_id(
 
 def get_application_by_id(
     application_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> Application:
     """FastAPI dependency to get an application by ID.
 
@@ -86,7 +85,7 @@ def get_application_by_id(
 
 def get_user_by_id(
     user_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> UserModel:
     """FastAPI dependency to get a user by ID.
 
@@ -108,7 +107,7 @@ def get_user_by_id(
 
 def get_client_by_id(
     client_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> Client:
     """FastAPI dependency to get a client by ID."""
     client = ClientRepository(db).get_client_by_id(client_id)

@@ -6,7 +6,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy.orm import Session
 
 from app.commands.external_accounts.create_link_token_command import (
     CreateLinkTokenCommand,
@@ -17,7 +16,7 @@ from app.commands.external_accounts.delete_external_account_command import (
 from app.commands.external_accounts.link_external_account_command import (
     LinkExternalAccountCommand,
 )
-from app.db import get_db
+from app.db import DbSession
 from app.models.user import User
 from app.models.user import User as UserModel
 from app.schemas.user import UserResponse
@@ -61,7 +60,7 @@ rbac_user = build_rbac_dependencies(
 )
 async def create_link_token(
     body: LinkTokenCreateRequest,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """
     Create a short-lived, single-use link token.
@@ -82,8 +81,8 @@ async def create_link_token(
 )
 async def link_external_account(
     body: LinkRequest,
+    db: DbSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Link the current user to the external account referenced by the token.
@@ -104,7 +103,7 @@ async def link_external_account(
 )
 async def check_external_account(
     body: CheckRequest,
-    db: Session = Depends(get_db),
+    db: DbSession,
     _rbac_external_account: bool = Depends(rbac_external_account["read"]),
 ):
     """
@@ -131,8 +130,8 @@ async def check_external_account(
     operation_id="list_external_accounts",
 )
 async def list_external_accounts(
+    db: DbSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
     platform: Optional[str] = Query(
         None,
         description="Filter by platform (e.g. telegram)",
@@ -153,10 +152,10 @@ async def list_external_accounts(
     operation_id="list_user_external_accounts",
 )
 async def list_user_external_accounts(
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _rbac_external_account: bool = Depends(rbac_external_account["read"]),
     _rbac_user: bool = Depends(rbac_user["read"]),
-    db: Session = Depends(get_db),
     platform: Optional[str] = Query(
         None,
         description="Filter by platform (e.g. telegram)",
@@ -178,8 +177,8 @@ async def list_user_external_accounts(
 )
 async def delete_external_account(
     external_account_id: UUID,
+    db: DbSession,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Unlink an external account. Only the owner can delete.

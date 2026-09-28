@@ -7,7 +7,7 @@ from app.auth.rbac import build_rbac_dependencies
 from app.commands.clients.create_client_command import CreateClientCommand
 from app.commands.users.cancel_offboarding_command import CancelOffboardingCommand
 from app.commands.users.schedule_offboarding_command import ScheduleOffboardingCommand
-from app.db import get_db
+from app.db import DbSession
 from app.models.user import User as UserModel
 from app.repositories.client_repository import ClientRepository
 from app.routers.utils.dependencies import get_current_user, get_user_by_id
@@ -19,7 +19,6 @@ from app.schemas.client import (
 )
 from app.schemas.user import UserOffboardingScheduleRequest, UserResponse
 from app.repositories.user_repository import UserRepository
-from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["User"])
 
@@ -72,9 +71,9 @@ async def read_internal_user(
     operation_id="list_user_clients",
 )
 async def list_user_clients(
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     query = ClientRepository(db).get_clients_by_owner_query(user.id)
     return paginate(query)
@@ -88,10 +87,10 @@ async def list_user_clients(
 )
 async def create_user_client(
     body: ClientCreateRequest,
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["create"]),
     current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     client, client_secret = CreateClientCommand(db).execute(
         ClientCreate(name=body.name, owner_id=user.id, created_by_id=current_user.id),
@@ -107,11 +106,11 @@ async def create_user_client(
     operation_id="schedule_user_offboarding",
 )
 async def schedule_user_offboarding(
+    db: DbSession,
     body: Optional[UserOffboardingScheduleRequest] = None,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["delete"]),
     current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
     """
     Schedule a user for offboarding.
@@ -133,9 +132,9 @@ async def schedule_user_offboarding(
     operation_id="cancel_user_offboarding",
 )
 async def cancel_user_offboarding(
+    db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["delete"]),
-    db: Session = Depends(get_db),
 ):
     """
     Cancel a user's pending offboarding.
@@ -149,11 +148,11 @@ async def cancel_user_offboarding(
 
 @router.get("/users", response_model=Page[UserResponse], operation_id="list_users")
 async def list_users(
+    db: DbSession,
     q: str | None = Query(
         default=None, description="Search by first_name, last_name, or email"
     ),
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     """
     List all users.

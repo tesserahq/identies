@@ -1,7 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
 from app.commands.agents.claim_agent_command import ClaimAgentCommand
 from app.commands.agents.create_agent_command import CreateAgentCommand
@@ -11,7 +10,7 @@ from app.commands.agents.revoke_agent_command import RevokeAgentCommand
 from app.commands.agents.rotate_agent_credentials_command import (
     RotateAgentCredentialsCommand,
 )
-from app.db import get_db
+from app.db import DbSession
 from app.exceptions.agent_error import (
     AgentAlreadyClaimedError,
     AgentClaimError,
@@ -39,7 +38,7 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 @router.post("", response_model=AgentCreateResponse, operation_id="create_agent")
 async def create_agent(
     body: AgentCreateRequest,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Create an agent principal and its first claim code (returned once)."""
     try:
@@ -59,7 +58,7 @@ async def create_agent(
 )
 async def claim_agent(
     body: AgentClaimRequest,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Exchange a claim code for the agent's OAuth client credentials (returned once).
 
@@ -86,7 +85,7 @@ async def claim_agent(
 )
 async def issue_agent_claim_code(
     agent_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Issue a new claim code for an unclaimed agent; the previous code stops working."""
     try:
@@ -114,7 +113,7 @@ def _status_response(status) -> AgentStatusResponse:
 @router.get("/{agent_id}", response_model=AgentStatusResponse, operation_id="get_agent")
 async def get_agent(
     agent_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Where an agent is in its lifecycle, including when its credentials were last used."""
     repository = AgentRepository(db)
@@ -133,7 +132,7 @@ async def get_agent(
 )
 async def rotate_agent_credentials(
     agent_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Replace the agent's client secret (returned once). Also restores a revoked agent.
 
@@ -162,7 +161,7 @@ async def rotate_agent_credentials(
 )
 async def revoke_agent(
     agent_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Cut off the agent: its credentials can no longer mint tokens and open claim codes
     stop working. Idempotent. Tokens already minted stay valid until they expire (at
@@ -183,7 +182,7 @@ async def revoke_agent(
 )
 async def delete_agent(
     agent_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     """Delete an agent (soft delete; records it created keep resolving it). Only agents
     can be deleted here; any other id is a 404."""

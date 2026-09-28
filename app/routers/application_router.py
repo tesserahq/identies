@@ -1,15 +1,13 @@
 """Router for applications."""
 
 from typing import Optional
-from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy.orm import Session
 
 from app.auth.rbac import build_rbac_dependencies
-from app.db import get_db
+from app.db import DbSession
 from app.models.application import Application as ApplicationModel
 from app.routers.utils.dependencies import get_application_by_id
 from app.schemas.application import (
@@ -36,9 +34,9 @@ rbac = build_rbac_dependencies(
 
 @router.get("/", response_model=Page[Application])
 async def list_applications(
+    db: DbSession,
     q: Optional[str] = Query(None, description="Search by name or description"),
     _authorized: bool = Depends(rbac["read"]),
-    db: Session = Depends(get_db),
 ):
     """
     List applications with pagination.
@@ -66,8 +64,8 @@ async def get_application(
 )
 async def create_applications_batch(
     body: ApplicationBatchCreateRequest,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
-    db: Session = Depends(get_db),
 ):
     """Create multiple applications in one request."""
     service = ApplicationRepository(db)
@@ -78,8 +76,8 @@ async def create_applications_batch(
 @router.post("/", response_model=Application, status_code=status.HTTP_201_CREATED)
 async def create_application(
     application_data: ApplicationCreate,
+    db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
-    db: Session = Depends(get_db),
 ):
     """Create a new application."""
     service = ApplicationRepository(db)
@@ -89,10 +87,10 @@ async def create_application(
 
 @router.put("/{application_id}", response_model=Application)
 async def update_application(
+    db: DbSession,
     application: ApplicationModel = Depends(get_application_by_id),
     application_data: ApplicationUpdate = Body(...),
     _authorized: bool = Depends(rbac["update"]),
-    db: Session = Depends(get_db),
 ):
     """Update an existing application."""
     service = ApplicationRepository(db)
@@ -104,9 +102,9 @@ async def update_application(
 
 @router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_application(
+    db: DbSession,
     application: ApplicationModel = Depends(get_application_by_id),
     _authorized: bool = Depends(rbac["delete"]),
-    db: Session = Depends(get_db),
 ):
     """Delete an application."""
     service = ApplicationRepository(db)

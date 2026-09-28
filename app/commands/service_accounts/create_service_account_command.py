@@ -2,6 +2,7 @@ import logging
 import secrets
 from typing import Optional
 from sqlalchemy.orm import Session
+from app.db import on_commit
 from app.schemas.service_account import (
     ServiceAccountCreateRequest,
     ServiceAccountOnboard,
@@ -95,9 +96,15 @@ class CreateServiceAccountCommand:
             self.logger.info(
                 f"Publishing {event.event_type} event to NATS: {event.model_dump_json()}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception(
-                    f"Failed to publish {event.event_type} event to NATS"
-                )
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        f"Failed to publish {event.event_type} event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)

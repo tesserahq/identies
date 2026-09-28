@@ -9,7 +9,7 @@ from app.middleware.auth.user_handler import UserHandler
 @pytest.fixture()
 def user_handler(monkeypatch, db):
     monkeypatch.setattr(
-        "app.middleware.auth.user_handler.db_session",
+        "app.middleware.auth.user_handler.session_scope",
         lambda: contextlib.nullcontext(db),
     )
     monkeypatch.setenv("INVITE_ONLY_ACCESS", "true")

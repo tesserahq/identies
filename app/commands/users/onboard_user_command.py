@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from sqlalchemy.orm import Session
+from app.db import on_commit
 from app.schemas.user import UserOnboard
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
@@ -65,7 +66,15 @@ class OnboardUserCommand:
             self.logger.info(
                 f"Publishing user-created event to NATS: {event.event_type}"
             )
-            try:
-                self.nats_publisher.publish_sync(event, event.event_type)
-            except Exception:  # pragma: no cover - defensive logging
-                self.logger.exception("Failed to publish user-created event to NATS")
+            publisher = self.nats_publisher
+
+            def publish() -> None:
+                try:
+                    publisher.publish_sync(event, event.event_type)
+                except Exception:  # pragma: no cover - defensive logging
+                    self.logger.exception(
+                        "Failed to publish user-created event to NATS"
+                    )
+
+            # Dispatch only after the transaction commits; dropped on rollback.
+            on_commit(publish)

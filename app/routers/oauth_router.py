@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
 from app.constants.user_kinds import UserKind
-from app.db import get_db
+from app.db import DbSession
 from app.repositories.client_credentials_repository import (
     ClientCredentialsRepository,
     ServiceAccountClientContext,
@@ -23,7 +22,7 @@ logger = get_logger()
 @router.post("/token", response_model=OAuthTokenResponse, operation_id="oauth_token")
 async def oauth_token(
     body: OAuthTokenRequest,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ):
     if body.grant_type != "client_credentials":
         raise HTTPException(
