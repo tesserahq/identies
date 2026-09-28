@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.db import on_commit
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.models.api_key import ApiKey
@@ -40,26 +41,20 @@ class RevokeApiKeyCommand:
         Raises:
             Exception: If API key revocation fails
         """
-        try:
-            # Revoke the API key
-            success = self.api_key_service.revoke_api_key(api_key_id, user_id)
+        # Revoke the API key
+        success = self.api_key_service.revoke_api_key(api_key_id, user_id)
 
-            if not success:
-                raise Exception("API key not found or not owned by user")
+        if not success:
+            raise ResourceNotFoundError("API key not found or not owned by user")
 
-            # Get the updated API key for event publishing
-            revoked_api_key = self.api_key_service.get_api_key_by_id(api_key_id)
-            if not revoked_api_key:
-                raise Exception("Failed to retrieve revoked API key")
+        # Get the updated API key for event publishing
+        revoked_api_key = self.api_key_service.get_api_key_by_id(api_key_id)
+        if not revoked_api_key:
+            raise RuntimeError("Failed to retrieve revoked API key")
 
-            self._publish_api_key_updated_event(revoked_api_key, revoked_by)
+        self._publish_api_key_updated_event(revoked_api_key, revoked_by)
 
-            return revoked_api_key
-
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to revoke API key: {str(e)}")
+        return revoked_api_key
 
     def _publish_api_key_updated_event(self, api_key: ApiKey, user: User) -> None:
         """

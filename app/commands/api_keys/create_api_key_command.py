@@ -41,18 +41,12 @@ class CreateApiKeyCommand:
         Raises:
             Exception: If api_key creation fails
         """
-        try:
-            # Create the api_key
-            api_key, full_key = self.api_key_service.create_api_key(api_key_data)
+        # Create the api_key
+        api_key, full_key = self.api_key_service.create_api_key(api_key_data)
 
-            self._publish_api_key_created_event(api_key, created_by)
+        self._publish_api_key_created_event(api_key, created_by)
 
-            return api_key, full_key
-
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to create api_key: {str(e)}")
+        return api_key, full_key
 
     def _publish_api_key_created_event(self, api_key: ApiKey, user: User) -> None:
         """

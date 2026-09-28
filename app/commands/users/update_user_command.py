@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.db import on_commit
 from app.schemas.user import UserUpdate
 from app.repositories.user_repository import UserRepository
@@ -39,21 +40,15 @@ class UpdateUserCommand:
         Raises:
             Exception: If user update fails
         """
-        try:
-            # Update the user
-            updated_user = self.user_service.update_user(user_id, user_update)
+        # Update the user
+        updated_user = self.user_service.update_user(user_id, user_update)
 
-            if not updated_user:
-                raise Exception("User not found")
+        if not updated_user:
+            raise ResourceNotFoundError("User not found")
 
-            self._publish_user_updated_event(updated_user, user_id)
+        self._publish_user_updated_event(updated_user, user_id)
 
-            return updated_user
-
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to update user: {str(e)}")
+        return updated_user
 
     def _publish_user_updated_event(self, user: User, user_id: UUID) -> None:
         """

@@ -2,13 +2,9 @@
 tessera_sdk.testing.transaction_guards (see docs/managed-transactions.md in
 tessera-sdk-py).
 
-Violations are compared with ``transaction_baseline.json``. A violation not in
-the baseline fails, and so does a baseline entry that no longer occurs, so
-each migration slice shrinks the baseline. Regenerate it after a slice with:
-
-    UPDATE_TRANSACTION_BASELINE=1 ENV=test poetry run pytest tests/architecture
-
-Once a rule's baseline is empty it is fully enforced.
+Every rule is fully enforced: there is no baseline file, so any violation
+fails. The only exceptions are the reasoned early commits in
+``early_commit_allowlist``.
 """
 
 from pathlib import Path
@@ -28,7 +24,12 @@ CONFIG = TransactionGuardConfig(
     repository_base_modules=(),
     # Allowlisted top-level workflows that commit early around external I/O:
     # (path relative to app/, function name) -> reason.
-    early_commit_allowlist={},
+    early_commit_allowlist={
+        ("commands/agents/claim_agent_command.py", "execute"): (
+            "persist the failed attempt count (brute-force lockout) before "
+            "raising AgentClaimError"
+        ),
+    },
 )
 
 

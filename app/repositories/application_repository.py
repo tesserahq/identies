@@ -41,7 +41,7 @@ class ApplicationRepository:
         """Create a new application."""
         application = Application(**data.model_dump())
         self.db.add(application)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(application)
         return application
 
@@ -51,7 +51,7 @@ class ApplicationRepository:
         """Create multiple applications in a single transaction."""
         applications = [Application(**item.model_dump()) for item in data]
         self.db.add_all(applications)
-        self.db.commit()
+        self.db.flush()
         for app in applications:
             self.db.refresh(app)
         return applications
@@ -65,7 +65,7 @@ class ApplicationRepository:
             update_data = data.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(application, key, value)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(application)
         return application
 
@@ -74,7 +74,6 @@ class ApplicationRepository:
         application = self.get_application(application_id)
         if application:
             self.db.delete(application)
-            self.db.commit()
             return True
         return False
 

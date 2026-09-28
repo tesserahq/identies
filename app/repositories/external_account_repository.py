@@ -82,7 +82,7 @@ class ExternalAccountRepository:
             data=payload,
         )
         self.db.add(account)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(account)
         return account
 
@@ -91,7 +91,6 @@ class ExternalAccountRepository:
         account = self.get_external_account(external_account_id, user_id)
         if account:
             self.db.delete(account)
-            self.db.commit()
             return True
         return False
 
@@ -116,7 +115,7 @@ class ExternalAccountRepository:
             expires_at=expires_at,
         )
         self.db.add(link_token)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(link_token)
         return token_value, expires_at
 
@@ -133,6 +132,6 @@ class ExternalAccountRepository:
         if link_token.expires_at <= datetime.now(timezone.utc):
             return None
         link_token.used_at = datetime.now(timezone.utc)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(link_token)
         return link_token

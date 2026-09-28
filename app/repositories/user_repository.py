@@ -1,7 +1,8 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import or_
+from sqlalchemy import or_, update
 from sqlalchemy.orm import Session, Query
+from tessera_sdk.infra import Repository
 from app.models.api_key import ApiKey
 from app.models.client import Client
 from app.models.user import User
@@ -11,9 +12,7 @@ from datetime import datetime, timezone
 from app.utils.db.filtering import apply_filters
 
 
-class UserRepository:
-    def __init__(self, db: Session):
-        self.db = db
+class UserRepository(Repository):
 
     def get_user(self, user_id: UUID, include_deleted: bool = False) -> Optional[User]:
         query = self.db.query(User).filter(User.id == user_id)
@@ -66,14 +65,14 @@ class UserRepository:
     def create_user(self, user: UserCreate) -> User:
         db_user = User(**user.model_dump())
         self.db.add(db_user)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_user)
         return db_user
 
     def onboard_user(self, user: UserOnboard) -> User:
         db_user = User(**user.model_dump())
         self.db.add(db_user)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_user)
         return db_user
 
@@ -88,7 +87,7 @@ class UserRepository:
         """
         db_user = User(**service_account.model_dump())
         self.db.add(db_user)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_user)
         return db_user
 
@@ -98,7 +97,7 @@ class UserRepository:
             update_data = user.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(db_user, key, value)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_user)
         return db_user
 
@@ -114,13 +113,16 @@ class UserRepository:
             return False
 
         db_user.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        self.db.query(ApiKey).filter(
-            ApiKey.user_id == user_id, ApiKey.revoked.is_(False)
-        ).update({"revoked": True}, synchronize_session=False)
-        self.db.query(Client).filter(
-            Client.owner_id == user_id, Client.revoked.is_(False)
-        ).update({"revoked": True}, synchronize_session=False)
-        self.db.commit()
+        self._execute_mutation(
+            update(ApiKey)
+            .where(ApiKey.user_id == user_id, ApiKey.revoked.is_(False))
+            .values(revoked=True)
+        )
+        self._execute_mutation(
+            update(Client)
+            .where(Client.owner_id == user_id, Client.revoked.is_(False))
+            .values(revoked=True)
+        )
         return True
 
     def schedule_offboarding(
@@ -130,7 +132,7 @@ class UserRepository:
         if db_user:
             db_user.offboarding_scheduled_at = scheduled_at  # type: ignore[assignment]
             db_user.offboarding_scheduled_by = scheduled_by  # type: ignore[assignment]
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_user)
         return db_user
 
@@ -139,7 +141,7 @@ class UserRepository:
         if db_user:
             db_user.offboarding_scheduled_at = None  # type: ignore[assignment]
             db_user.offboarding_scheduled_by = None  # type: ignore[assignment]
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_user)
         return db_user
 
@@ -148,7 +150,7 @@ class UserRepository:
         if db_user:
             db_user.verified = True  # type: ignore[assignment]
             db_user.verified_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_user)
         return db_user
 

@@ -43,46 +43,35 @@ class ScheduleOffboardingCommand:
         scheduled_by: User,
         scheduled_at: Optional[datetime] = None,
     ) -> User:
-        try:
-            user = self.user_service.get_user(user_id)
-            if not user:
-                raise ResourceNotFoundError("User not found")
+        user = self.user_service.get_user(user_id)
+        if not user:
+            raise ResourceNotFoundError("User not found")
 
-            if user.service_account:
-                raise ServiceAccountError(
-                    "Service accounts cannot be offboarded through this flow"
-                )
-
-            if user.offboarding_scheduled_at is not None:
-                raise OffboardingAlreadyScheduledError(
-                    "User already has a pending offboarding scheduled"
-                )
-
-            effective_scheduled_at = (
-                scheduled_at
-                if scheduled_at is not None
-                else datetime.now(timezone.utc) + DEFAULT_OFFBOARDING_GRACE_PERIOD
+        if user.service_account:
+            raise ServiceAccountError(
+                "Service accounts cannot be offboarded through this flow"
             )
 
-            updated_user = self.user_service.schedule_offboarding(
-                user_id, effective_scheduled_at, scheduled_by.id
+        if user.offboarding_scheduled_at is not None:
+            raise OffboardingAlreadyScheduledError(
+                "User already has a pending offboarding scheduled"
             )
-            if not updated_user:
-                raise ResourceNotFoundError("User not found")
 
-            self._publish_offboarding_scheduled_event(updated_user, scheduled_by.id)
+        effective_scheduled_at = (
+            scheduled_at
+            if scheduled_at is not None
+            else datetime.now(timezone.utc) + DEFAULT_OFFBOARDING_GRACE_PERIOD
+        )
 
-            return updated_user
+        updated_user = self.user_service.schedule_offboarding(
+            user_id, effective_scheduled_at, scheduled_by.id
+        )
+        if not updated_user:
+            raise ResourceNotFoundError("User not found")
 
-        except (
-            ResourceNotFoundError,
-            ServiceAccountError,
-            OffboardingAlreadyScheduledError,
-        ):
-            raise
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to schedule offboarding: {str(e)}")
+        self._publish_offboarding_scheduled_event(updated_user, scheduled_by.id)
+
+        return updated_user
 
     def _publish_offboarding_scheduled_event(
         self, user: User, scheduled_by: UUID

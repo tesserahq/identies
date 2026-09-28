@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.db import on_commit
 from app.schemas.api_key import ApiKeyUpdateRequest
 from app.repositories.api_key_repository import ApiKeyRepository
@@ -48,26 +49,20 @@ class UpdateApiKeyCommand:
         Raises:
             Exception: If API key update fails
         """
-        try:
-            # Update the API key
-            updated_api_key = self.api_key_service.update_api_key(
-                api_key_id,
-                user_id,
-                name=update_data.name,
-                revoked=update_data.revoked,
-            )
+        # Update the API key
+        updated_api_key = self.api_key_service.update_api_key(
+            api_key_id,
+            user_id,
+            name=update_data.name,
+            revoked=update_data.revoked,
+        )
 
-            if not updated_api_key:
-                raise Exception("API key not found or not owned by user")
+        if not updated_api_key:
+            raise ResourceNotFoundError("API key not found or not owned by user")
 
-            self._publish_api_key_updated_event(updated_api_key, updated_by)
+        self._publish_api_key_updated_event(updated_api_key, updated_by)
 
-            return updated_api_key
-
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to update API key: {str(e)}")
+        return updated_api_key
 
     def _publish_api_key_updated_event(self, api_key: ApiKey, user: User) -> None:
         """

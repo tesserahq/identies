@@ -37,7 +37,7 @@ class ClientRepository:
         )
 
         self.db.add(db_client)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_client)
 
         return db_client, client_secret
@@ -76,7 +76,6 @@ class ClientRepository:
             return None
 
         client.last_used_at = datetime.now(timezone.utc)
-        self.db.commit()
         return client
 
     def get_latest_client_for_owner(
@@ -102,7 +101,7 @@ class ClientRepository:
         client.secret_hash = hash_secret(secret)
         client.revoked = False
         client.expires_at = datetime.now(timezone.utc) + timedelta(days=ttl_days)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(client)
         return secret
 
@@ -119,7 +118,6 @@ class ClientRepository:
         )
         for client in clients:
             client.revoked = True
-        self.db.commit()
         return clients
 
     def revoke_client(self, client_pk: UUID) -> bool:
@@ -127,7 +125,6 @@ class ClientRepository:
         if not client:
             return False
         client.revoked = True
-        self.db.commit()
         return True
 
     def delete_client(self, client_pk: UUID) -> bool:
@@ -135,5 +132,4 @@ class ClientRepository:
         if not client:
             return False
         self.db.delete(client)
-        self.db.commit()
         return True

@@ -67,6 +67,8 @@ class ClaimAgentCommand:
             claim.failed_attempts += 1
             if claim.failed_attempts >= self.settings.agent_claim_max_failed_attempts:
                 claim.invalidated_at = now
+            # commit: failed_attempt_recorded. The attempt count (and lockout)
+            # must survive the rollback the raised error triggers.
             self.db.commit()
             raise AgentClaimError()
 
@@ -74,29 +76,25 @@ class ClaimAgentCommand:
         if agent is None or agent.kind != UserKind.AGENT.value:
             self._reject()
 
-        try:
-            claim.claimed_at = now
-            # create_client commits, so consuming the claim and creating the client
-            # happen in one transaction.
-            client, client_secret = self.clients.create_client(
-                ClientCreate(
-                    name="Agent credentials",
-                    owner_id=agent.id,
-                    created_by_id=agent.id,
-                    expires_at=now
-                    + timedelta(days=self.settings.agent_client_secret_ttl_days),
-                )
+        # Consuming the claim and creating the client commit together at the
+        # execution boundary, which also releases the claim row lock.
+        claim.claimed_at = now
+        client, client_secret = self.clients.create_client(
+            ClientCreate(
+                name="Agent credentials",
+                owner_id=agent.id,
+                created_by_id=agent.id,
+                expires_at=now
+                + timedelta(days=self.settings.agent_client_secret_ttl_days),
             )
-        except Exception:
-            self.db.rollback()
-            raise
+        )
 
         self._publish_client_created_event(client, agent)
         return client, client_secret
 
     def _reject(self) -> None:
-        """Release the claim row lock (nothing was changed) and fail generically."""
-        self.db.commit()
+        """Fail generically. Nothing was changed; the execution boundary's
+        rollback releases the claim row lock."""
         raise AgentClaimError()
 
     def _publish_client_created_event(self, client: Client, agent) -> None:

@@ -48,21 +48,14 @@ class RotateAgentCredentialsCommand:
         if agent is None:
             raise AgentNotFoundError()
 
-        try:
-            # Lock the client so concurrent rotations serialize.
-            client = self.clients.get_latest_client_for_owner(agent_id, for_update=True)
-            if client is None:
-                # Nothing was changed; commit only to release the lock.
-                self.db.commit()
-                raise AgentNotClaimedError()
-            secret = self.clients.rotate_secret(
-                client, self.settings.agent_client_secret_ttl_days
-            )
-        except AgentNotClaimedError:
-            raise
-        except Exception:
-            self.db.rollback()
-            raise
+        # Lock the client so concurrent rotations serialize. The execution
+        # boundary's commit (or rollback, on error) releases the lock.
+        client = self.clients.get_latest_client_for_owner(agent_id, for_update=True)
+        if client is None:
+            raise AgentNotClaimedError()
+        secret = self.clients.rotate_secret(
+            client, self.settings.agent_client_secret_ttl_days
+        )
 
         self._publish(client, agent)
         return client, secret

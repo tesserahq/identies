@@ -43,31 +43,25 @@ class CreateAgentCommand:
             tuple[User, str, datetime]: the agent, the plaintext claim code (shown
             once) and the claim's expiry.
         """
-        try:
-            agent_id = uuid4()
-            agent = User(
-                id=agent_id,
-                email=f"agent-{agent_id}@{self.settings.agent_email_domain}",
-                first_name=request.name,
-                last_name="Agent",
-                external_id=f"agent-{secrets.token_urlsafe(16)}",
-                verified=True,
-                verified_at=datetime.now(timezone.utc),
-                kind=UserKind.AGENT,
-            )
-            self.db.add(agent)
-            self.db.flush()
+        agent_id = uuid4()
+        agent = User(
+            id=agent_id,
+            email=f"agent-{agent_id}@{self.settings.agent_email_domain}",
+            first_name=request.name,
+            last_name="Agent",
+            external_id=f"agent-{secrets.token_urlsafe(16)}",
+            verified=True,
+            verified_at=datetime.now(timezone.utc),
+            kind=UserKind.AGENT,
+        )
+        self.db.add(agent)
+        self.db.flush()
 
-            # Same transaction: an agent never exists without a way to claim it.
-            claim, code = self.claims.create_claim(
-                agent_id, self.settings.agent_claim_ttl_minutes, commit=False
-            )
-            self.db.commit()
-            self.db.refresh(agent)
-            self.db.refresh(claim)
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to create agent: {str(e)}")
+        # Same transaction: an agent never exists without a way to claim it.
+        claim, code = self.claims.create_claim(
+            agent_id, self.settings.agent_claim_ttl_minutes
+        )
+        self.db.refresh(agent)
 
         self._publish_user_created_event(agent)
         return agent, code, claim.expires_at

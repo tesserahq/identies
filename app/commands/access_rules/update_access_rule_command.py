@@ -64,10 +64,9 @@ class UpdateAccessRuleCommand:
             self._publish_access_rule_updated_event(updated_rule, updated_by)
             return updated_rule
 
-        except (AccessRuleAlreadyExistsError, ResourceNotFoundError):
-            raise
         except IntegrityError:
-            self.db.rollback()
+            # A concurrent update won the race past the check above; the
+            # execution boundary rolls back this request.
             new_kind = str(
                 access_rule_data.kind
                 if access_rule_data.kind is not None
@@ -79,9 +78,6 @@ class UpdateAccessRuleCommand:
                 else access_rule.value
             )
             raise self._already_exists_error(new_kind, new_value)
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to update access rule: {str(e)}")
 
     def _publish_access_rule_updated_event(
         self, access_rule: AccessRule, user: User

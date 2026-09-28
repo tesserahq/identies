@@ -24,24 +24,17 @@ class CancelOffboardingCommand:
         self.logger = logging.getLogger(__name__)
 
     def execute(self, user_id: UUID) -> User:
-        try:
-            user = self.user_service.get_user(user_id)
-            if not user:
-                raise ResourceNotFoundError("User not found")
+        user = self.user_service.get_user(user_id)
+        if not user:
+            raise ResourceNotFoundError("User not found")
 
-            if user.offboarding_scheduled_at is None:
-                raise OffboardingNotScheduledError(
-                    "User has no pending offboarding to cancel"
-                )
+        if user.offboarding_scheduled_at is None:
+            raise OffboardingNotScheduledError(
+                "User has no pending offboarding to cancel"
+            )
 
-            updated_user = self.user_service.cancel_offboarding(user_id)
-            if not updated_user:
-                raise ResourceNotFoundError("User not found")
+        updated_user = self.user_service.cancel_offboarding(user_id)
+        if not updated_user:
+            raise ResourceNotFoundError("User not found")
 
-            return updated_user
-
-        except (ResourceNotFoundError, OffboardingNotScheduledError):
-            raise
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to cancel offboarding: {str(e)}")
+        return updated_user
