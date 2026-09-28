@@ -44,17 +44,11 @@ class DeleteAgentCommand:
         if agent is None:
             raise AgentNotFoundError()
 
-        try:
-            self.claims.invalidate_open_claims(agent_id)
-            # Soft-deletes the user and revokes its API keys and clients in one commit.
-            if not self.users.delete_user(agent_id):
-                raise AgentNotFoundError()
-        except AgentNotFoundError:
-            self.db.rollback()
-            raise
-        except Exception:
-            self.db.rollback()
-            raise
+        self.claims.invalidate_open_claims(agent_id)
+        # Soft-deletes the user and revokes its API keys and clients; it all
+        # commits together at the execution boundary.
+        if not self.users.delete_user(agent_id):
+            raise AgentNotFoundError()
 
         self._publish(agent)
 

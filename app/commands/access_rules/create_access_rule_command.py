@@ -43,14 +43,10 @@ class CreateAccessRuleCommand:
             self._publish_access_rule_created_event(access_rule, created_by)
             return access_rule
 
-        except AccessRuleAlreadyExistsError:
-            raise
         except IntegrityError:
-            self.db.rollback()
+            # A concurrent create won the race past the check above; the
+            # execution boundary rolls back this request.
             raise self._already_exists_error(access_rule_data)
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to create access rule: {str(e)}")
 
     def _publish_access_rule_created_event(
         self, access_rule: AccessRule, user: User

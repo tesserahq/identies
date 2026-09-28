@@ -41,34 +41,26 @@ class DeleteServiceAccountCommand:
             ServiceAccountError: If the user is not a service account
             Exception: If service account deletion fails unexpectedly
         """
-        try:
-            # Verify it's a service account
-            user = self.user_service.get_user(service_account_id)
-            if not user:
-                raise ResourceNotFoundError("Service account not found")
+        # Verify it's a service account
+        user = self.user_service.get_user(service_account_id)
+        if not user:
+            raise ResourceNotFoundError("Service account not found")
 
-            if not user.service_account:
-                raise ServiceAccountError("User is not a service account")
+        if not user.service_account:
+            raise ServiceAccountError("User is not a service account")
 
-            # Store user data for event before deletion
-            user_data = user
+        # Store user data for event before deletion
+        user_data = user
 
-            # Delete the service account
-            success = self.user_service.delete_user(service_account_id)
+        # Delete the service account
+        success = self.user_service.delete_user(service_account_id)
 
-            if not success:
-                raise Exception("Failed to delete service account")
+        if not success:
+            raise RuntimeError("Failed to delete service account")
 
-            self._publish_user_deleted_event(user_data, service_account_id)
+        self._publish_user_deleted_event(user_data, service_account_id)
 
-            return True
-
-        except (ResourceNotFoundError, ServiceAccountError):
-            raise
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to delete service account: {str(e)}")
+        return True
 
     def _publish_user_deleted_event(self, user: User, user_id: UUID) -> None:
         """

@@ -29,23 +29,16 @@ class DeleteAccessRuleCommand:
         self.logger = logging.getLogger(__name__)
 
     def execute(self, access_rule_id: UUID, deleted_by: User) -> bool:
-        try:
-            access_rule = self.access_rule_service.get_access_rule(access_rule_id)
-            if not access_rule:
-                raise ResourceNotFoundError("Access rule not found")
+        access_rule = self.access_rule_service.get_access_rule(access_rule_id)
+        if not access_rule:
+            raise ResourceNotFoundError("Access rule not found")
 
-            success = self.access_rule_service.delete_access_rule(access_rule_id)
-            if not success:
-                raise ResourceNotFoundError("Access rule not found")
+        success = self.access_rule_service.delete_access_rule(access_rule_id)
+        if not success:
+            raise ResourceNotFoundError("Access rule not found")
 
-            self._publish_access_rule_deleted_event(access_rule, deleted_by)
-            return success
-
-        except ResourceNotFoundError:
-            raise
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to delete access rule: {str(e)}")
+        self._publish_access_rule_deleted_event(access_rule, deleted_by)
+        return success
 
     def _publish_access_rule_deleted_event(
         self, access_rule: AccessRule, user: User

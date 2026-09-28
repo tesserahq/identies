@@ -46,14 +46,9 @@ class RevokeAgentCommand:
         if agent is None:
             raise AgentNotFoundError()
 
-        try:
-            self.claims.invalidate_open_claims(agent_id)
-            self.db.commit()
-            self.api_keys.revoke_all_for_user(agent_id)
-            revoked = self.clients.revoke_all_for_owner(agent_id)
-        except Exception:
-            self.db.rollback()
-            raise
+        self.claims.invalidate_open_claims(agent_id)
+        self.api_keys.revoke_all_for_user(agent_id)
+        revoked = self.clients.revoke_all_for_owner(agent_id)
 
         for client in revoked:
             self._publish(client, agent)

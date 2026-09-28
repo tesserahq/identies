@@ -1,15 +1,15 @@
 from typing import List, Optional
 from uuid import UUID
+from sqlalchemy import update
 from sqlalchemy.orm import Session, Query
+from tessera_sdk.infra import Repository
 from app.models.api_key import ApiKey
 from app.schemas.api_key import ApiKeyCreate
 from app.utils.security import generate_api_key, hash_secret, parse_api_key
 from datetime import datetime, timezone
 
 
-class ApiKeyRepository:
-    def __init__(self, db: Session):
-        self.db = db
+class ApiKeyRepository(Repository):
 
     def create_api_key(self, api_key_data: ApiKeyCreate) -> tuple[ApiKey, str]:
         """
@@ -37,7 +37,7 @@ class ApiKeyRepository:
         )
 
         self.db.add(db_api_key)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_api_key)
 
         return db_api_key, full_key
@@ -94,19 +94,17 @@ class ApiKeyRepository:
 
         if db_api_key:
             setattr(db_api_key, "revoked", True)
-            self.db.commit()
             return True
         return False
 
     def revoke_all_for_user(self, user_id: UUID) -> int:
         """Revoke every active API key of the user; returns how many were revoked."""
-        count = (
-            self.db.query(ApiKey)
-            .filter(ApiKey.user_id == user_id, ApiKey.revoked.is_(False))
-            .update({"revoked": True}, synchronize_session=False)
+        result = self._execute_mutation(
+            update(ApiKey)
+            .where(ApiKey.user_id == user_id, ApiKey.revoked.is_(False))
+            .values(revoked=True)
         )
-        self.db.commit()
-        return count
+        return result.rowcount
 
     def verify_api_key(self, full_key: str) -> Optional[ApiKey]:
         """
@@ -142,7 +140,6 @@ class ApiKeyRepository:
 
         # Update last_used_at
         setattr(db_api_key, "last_used_at", datetime.now(timezone.utc))
-        self.db.commit()
 
         return db_api_key
 
@@ -186,7 +183,7 @@ class ApiKeyRepository:
         if revoked is not None:
             db_api_key.revoked = revoked
 
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_api_key)
         return db_api_key
 
@@ -209,6 +206,5 @@ class ApiKeyRepository:
 
         if db_api_key:
             self.db.delete(db_api_key)
-            self.db.commit()
             return True
         return False

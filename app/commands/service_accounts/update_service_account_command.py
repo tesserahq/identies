@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.db import on_commit
 from app.schemas.service_account import ServiceAccountUpdateRequest
 from app.schemas.user import UserUpdate
@@ -44,57 +45,49 @@ class UpdateServiceAccountCommand:
         Raises:
             Exception: If service account update fails
         """
-        try:
-            # Verify it's a service account
-            user = self.user_service.get_user(service_account_id)
-            if not user:
-                raise Exception("Service account not found")
+        # Verify it's a service account
+        user = self.user_service.get_user(service_account_id)
+        if not user:
+            raise ResourceNotFoundError("Service account not found")
 
-            if not user.service_account:
-                raise Exception("User is not a service account")
+        if not user.service_account:
+            raise ValueError("User is not a service account")
 
-            # Check if email is being updated and if it already exists
-            if service_account_update.email:
-                existing_user = self.user_service.get_user_by_email(
-                    service_account_update.email
-                )
-                if existing_user and existing_user.id != service_account_id:
-                    raise Exception(
-                        f"User with email {service_account_update.email} already exists"
-                    )
-
-            # Convert ServiceAccountUpdateRequest to UserUpdate
-            # Only include fields that are actually being updated (not None)
-            update_dict = {}
-            if service_account_update.email is not None:
-                update_dict["email"] = service_account_update.email
-            if service_account_update.first_name is not None:
-                update_dict["first_name"] = service_account_update.first_name
-            if service_account_update.last_name is not None:
-                update_dict["last_name"] = service_account_update.last_name
-
-            # If no fields to update, return the user as-is
-            if not update_dict:
-                return user
-
-            user_update = UserUpdate(**update_dict)
-
-            # Update the service account
-            updated_user = self.user_service.update_user(
-                service_account_id, user_update
+        # Check if email is being updated and if it already exists
+        if service_account_update.email:
+            existing_user = self.user_service.get_user_by_email(
+                service_account_update.email
             )
+            if existing_user and existing_user.id != service_account_id:
+                raise ValueError(
+                    f"User with email {service_account_update.email} already exists"
+                )
 
-            if not updated_user:
-                raise Exception("Service account not found")
+        # Convert ServiceAccountUpdateRequest to UserUpdate
+        # Only include fields that are actually being updated (not None)
+        update_dict = {}
+        if service_account_update.email is not None:
+            update_dict["email"] = service_account_update.email
+        if service_account_update.first_name is not None:
+            update_dict["first_name"] = service_account_update.first_name
+        if service_account_update.last_name is not None:
+            update_dict["last_name"] = service_account_update.last_name
 
-            self._publish_user_updated_event(updated_user, service_account_id)
+        # If no fields to update, return the user as-is
+        if not update_dict:
+            return user
 
-            return updated_user
+        user_update = UserUpdate(**update_dict)
 
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to update service account: {str(e)}")
+        # Update the service account
+        updated_user = self.user_service.update_user(service_account_id, user_update)
+
+        if not updated_user:
+            raise ResourceNotFoundError("Service account not found")
+
+        self._publish_user_updated_event(updated_user, service_account_id)
+
+        return updated_user
 
     def _publish_user_updated_event(self, user: User, user_id: UUID) -> None:
         """

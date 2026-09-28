@@ -37,21 +37,15 @@ class OnboardUserCommand:
         Raises:
             Exception: If user onboarding fails
         """
-        try:
-            # Onboard the user
-            user = self.user_service.onboard_user(user_onboard)
+        # Onboard the user
+        user = self.user_service.onboard_user(user_onboard)
 
-            if not user:
-                raise Exception("Failed to onboard user")
+        if not user:
+            raise RuntimeError("Failed to onboard user")
 
-            self._publish_user_created_event(user)
+        self._publish_user_created_event(user)
 
-            return user
-
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to onboard user: {str(e)}")
+        return user
 
     def _publish_user_created_event(self, user: User) -> None:
         """

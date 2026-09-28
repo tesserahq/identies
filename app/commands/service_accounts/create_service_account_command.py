@@ -43,45 +43,37 @@ class CreateServiceAccountCommand:
         Raises:
             Exception: If service account creation fails
         """
-        try:
-            # Check if email already exists
-            existing_user = self.user_service.get_user_by_email(
-                service_account_data.email
-            )
-            if existing_user:
-                raise Exception(
-                    f"User with email {service_account_data.email} already exists"
-                )
-
-            # Create the service account using ServiceAccountOnboard schema
-            # Service accounts use external_id as a unique identifier
-            # We'll use a format like "system-{random}" to generate a unique external_id
-            external_id = f"system-{secrets.token_urlsafe(16)}"
-
-            service_account_onboard = ServiceAccountOnboard(
-                email=service_account_data.email,
-                first_name=service_account_data.first_name,
-                last_name=service_account_data.last_name,
-                external_id=external_id,
-                service_account=True,
-                verified=True,
-                verified_at=datetime.now(),
+        # Check if email already exists
+        existing_user = self.user_service.get_user_by_email(service_account_data.email)
+        if existing_user:
+            raise ValueError(
+                f"User with email {service_account_data.email} already exists"
             )
 
-            # Create the service account
-            user = self.user_service.onboard_service_account(service_account_onboard)
+        # Create the service account using ServiceAccountOnboard schema
+        # Service accounts use external_id as a unique identifier
+        # We'll use a format like "system-{random}" to generate a unique external_id
+        external_id = f"system-{secrets.token_urlsafe(16)}"
 
-            if not user:
-                raise Exception("Failed to create service account")
+        service_account_onboard = ServiceAccountOnboard(
+            email=service_account_data.email,
+            first_name=service_account_data.first_name,
+            last_name=service_account_data.last_name,
+            external_id=external_id,
+            service_account=True,
+            verified=True,
+            verified_at=datetime.now(),
+        )
 
-            self._publish_user_created_event(user)
+        # Create the service account
+        user = self.user_service.onboard_service_account(service_account_onboard)
 
-            return user
+        if not user:
+            raise RuntimeError("Failed to create service account")
 
-        except Exception as e:
-            # Rollback the transaction if something goes wrong
-            self.db.rollback()
-            raise Exception(f"Failed to create service account: {str(e)}")
+        self._publish_user_created_event(user)
+
+        return user
 
     def _publish_user_created_event(self, user: User) -> None:
         """

@@ -36,11 +36,7 @@ class IssueAgentClaimCommand:
         if self.claims.has_been_claimed(agent_id):
             raise AgentAlreadyClaimedError()
 
-        try:
-            claim, code = self.claims.create_claim(
-                agent_id, self.settings.agent_claim_ttl_minutes
-            )
-        except Exception:
-            self.db.rollback()
-            raise
+        claim, code = self.claims.create_claim(
+            agent_id, self.settings.agent_claim_ttl_minutes
+        )
         return code, claim.expires_at

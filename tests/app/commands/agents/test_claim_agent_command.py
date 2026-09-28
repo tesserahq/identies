@@ -199,6 +199,7 @@ def test_concurrent_claims_of_one_code_mint_exactly_one_client(engine, monkeypat
         AgentCreateRequest(name="Racer")
     )
     agent_id = agent.id
+    setup.commit()  # the request boundary commits the created agent and claim
     setup.close()
 
     results: list[str] = []
@@ -212,8 +213,12 @@ def test_concurrent_claims_of_one_code_mint_exactly_one_client(engine, monkeypat
             session.execute(text("SELECT 1"))
             barrier.wait()
             ClaimAgentCommand(session, nats_publisher=MagicMock()).execute(code)
+            # Commit like the request's execution boundary does; this releases
+            # the claim row lock only after the claim has been consumed.
+            session.commit()
             results.append("ok")
         except AgentClaimError:
+            session.rollback()
             results.append("rejected")
         finally:
             session.close()

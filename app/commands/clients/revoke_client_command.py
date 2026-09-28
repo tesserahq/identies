@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.exceptions.resource_not_found_error import ResourceNotFoundError
 from app.db import on_commit
 from app.events.client_events import build_client_revoked_event
 from app.models.user import User
@@ -25,7 +26,7 @@ class RevokeClientCommand:
     def execute(self, client_id: UUID, revoked_by: User) -> bool:
         client = self.client_repository.get_client_by_id(client_id)
         if not client:
-            raise Exception("Client not found")
+            raise ResourceNotFoundError("Client not found")
 
         success = self.client_repository.revoke_client(client_id)
         if success:

@@ -37,7 +37,7 @@ class AccessRuleRepository:
         """Create a new access rule."""
         db_access_rule = AccessRule(**access_rule.model_dump())
         self.db.add(db_access_rule)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_access_rule)
         return db_access_rule
 
@@ -52,7 +52,7 @@ class AccessRuleRepository:
             update_data = access_rule.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(db_access_rule, key, value)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_access_rule)
         return db_access_rule
 
@@ -63,7 +63,6 @@ class AccessRuleRepository:
         )
         if db_access_rule:
             self.db.delete(db_access_rule)
-            self.db.commit()
             return True
         return False
 
