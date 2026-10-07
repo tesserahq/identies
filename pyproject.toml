@@ -53,7 +53,7 @@ cryptography = "^50.0.0"
 PyYAML = "^6.0.1"
 uvicorn = "0.41.0"
 # tessera-sdk = { path = "../tessera-sdk-py/", develop = true }
-tessera-sdk = {git = "https://github.com/tesserahq/tessera-sdk-py.git", rev = "main"}
+tessera-sdk = {git = "https://github.com/tesserahq/tessera-sdk-py.git", rev = "d70145ca6f8ce81bc6f0d32b0ff6712b13cd0612"}
 opentelemetry-instrumentation-faststream = "^0.1.3"
 prometheus-fastapi-instrumentator = "^8.0.2"
 
