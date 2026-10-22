@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column,
     String,
     Boolean,
+    DateTime,
     ForeignKey,
     Index,
     text,
@@ -16,7 +17,6 @@ import uuid
 
 from app.constants.user_kinds import UserKind
 from app.db import Base
-from app.models.types import UTCNaiveDateTime
 
 NON_INTERACTIVE_KINDS = (UserKind.AGENT.value, UserKind.SERVICE_ACCOUNT.value)
 
@@ -57,9 +57,9 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     last_name = Column(String, nullable=False)
     preferred_name = Column(String, nullable=True)
     provider = Column(String, nullable=True)
-    confirmed_at = Column(UTCNaiveDateTime(), nullable=True)
+    confirmed_at = Column(DateTime, nullable=True)
     verified = Column(Boolean, default=False)
-    verified_at = Column(UTCNaiveDateTime(), nullable=True)
+    verified_at = Column(DateTime, nullable=True)
     external_id = Column(String, nullable=True)
     theme_preference = Column(String, default="system", nullable=True)
     kind = Column(String(20), nullable=False)
@@ -71,11 +71,11 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     # Offboarding: set when an admin schedules a user for removal. Execution
     # (soft delete + IdP removal + user.deleted event) is handled by a
     # separate background job once offboarding_scheduled_at elapses.
-    offboarding_scheduled_at = Column(UTCNaiveDateTime(), nullable=True)
+    offboarding_scheduled_at = Column(DateTime, nullable=True)
     offboarding_scheduled_by = Column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
-    deleted_event_published_at = Column(UTCNaiveDateTime(), nullable=True)
+    deleted_event_published_at = Column(DateTime, nullable=True)
 
     # Relationships
     api_keys = relationship("ApiKey", back_populates="user")
