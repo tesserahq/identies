@@ -1,11 +1,10 @@
 from app.models.mixins import TimestampMixin
-from sqlalchemy import Column, String, Boolean, ForeignKey, Index
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 
 from app.db import Base
-from app.models.types import UTCNaiveDateTime
 
 
 class ApiKey(Base, TimestampMixin):
@@ -25,8 +24,8 @@ class ApiKey(Base, TimestampMixin):
     key_id = Column(String, unique=True, nullable=False)
     secret_hash = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    last_used_at = Column(UTCNaiveDateTime(), nullable=True)
-    expires_at = Column(UTCNaiveDateTime(), nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
     revoked = Column(Boolean, default=False, nullable=False)
 
     # Relationship
