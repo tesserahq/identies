@@ -40,7 +40,7 @@ rbac = build_rbac_dependencies(
 
 
 @router.get("/{key_id}", response_model=ApiKeyResponse, operation_id="get_api_key")
-async def get_api_key(
+def get_api_key(
     api_key: ApiKey = Depends(get_api_key_by_id),
     _current_user: User = Depends(get_current_user),
     _authorized: bool = Depends(rbac["read"]),
@@ -59,7 +59,7 @@ async def get_api_key(
     response_model=Page[ApiKeyResponse],
     operation_id="list_user_api_keys",
 )
-async def list_user_api_keys(
+def list_user_api_keys(
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
@@ -75,7 +75,7 @@ async def list_user_api_keys(
 
 
 @router.put("/{key_id}/revoke", operation_id="revoke_api_key")
-async def revoke_api_key(
+def revoke_api_key(
     db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
@@ -104,7 +104,7 @@ async def revoke_api_key(
 
 
 @router.put("/{key_id}", response_model=ApiKeyResponse, operation_id="update_api_key")
-async def update_api_key(
+def update_api_key(
     api_key_update_request: ApiKeyUpdateRequest,
     db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
@@ -137,7 +137,7 @@ async def update_api_key(
 @router.delete(
     "/{key_id}", operation_id="delete_api_key", status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_api_key(
+def delete_api_key(
     db: DbSession,
     api_key: ApiKey = Depends(get_api_key_by_id),
     current_user: User = Depends(get_current_user),
@@ -178,7 +178,7 @@ async def delete_api_key(
     response_model=ApiKeyIntrospectResponse,
     operation_id="introspect_api_key",
 )
-async def introspect_api_key(
+def introspect_api_key(
     db: DbSession,
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
@@ -232,7 +232,7 @@ async def introspect_api_key(
     response_model=ApiKeyCreateResponse,
     operation_id="create_user_api_key",
 )
-async def create_user_api_key(
+def create_user_api_key(
     api_key_data: ApiKeyCreateRequest,
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
@@ -269,7 +269,7 @@ async def create_user_api_key(
     status_code=status.HTTP_204_NO_CONTENT,
     operation_id="delete_user_api_key",
 )
-async def delete_user_api_key(
+def delete_user_api_key(
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     api_key: ApiKey = Depends(get_api_key_by_id),

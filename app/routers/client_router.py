@@ -26,7 +26,7 @@ rbac = build_rbac_dependencies(
 
 
 @router.get("/{client_id}", response_model=ClientResponse, operation_id="get_client")
-async def get_client(
+def get_client(
     client: Client = Depends(get_client_by_id),
     _current_user: User = Depends(get_current_user),
     _authorized: bool = Depends(rbac["read"]),
@@ -35,7 +35,7 @@ async def get_client(
 
 
 @router.put("/{client_id}/revoke", operation_id="revoke_client")
-async def revoke_client(
+def revoke_client(
     db: DbSession,
     client: Client = Depends(get_client_by_id),
     current_user: User = Depends(get_current_user),
@@ -53,7 +53,7 @@ async def revoke_client(
     status_code=status.HTTP_204_NO_CONTENT,
     operation_id="delete_client",
 )
-async def delete_client(
+def delete_client(
     db: DbSession,
     client: Client = Depends(get_client_by_id),
     current_user: User = Depends(get_current_user),

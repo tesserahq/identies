@@ -58,7 +58,7 @@ rbac_user = build_rbac_dependencies(
     response_model=LinkTokenResponse,
     operation_id="create_link_token",
 )
-async def create_link_token(
+def create_link_token(
     body: LinkTokenCreateRequest,
     db: DbSession,
 ):
@@ -79,7 +79,7 @@ async def create_link_token(
     response_model=ExternalAccountResponse,
     operation_id="link_external_account",
 )
-async def link_external_account(
+def link_external_account(
     body: LinkRequest,
     db: DbSession,
     current_user: User = Depends(get_current_user),
@@ -101,7 +101,7 @@ async def link_external_account(
     response_model=CheckResponse,
     operation_id="check_external_account",
 )
-async def check_external_account(
+def check_external_account(
     body: CheckRequest,
     db: DbSession,
     _rbac_external_account: bool = Depends(rbac_external_account["read"]),
@@ -129,7 +129,7 @@ async def check_external_account(
     response_model=Page[ExternalAccountResponse],
     operation_id="list_external_accounts",
 )
-async def list_external_accounts(
+def list_external_accounts(
     db: DbSession,
     current_user: User = Depends(get_current_user),
     platform: Optional[str] = Query(
@@ -151,7 +151,7 @@ async def list_external_accounts(
     response_model=Page[ExternalAccountResponse],
     operation_id="list_user_external_accounts",
 )
-async def list_user_external_accounts(
+def list_user_external_accounts(
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _rbac_external_account: bool = Depends(rbac_external_account["read"]),
@@ -175,7 +175,7 @@ async def list_user_external_accounts(
     status_code=status.HTTP_204_NO_CONTENT,
     operation_id="delete_external_account",
 )
-async def delete_external_account(
+def delete_external_account(
     external_account_id: UUID,
     db: DbSession,
     current_user: User = Depends(get_current_user),

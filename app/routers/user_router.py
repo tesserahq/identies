@@ -37,7 +37,7 @@ rbac = build_rbac_dependencies(
 @router.get(
     "/users/{user_id}", response_model=UserResponse, operation_id="get_user_by_id"
 )
-async def read_user(
+def read_user(
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
 ):
@@ -54,7 +54,7 @@ async def read_user(
     response_model=UserResponse,
     operation_id="get_user_by_id",
 )
-async def read_internal_user(
+def read_internal_user(
     user: UserModel = Depends(get_user_by_id),
 ):
     """
@@ -70,7 +70,7 @@ async def read_internal_user(
     response_model=Page[ClientResponse],
     operation_id="list_user_clients",
 )
-async def list_user_clients(
+def list_user_clients(
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["read"]),
@@ -85,7 +85,7 @@ async def list_user_clients(
     operation_id="create_user_client",
     status_code=201,
 )
-async def create_user_client(
+def create_user_client(
     body: ClientCreateRequest,
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
@@ -105,7 +105,7 @@ async def create_user_client(
     response_model=UserResponse,
     operation_id="schedule_user_offboarding",
 )
-async def schedule_user_offboarding(
+def schedule_user_offboarding(
     db: DbSession,
     body: Optional[UserOffboardingScheduleRequest] = None,
     user: UserModel = Depends(get_user_by_id),
@@ -131,7 +131,7 @@ async def schedule_user_offboarding(
     response_model=UserResponse,
     operation_id="cancel_user_offboarding",
 )
-async def cancel_user_offboarding(
+def cancel_user_offboarding(
     db: DbSession,
     user: UserModel = Depends(get_user_by_id),
     _authorized: bool = Depends(rbac["delete"]),
@@ -147,7 +147,7 @@ async def cancel_user_offboarding(
 
 
 @router.get("/users", response_model=Page[UserResponse], operation_id="list_users")
-async def list_users(
+def list_users(
     db: DbSession,
     q: str | None = Query(
         default=None, description="Search by first_name, last_name, or email"

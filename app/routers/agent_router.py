@@ -36,7 +36,7 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 
 
 @router.post("", response_model=AgentCreateResponse, operation_id="create_agent")
-async def create_agent(
+def create_agent(
     body: AgentCreateRequest,
     db: DbSession,
 ):
@@ -56,7 +56,7 @@ async def create_agent(
 @router.post(
     "/claim", response_model=AgentCredentialsResponse, operation_id="claim_agent"
 )
-async def claim_agent(
+def claim_agent(
     body: AgentClaimRequest,
     db: DbSession,
 ):
@@ -83,7 +83,7 @@ async def claim_agent(
     response_model=AgentClaimCodeResponse,
     operation_id="issue_agent_claim_code",
 )
-async def issue_agent_claim_code(
+def issue_agent_claim_code(
     agent_id: UUID,
     db: DbSession,
 ):
@@ -111,7 +111,7 @@ def _status_response(status) -> AgentStatusResponse:
 
 
 @router.get("/{agent_id}", response_model=AgentStatusResponse, operation_id="get_agent")
-async def get_agent(
+def get_agent(
     agent_id: UUID,
     db: DbSession,
 ):
@@ -130,7 +130,7 @@ async def get_agent(
     response_model=AgentCredentialsResponse,
     operation_id="rotate_agent_credentials",
 )
-async def rotate_agent_credentials(
+def rotate_agent_credentials(
     agent_id: UUID,
     db: DbSession,
 ):
@@ -159,7 +159,7 @@ async def rotate_agent_credentials(
     response_model=AgentStatusResponse,
     operation_id="revoke_agent",
 )
-async def revoke_agent(
+def revoke_agent(
     agent_id: UUID,
     db: DbSession,
 ):
@@ -180,7 +180,7 @@ async def revoke_agent(
     status_code=status.HTTP_204_NO_CONTENT,
     operation_id="delete_agent",
 )
-async def delete_agent(
+def delete_agent(
     agent_id: UUID,
     db: DbSession,
 ):

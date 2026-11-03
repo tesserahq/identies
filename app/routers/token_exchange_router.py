@@ -43,7 +43,7 @@ def _extract_actor(payload: dict, claim_name: str) -> str | None:
     response_model=TokenExchangeResponse,
     operation_id="token_exchange",
 )
-async def token_exchange(
+def token_exchange(
     body: TokenExchangeRequest,
     request: Request,
     db: DbSession,

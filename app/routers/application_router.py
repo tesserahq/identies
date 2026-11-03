@@ -33,7 +33,7 @@ rbac = build_rbac_dependencies(
 
 
 @router.get("/", response_model=Page[Application])
-async def list_applications(
+def list_applications(
     db: DbSession,
     q: Optional[str] = Query(None, description="Search by name or description"),
     _authorized: bool = Depends(rbac["read"]),
@@ -49,7 +49,7 @@ async def list_applications(
 
 
 @router.get("/{application_id}", response_model=Application)
-async def get_application(
+def get_application(
     application: ApplicationModel = Depends(get_application_by_id),
     _authorized: bool = Depends(rbac["read"]),
 ):
@@ -62,7 +62,7 @@ async def get_application(
     response_model=ApplicationBatchCreateResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_applications_batch(
+def create_applications_batch(
     body: ApplicationBatchCreateRequest,
     db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
@@ -74,7 +74,7 @@ async def create_applications_batch(
 
 
 @router.post("/", response_model=Application, status_code=status.HTTP_201_CREATED)
-async def create_application(
+def create_application(
     application_data: ApplicationCreate,
     db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
@@ -86,7 +86,7 @@ async def create_application(
 
 
 @router.put("/{application_id}", response_model=Application)
-async def update_application(
+def update_application(
     db: DbSession,
     application: ApplicationModel = Depends(get_application_by_id),
     application_data: ApplicationUpdate = Body(...),
@@ -101,7 +101,7 @@ async def update_application(
 
 
 @router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_application(
+def delete_application(
     db: DbSession,
     application: ApplicationModel = Depends(get_application_by_id),
     _authorized: bool = Depends(rbac["delete"]),

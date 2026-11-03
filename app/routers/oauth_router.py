@@ -20,7 +20,7 @@ logger = get_logger()
 
 
 @router.post("/token", response_model=OAuthTokenResponse, operation_id="oauth_token")
-async def oauth_token(
+def oauth_token(
     body: OAuthTokenRequest,
     db: DbSession,
 ):
