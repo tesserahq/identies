@@ -55,7 +55,7 @@ rbac = build_rbac_dependencies(
 
 
 @router.post("", response_model=UserResponse, operation_id="create_service_account")
-async def create_service_account(
+def create_service_account(
     service_account_data: ServiceAccountCreateRequest,
     db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
@@ -76,7 +76,7 @@ async def create_service_account(
 
 
 @router.get("", response_model=Page[UserResponse], operation_id="list_service_accounts")
-async def list_service_accounts(
+def list_service_accounts(
     db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
     current_user: User = Depends(get_current_user),
@@ -96,7 +96,7 @@ async def list_service_accounts(
     response_model=UserResponse,
     operation_id="get_service_account",
 )
-async def get_service_account(
+def get_service_account(
     service_account_id: UUID,
     db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
@@ -129,7 +129,7 @@ async def get_service_account(
     response_model=UserResponse,
     operation_id="update_service_account",
 )
-async def update_service_account(
+def update_service_account(
     service_account_id: UUID,
     service_account_update: ServiceAccountUpdateRequest,
     db: DbSession,
@@ -156,7 +156,7 @@ async def update_service_account(
     operation_id="delete_service_account",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_service_account(
+def delete_service_account(
     service_account_id: UUID,
     db: DbSession,
     _authorized: bool = Depends(rbac["delete"]),
@@ -176,7 +176,7 @@ async def delete_service_account(
     response_model=Page[ApiKeyResponse],
     operation_id="list_service_account_api_keys",
 )
-async def list_service_account_api_keys(
+def list_service_account_api_keys(
     service_account_id: UUID,
     db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
@@ -211,7 +211,7 @@ async def list_service_account_api_keys(
     response_model=ApiKeyCreateResponse,
     operation_id="create_service_account_api_key",
 )
-async def create_service_account_api_key(
+def create_service_account_api_key(
     service_account_id: UUID,
     api_key_data: ApiKeyCreateRequest,
     db: DbSession,
@@ -262,7 +262,7 @@ async def create_service_account_api_key(
     response_model=Page[ClientResponse],
     operation_id="list_service_account_clients",
 )
-async def list_service_account_clients(
+def list_service_account_clients(
     service_account_id: UUID,
     db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
@@ -285,7 +285,7 @@ async def list_service_account_clients(
     operation_id="create_service_account_client",
     status_code=201,
 )
-async def create_service_account_client(
+def create_service_account_client(
     service_account_id: UUID,
     body: ClientCreateRequest,
     db: DbSession,

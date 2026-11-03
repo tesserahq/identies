@@ -37,7 +37,7 @@ rbac = build_rbac_dependencies(
 
 
 @router.get("/", response_model=Page[AccessRule])
-async def get_access_rules(
+def get_access_rules(
     db: DbSession,
     _authorized: bool = Depends(rbac["read"]),
 ):
@@ -56,7 +56,7 @@ async def get_access_rules(
     response_model=Page[AccessRuleTypeOption],
     operation_id="list_access_rule_types",
 )
-async def list_access_rule_types(
+def list_access_rule_types(
     _authorized: bool = Depends(rbac["read"]),
 ):
     """
@@ -68,7 +68,7 @@ async def list_access_rule_types(
 
 
 @router.get("/{access_rule_id}", response_model=AccessRule)
-async def get_access_rule(
+def get_access_rule(
     access_rule: AccessRuleModel = Depends(get_access_rule_by_id),
     _authorized: bool = Depends(rbac["read"]),
 ):
@@ -81,7 +81,7 @@ async def get_access_rule(
 
 
 @router.post("/", response_model=AccessRule)
-async def create_access_rule(
+def create_access_rule(
     access_rule_data: AccessRuleCreate,
     db: DbSession,
     _authorized: bool = Depends(rbac["create"]),
@@ -99,7 +99,7 @@ async def create_access_rule(
 
 
 @router.put("/{access_rule_id}", response_model=AccessRule)
-async def update_access_rule(
+def update_access_rule(
     access_rule_data: AccessRuleUpdate,
     db: DbSession,
     access_rule: AccessRuleModel = Depends(get_access_rule_by_id),
@@ -118,7 +118,7 @@ async def update_access_rule(
 
 
 @router.delete("/{access_rule_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_access_rule(
+def delete_access_rule(
     access_rule_id: UUID,
     db: DbSession,
     _authorized: bool = Depends(rbac["delete"]),

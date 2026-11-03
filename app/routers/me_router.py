@@ -25,7 +25,7 @@ async def infer_domain(request: Request) -> Optional[str]:
 
 
 @router.get("/me", response_model=UserResponse, operation_id="get_me")
-async def get_me(
+def get_me(
     current_user=Depends(get_current_user),
 ):
     """
@@ -37,7 +37,7 @@ async def get_me(
 
 
 @router.put("/me", response_model=UserResponse, operation_id="update_me")
-async def update_me(
+def update_me(
     user_update: UserUpdate,
     db: DbSession,
     current_user=Depends(get_current_user),
@@ -80,7 +80,7 @@ rbac_api_key = build_rbac_dependencies(
     response_model=Page[ApiKeyResponse],
     operation_id="list_user_api_keys",
 )
-async def list_me_api_keys(
+def list_me_api_keys(
     db: DbSession,
     current_user: User = Depends(get_current_user),
 ):
@@ -99,7 +99,7 @@ async def list_me_api_keys(
     response_model=ApiKeyCreateResponse,
     operation_id="create_me_api_key",
 )
-async def create_me_api_key(
+def create_me_api_key(
     api_key_data: ApiKeyCreateRequest,
     db: DbSession,
     current_user: User = Depends(get_current_user),
