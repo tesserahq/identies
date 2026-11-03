@@ -137,6 +137,12 @@ class Settings(BaseSettings):
     database_max_overflow: int = Field(
         default=5, json_schema_extra={"env": "DATABASE_MAX_OVERFLOW"}
     )
+    # Seconds a request waits for a pooled connection before failing. Short,
+    # so pool exhaustion surfaces as fast errors instead of stalled requests
+    # (linden-api SDD 0012).
+    database_pool_timeout: float = Field(
+        default=5, json_schema_extra={"env": "DATABASE_POOL_TIMEOUT"}
+    )
     db_app_name: str = Field(
         default="identies-api", json_schema_extra={"env": "DB_APP_NAME"}
     )
