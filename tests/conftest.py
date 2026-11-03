@@ -3,7 +3,7 @@ import pytest
 import logging
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, make_url, text
 from sqlalchemy.orm import sessionmaker
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials
@@ -68,24 +68,23 @@ settings = get_settings()
 
 
 def ensure_test_database():
-    """Ensure the test database exists."""
+    """Ensure the configured test database exists.
 
-    # Connect to default postgres database
-    engine = create_engine(settings.database_url)
-    conn = engine.connect()
+    CREATE DATABASE cannot run inside a transaction, so connect to the
+    ``postgres`` maintenance database in autocommit mode.
+    """
+    url = make_url(settings.database_url)
+    engine = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
 
-    logger.debug(f"Connected to PostgreSQL database: {settings.database_url}")
+    with engine.connect() as conn:
+        exists = conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = :name"),
+            {"name": url.database},
+        ).scalar()
+        if not exists:
+            logger.debug(f"Creating test database {url.database}...")
+            conn.execute(text(f'CREATE DATABASE "{url.database}"'))
 
-    # Check if test database exists
-    result = conn.execute(
-        text("SELECT 1 FROM pg_database WHERE datname = 'vaulta_test'")
-    )
-    if not result.scalar():
-        logger.debug("Creating test database...")
-        conn.execute(text("COMMIT"))  # Close any open transaction
-        conn.execute(text("CREATE DATABASE vaulta_test"))
-
-    conn.close()
     engine.dispose()
 
 
