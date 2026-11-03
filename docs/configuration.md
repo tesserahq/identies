@@ -22,6 +22,7 @@ change its behaviour. A test fails if a setting is added to the code without bei
 | `TEST_DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/identies_test` | Used when `ENV=test` |
 | `DATABASE_POOL_SIZE` | `10` | Connection pool size |
 | `DATABASE_MAX_OVERFLOW` | `5` | Extra connections allowed beyond the pool |
+| `DATABASE_POOL_TIMEOUT` | `5` | Seconds to wait for a pooled connection before the request fails |
 | `DB_APP_NAME` | `identies-api` | `application_name` reported to PostgreSQL |
 
 ## Identity provider (OIDC)
