@@ -25,16 +25,16 @@ fastapi = "^0.162.0"
 python-dotenv = "^1.0.0"
 gunicorn = "26.2.0"
 faker = "40.44.0"
-sqlalchemy = "^2.1.1"
+sqlalchemy = "^2.1.8"
 sqlalchemy-json = "^0.7.0"
 asyncpg = "^0.32.0"
 alembic = "^1.15.1"
 vaulta-client = { git = "https://github.com/estate-buddy-tech/vaulta-py.git", branch = "main" }
 
-fastapi-pagination = "^0.16.0"
-pydantic = {extras = ["email"], version = "^2.14.2"}
+fastapi-pagination = "^0.16.2"
+pydantic = {extras = ["email"], version = "^2.14.3"}
 black = "^26.10.1"
-ruff = "0.17.3"
+ruff = "0.17.4"
 pydantic-settings = "^2.16.2"
 
 opentelemetry-instrumentation-fastapi = "^0.66b1"
