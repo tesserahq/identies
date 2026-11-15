@@ -4,7 +4,10 @@ from fastapi.testclient import TestClient
 
 from app.db import get_db
 from app.main import create_app
-from app.middleware.auth.exceptions import UnauthorizedException
+from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
+    UnauthorizedException,
+)
 from app.middleware.auth.token_handler import TokenHandler
 
 
@@ -28,9 +31,10 @@ def test_verify_jwt_wraps_jwks_connection_error_as_unauthorized(
 
     monkeypatch.setattr(jwt.PyJWKClient, "get_signing_key_from_jwt", _raise_timeout)
 
-    with pytest.raises(UnauthorizedException) as exc_info:
+    with pytest.raises(AuthUpstreamException) as exc_info:
         token_handler.verify("some.jwt.token")
 
+    assert isinstance(exc_info.value, UnauthorizedException)
     assert "read operation timed out" in str(exc_info.value)
 
 
@@ -42,8 +46,40 @@ def test_verify_jwt_wraps_decode_error_as_unauthorized(token_handler, monkeypatc
         jwt.PyJWKClient, "get_signing_key_from_jwt", _raise_decode_error
     )
 
-    with pytest.raises(UnauthorizedException):
+    with pytest.raises(UnauthorizedException) as exc_info:
         token_handler.verify("some.jwt.token")
+
+    assert not isinstance(exc_info.value, AuthUpstreamException)
+
+
+def test_verify_malformed_token_is_client_failure(token_handler):
+    """A token that is not a JWT at all fails before any JWKS fetch and is a
+    client failure, not an upstream one."""
+    with pytest.raises(UnauthorizedException) as exc_info:
+        token_handler.verify("e2e-fake-access-token")
+
+    assert not isinstance(exc_info.value, AuthUpstreamException)
+    assert "Not enough segments" in str(exc_info.value)
+
+
+def test_verify_signature_failure_is_client_failure(token_handler, monkeypatch):
+    monkeypatch.setattr(
+        jwt.PyJWKClient, "get_signing_key_from_jwt", lambda self, token: _FakeKey()
+    )
+
+    def _raise_expired(*args, **kwargs):
+        raise jwt.exceptions.ExpiredSignatureError("Signature has expired")
+
+    monkeypatch.setattr(jwt, "decode", _raise_expired)
+
+    with pytest.raises(UnauthorizedException) as exc_info:
+        token_handler.verify("some.jwt.token")
+
+    assert not isinstance(exc_info.value, AuthUpstreamException)
+
+
+class _FakeKey:
+    key = "fake-key"
 
 
 def test_jwks_client_is_reused_across_requests(db, test_user, monkeypatch):

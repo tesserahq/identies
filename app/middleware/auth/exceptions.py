@@ -40,6 +40,12 @@ class UnauthorizedException(HTTPException):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
 
+class AuthUpstreamException(UnauthorizedException):
+    """The credential could not be checked because an upstream dependency
+    (the IDP's JWKS or userinfo endpoint) failed. Clients still get a 401, but
+    unlike a bad token this is a server-side problem worth alerting on."""
+
+
 class UnauthenticatedException(HTTPException):
     def __init__(self):
         """Returns HTTP 401"""

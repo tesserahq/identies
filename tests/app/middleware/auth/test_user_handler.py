@@ -1,8 +1,13 @@
 import contextlib
 
 import pytest
+import requests
 
-from app.middleware.auth.exceptions import InviteOnlyAccessException
+from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
+    InviteOnlyAccessException,
+    UnauthorizedException,
+)
 from app.middleware.auth.user_handler import UserHandler
 
 
@@ -58,3 +63,46 @@ def test_handle_user_onboarding_invite_only_rejection_single_word_name(user_hand
     detail = exc_info.value.detail
     assert detail["first_name"] == "Cher"
     assert "last_name" not in detail
+
+
+class _FakeResponse:
+    def __init__(self, status_code: int, text: str = ""):
+        self.status_code = status_code
+        self.text = text
+
+    def json(self):
+        return {}
+
+
+def test_fetch_user_info_connection_error_is_upstream_failure(
+    user_handler, monkeypatch
+):
+    def _raise(*args, **kwargs):
+        raise requests.exceptions.ConnectTimeout("timed out")
+
+    monkeypatch.setattr("app.middleware.auth.user_handler.requests.get", _raise)
+
+    with pytest.raises(AuthUpstreamException):
+        user_handler.fetch_user_info_from_oidc("token")
+
+
+def test_fetch_user_info_server_error_is_upstream_failure(user_handler, monkeypatch):
+    monkeypatch.setattr(
+        "app.middleware.auth.user_handler.requests.get",
+        lambda *a, **k: _FakeResponse(503, "unavailable"),
+    )
+
+    with pytest.raises(AuthUpstreamException):
+        user_handler.fetch_user_info_from_oidc("token")
+
+
+def test_fetch_user_info_rejected_token_is_client_failure(user_handler, monkeypatch):
+    monkeypatch.setattr(
+        "app.middleware.auth.user_handler.requests.get",
+        lambda *a, **k: _FakeResponse(401, "invalid token"),
+    )
+
+    with pytest.raises(UnauthorizedException) as exc_info:
+        user_handler.fetch_user_info_from_oidc("token")
+
+    assert not isinstance(exc_info.value, AuthUpstreamException)
