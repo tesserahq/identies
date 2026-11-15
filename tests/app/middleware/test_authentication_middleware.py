@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -7,7 +9,11 @@ from app.config import get_settings
 from app.db import get_db
 from app.main import create_app
 from app.middleware.authentication_middleware import AuthenticationMiddleware
-from app.middleware.auth.exceptions import InviteOnlyAccessException
+from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
+    InviteOnlyAccessException,
+    UnauthorizedException,
+)
 from app.middleware.auth.token_handler import TokenHandler
 from app.middleware.auth.user_handler import UserHandler
 
@@ -79,7 +85,80 @@ def test_local_token_wrong_account_type(middleware):
     assert middleware._is_allowed_service_account_for_m2m(payload) is False
 
 
-def test_invite_only_rejection_returns_403_not_500(db, monkeypatch):
+def _client(db) -> TestClient:
+    def override_get_db():
+        yield db
+
+    app = create_app(testing=False)
+    app.dependency_overrides[get_db] = override_get_db
+    return TestClient(app)
+
+
+@pytest.fixture()
+def capture_logs(caplog):
+    """The app logger doesn't propagate to the root logger, so attach caplog's
+    handler to it directly."""
+    app_logger = logging.getLogger("uvicorn")
+    app_logger.addHandler(caplog.handler)
+    caplog.set_level(logging.DEBUG, logger="uvicorn")
+    yield caplog
+    app_logger.removeHandler(caplog.handler)
+
+
+def _error_records(caplog):
+    return [r for r in caplog.records if r.levelno >= logging.ERROR]
+
+
+def test_client_token_failure_returns_401_without_error_log(
+    db, monkeypatch, capture_logs
+):
+    def _raise(self, token):
+        raise UnauthorizedException("Not enough segments")
+
+    monkeypatch.setattr(TokenHandler, "verify", _raise)
+
+    response = _client(db).get(
+        "/me", headers={"Authorization": "Bearer e2e-fake-access-token"}
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"error": "Unauthorized"}
+    assert _error_records(capture_logs) == []
+    warnings = [r for r in capture_logs.records if r.levelno == logging.WARNING]
+    assert any("Not enough segments" in r.getMessage() for r in warnings)
+    assert not any("e2e-fake-access-token" in r.getMessage() for r in warnings)
+
+
+def test_upstream_token_failure_returns_401_with_error_log(
+    db, monkeypatch, capture_logs
+):
+    def _raise(self, token):
+        raise AuthUpstreamException("Fail to fetch data from the url")
+
+    monkeypatch.setattr(TokenHandler, "verify", _raise)
+
+    response = _client(db).get("/me", headers={"Authorization": "Bearer x.y.z"})
+
+    assert response.status_code == 401
+    assert response.json() == {"error": "Unauthorized"}
+    assert len(_error_records(capture_logs)) == 1
+
+
+def test_upstream_user_resolution_failure_logs_error(db, monkeypatch, capture_logs):
+    monkeypatch.setattr(TokenHandler, "verify", lambda self, token: {"sub": "test"})
+
+    def _raise(self, token, payload):
+        raise AuthUpstreamException("Failed to fetch user info from oidc")
+
+    monkeypatch.setattr(UserHandler, "resolve_user", _raise)
+
+    response = _client(db).get("/me", headers={"Authorization": "Bearer x.y.z"})
+
+    assert response.status_code == 401
+    assert len(_error_records(capture_logs)) == 1
+
+
+def test_invite_only_rejection_returns_403_not_500(db, monkeypatch, capture_logs):
     """Regression test: InviteOnlyAccessException raised during user resolution
     inside AuthenticationMiddleware.dispatch() must be converted to a 403
     JSONResponse instead of propagating as an unhandled 500."""
@@ -108,3 +187,4 @@ def test_invite_only_rejection_returns_403_not_500(db, monkeypatch):
             "email": "user@example.com",
         }
     }
+    assert _error_records(capture_logs) == []

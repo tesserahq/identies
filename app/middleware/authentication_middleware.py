@@ -12,7 +12,10 @@ from typing import Any
 
 from app.middleware.auth.user_handler import UserHandler
 from app.config import get_settings
-from app.middleware.auth.exceptions import UnauthorizedException
+from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
+    UnauthorizedException,
+)
 from app.core.logging_config import get_logger
 
 SKIP_AUTH_PATHS = [
@@ -65,7 +68,12 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             # the event loop so a slow IDP doesn't stall other requests.
             payload = await run_in_threadpool(self.token_handler.verify, token)
         except UnauthorizedException as e:
-            logger.error("UnauthorizedException: %s", e)
+            # Bad tokens are expected client traffic; only upstream failures
+            # reach ERROR (and therefore Rollbar).
+            log = (
+                logger.error if isinstance(e, AuthUpstreamException) else logger.warning
+            )
+            log("%s: %s", type(e).__name__, e.detail)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"error": "Unauthorized"},
@@ -89,7 +97,11 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 self.user_handler.resolve_user, token, payload
             )
         except HTTPException as e:
-            logger.error("%s: %s", type(e).__name__, e.detail)
+            is_server_side = (
+                isinstance(e, AuthUpstreamException) or e.status_code >= 500
+            )
+            log = logger.error if is_server_side else logger.warning
+            log("%s: %s", type(e).__name__, e.detail)
             return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
 
         return await call_next(request)
