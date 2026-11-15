@@ -1,5 +1,6 @@
 from app.config import get_settings
 from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
     UnauthorizedException,
     InviteOnlyAccessException,
 )
@@ -59,12 +60,18 @@ class UserHandler:
                 userinfo_url, headers=headers, timeout=self.config.oidc_userinfo_timeout
             )
         except requests.exceptions.RequestException as error:
-            raise UnauthorizedException(
+            raise AuthUpstreamException(
                 f"Failed to fetch user info from oidc. err: {error}"
             )
 
         if response.status_code != 200:
-            raise UnauthorizedException(
+            # 4xx means the IDP rejected this token; 5xx means the IDP is broken.
+            exception_class = (
+                AuthUpstreamException
+                if response.status_code >= 500
+                else UnauthorizedException
+            )
+            raise exception_class(
                 f"Failed to fetch user info from oidc. "
                 f"Status code: {response.status_code}, Response: {response.text}"
             )

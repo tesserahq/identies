@@ -1,7 +1,10 @@
 import jwt
 
 from app.config import get_settings
-from app.middleware.auth.exceptions import UnauthorizedException
+from app.middleware.auth.exceptions import (
+    AuthUpstreamException,
+    UnauthorizedException,
+)
 from app.repositories.api_key_repository import ApiKeyRepository
 from app.db import session_scope
 
@@ -58,6 +61,10 @@ class TokenHandler:
         allowed_issuers = self._allowed_issuers()
         allowed_audiences = self._allowed_audiences()
         last_error: Exception | None = None
+        # Set when a JWKS endpoint was unreachable, so a failure can be told
+        # apart from a bad token. Malformed tokens fail header parsing before
+        # any fetch, so they never set this.
+        upstream_error: Exception | None = None
 
         if self.local_public_key_pem:
             try:
@@ -75,6 +82,10 @@ class TokenHandler:
         for jwks_client in self.jwks_clients:
             try:
                 signing_key = jwks_client.get_signing_key_from_jwt(token).key
+            except jwt.exceptions.PyJWKClientConnectionError as error:
+                upstream_error = error
+                last_error = error
+                continue
             except jwt.exceptions.PyJWKClientError as error:
                 last_error = error
                 continue
@@ -95,6 +106,8 @@ class TokenHandler:
                 last_error = error
                 continue
 
+        if upstream_error:
+            raise AuthUpstreamException(str(upstream_error))
         if last_error:
             raise UnauthorizedException(str(last_error))
         raise UnauthorizedException("Unable to verify token")
