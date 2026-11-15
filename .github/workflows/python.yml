@@ -58,7 +58,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.12
+          python-version: "3.14"
       - name: Install dependencies
         env:
           PYTHON_BIN: ${{ steps.setup-python.outputs.python-path }}
@@ -66,8 +66,8 @@ jobs:
           POETRY_VERSION=$(sed -n 's/.*POETRY_VERSION=\([0-9.]*\).*/\1/p' Dockerfile)
           test -n "$POETRY_VERSION"
           # Install Poetry with the setup-python interpreter, not the runner
-          # image's default Python (3.14 on ubuntu-26.04, outside the project's
-          # supported range), and pin the project env to it.
+          # image's default Python (which can differ from the Dockerfile's Python),
+          # and pin the project env to it.
           pipx install --python "$PYTHON_BIN" "poetry==$POETRY_VERSION"
           poetry env use "$PYTHON_BIN"
           poetry install
