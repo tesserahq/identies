@@ -1271,6 +1271,7 @@ googleapis-common-protos = ">=1.57,<2.0"
 grpcio = [
     {version = ">=1.63.2,<2.0.0", markers = "python_version < \"3.13\""},
     {version = ">=1.66.2,<2.0.0", markers = "python_version == \"3.13\""},
+    {version = ">=1.75.1,<2.0.0", markers = "python_version >= \"3.14\""},
 ]
 opentelemetry-api = ">=1.15,<2.0"
 opentelemetry-exporter-otlp-common = "0.66b1"
@@ -2605,5 +2606,5 @@ files = [
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.11,<3.14"
-content-hash = "af1c86a037d7417e8724c717a307b2f012de47316b55a58f9b41e0fd7039f91e"
+python-versions = ">=3.11,<3.15"
+content-hash = "aa6a8ad8885b9286b3cedfe877f4176f56cd8688a51308d9e3da1cc40a77348e"
