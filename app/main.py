@@ -8,7 +8,7 @@ from rollbar.logger import RollbarHandler
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.telemetry import setup_tracing
 from app.exceptions.handlers import register_exception_handlers
-from app.core.logging_config import get_logger
+from app.core.logging_config import attach_error_handler, get_logger
 from fastapi_pagination import add_pagination
 from tessera_sdk.server.health import get_livez_readyz_router
 from tessera_sdk.server.dependencies.auth import get_current_user
@@ -35,12 +35,11 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
         # Initialize Rollbar SDK with your server-side access token
         rollbar.init(settings.rollbar_access_token, environment=settings.environment)
 
-        # Report ERROR and above to Rollbar
+        # Report ERROR and above to Rollbar, from every logger: the app's own
+        # loggers and libraries such as tessera_sdk (NATS publishing, clients).
         rollbar_handler = RollbarHandler()
         rollbar_handler.setLevel(logging.ERROR)
-
-        # Attach Rollbar handler to the root logger
-        logger.addHandler(rollbar_handler)
+        attach_error_handler(rollbar_handler)
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
