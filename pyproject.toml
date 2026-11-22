@@ -23,7 +23,7 @@ packages = [
 python = ">=3.11,<3.15"
 fastapi = "^0.162.5"
 python-dotenv = "^1.0.0"
-gunicorn = "26.2.0"
+gunicorn = "27.0.1"
 faker = "40.54.0"
 sqlalchemy = "^2.1.8"
 sqlalchemy-json = "^0.7.0"
